@@ -312,6 +312,8 @@ export default function XmlReader() {
             try {
                 const savedRecords = await loadRecordsFromDB();
                 if (savedRecords && savedRecords.length > 0) {
+                    // Re-validate strictly if rules are loaded
+                    // Note: 'rules' might be empty initially if useRules is async
                     setRecords(savedRecords);
                 }
             } catch (error) {
@@ -321,15 +323,18 @@ export default function XmlReader() {
         load();
     }, []);
 
-    // Re-validate when rules change
+    // Re-validate when rules change OR records are just loaded?
+    // Actually, simply watching rules is enough if we trust the dependency.
+    // Issue: 'records' inside useEffect is from closure.
     React.useEffect(() => {
-        if (records.length > 0) {
+        setRecords(prevRecords => {
+            if (prevRecords.length === 0) return prevRecords;
             const validator = new ValidationEngine(rules);
-            setRecords(prev => prev.map(r => ({
+            return prevRecords.map(r => ({
                 ...r,
                 validationResults: validator.validate(r)
-            })));
-        }
+            }));
+        });
     }, [rules]);
 
     const [hoveredError, setHoveredError] = useState<{ x: number, y: number, errors: any[], title: string } | null>(null);
@@ -1017,13 +1022,14 @@ export default function XmlReader() {
                 rules={rules}
                 onSave={(newRules) => {
                     saveRules(newRules);
-                    // Rerun validation on all records
-                    const validator = new ValidationEngine(newRules);
-                    const updatedRecords = records.map(r => ({
-                        ...r,
-                        validationResults: validator.validate(r)
-                    }));
-                    setRecords(updatedRecords);
+                    // Rerun validation on all records using functional update to guarantee fresh state
+                    setRecords(prevRecords => {
+                        const validator = new ValidationEngine(newRules);
+                        return prevRecords.map(r => ({
+                            ...r,
+                            validationResults: validator.validate(r)
+                        }));
+                    });
                 }}
             />
 

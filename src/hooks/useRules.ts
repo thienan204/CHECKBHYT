@@ -4,18 +4,63 @@ import { ValidationRule, DEFAULT_RULES } from '@/lib/validation';
 const STORAGE_KEY = 'validationRules';
 
 export function useRules() {
-    const [rules, setRules] = useState<ValidationRule[]>(DEFAULT_RULES);
+    const [rules, setRules] = useState<ValidationRule[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load from storage on mount
+    const saveRules = async (newRules: ValidationRule[]) => {
+        // Optimistic update
+        setRules(newRules);
+        try {
+            await fetch('/api/rules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRules)
+            });
+        } catch (error) {
+            console.error('Failed to save rules:', error);
+        }
+    };
+
+    // Load from API on mount
     useEffect(() => {
-        const loadRules = () => {
+        const fetchRules = async () => {
             try {
-                const stored = localStorage.getItem(STORAGE_KEY);
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        setRules(parsed);
+                const res = await fetch('/api/rules');
+                if (res.ok) {
+                    const dbRules = await res.json();
+
+                    // MIGRATION LOCIG: 
+                    // Check if we have legacy rules in LocalStorage
+                    const localString = localStorage.getItem('validationRules');
+                    let localRules: ValidationRule[] = [];
+
+                    if (localString) {
+                        try {
+                            const parsed = JSON.parse(localString);
+                            if (Array.isArray(parsed) && parsed.length > 0) {
+                                localRules = parsed;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing local rules', e);
+                        }
+                    }
+
+                    // Policy: If DB is empty and we have local rules, migrate them automatically
+                    if (Array.isArray(dbRules) && dbRules.length === 0 && localRules.length > 0) {
+                        console.log('Migrating rules from LocalStorage to Database...');
+                        await saveRules(localRules);
+                        // setRules is called inside saveRules
+                    } else if (Array.isArray(dbRules) && dbRules.length > 0) {
+                        setRules(dbRules);
+                    } else if (localRules.length > 0) {
+                        // Fallback: If DB fetch ok but empty, and we wasn't able to save for some reason, show local?
+                        // Ideally we already called saveRules above.
+                        // This block handles explicit "use local if DB empty" display logic if save failed?
+                        // Let's just trust state.
+                        setRules(localRules);
+                    } else {
+                        // Both empty
+                        setRules([]);
                     }
                 }
             } catch (error) {
@@ -25,41 +70,7 @@ export function useRules() {
             }
         };
 
-        loadRules();
-
-        // Listen for storage events (sync across tabs)
-        const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === STORAGE_KEY) {
-                loadRules();
-            }
-        };
-
-        window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
-    }, []);
-
-    const saveRules = (newRules: ValidationRule[]) => {
-        setRules(newRules);
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(newRules));
-            // Dispatch a custom event for same-tab sync if components are mounted efficiently without page reload
-            window.dispatchEvent(new Event('local-rules-update'));
-        } catch (error) {
-            console.error('Failed to save rules:', error);
-        }
-    };
-
-    // Listen for custom local updates (same tab)
-    useEffect(() => {
-        const handleLocalUpdate = () => {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                setRules(JSON.parse(stored));
-            }
-        };
-
-        window.addEventListener('local-rules-update', handleLocalUpdate);
-        return () => window.removeEventListener('local-rules-update', handleLocalUpdate);
+        fetchRules();
     }, []);
 
     return { rules, saveRules, isLoaded };

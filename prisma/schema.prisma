@@ -6,8 +6,25 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model ValidationRule {
+  id              String   @id @default(cuid())
+  active          Boolean  @default(true)
+  type            String   // 'Xuất toán' | 'Cảnh báo'
+  xmlType         String   // XML1, XML2, ...
+  field           String?
+  name            String
+  description     String?
+  code            String
+  conditionField  String?
+  conditionValue  String?
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

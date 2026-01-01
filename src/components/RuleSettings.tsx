@@ -70,10 +70,21 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
 
     if (isModal && !isOpen) return null;
 
+    console.log('RuleSettings debug:', {
+        rulesCount: rules.length,
+        searchTerm,
+        selectedXmlType,
+        sampleRule: rules[0]
+    });
+
     const filteredRules = rules.filter(r => {
-        const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.xmlType.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = selectedXmlType === 'ALL' || r.xmlType === selectedXmlType;
+        // Safe access guards
+        const name = r.name || '';
+        const xmlType = r.xmlType || '';
+
+        const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            xmlType.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = selectedXmlType === 'ALL' || xmlType === selectedXmlType;
         return matchesSearch && matchesType;
     });
 
