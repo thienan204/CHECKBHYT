@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import RuleSettings from '@/components/RuleSettings';
-import { DEFAULT_RULES } from '@/lib/validation';
 import { useRules } from '@/hooks/useRules';
 
 export default function RulesPage() {
@@ -18,18 +17,24 @@ export default function RulesPage() {
                 <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-blue-200/20 rounded-full blur-[100px]"></div>
             </div>
 
-            <div className="relative z-10 flex-col flex h-full">
+            <div className="relative z-10 flex-col flex h-full pt-20">
                 <div className="px-8 py-6 flex items-center justify-between">
-                    <Link href="/kiem-tra-loi-bhxh" className="flex items-center gap-2 group">
-                        <div className="w-8 h-8 bg-white rounded-full shadow-sm flex items-center justify-center border border-slate-200 group-hover:scale-110 transition-transform">
-                            <svg className="w-4 h-4 text-slate-400 group-hover:text-cyan-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                        </div>
-                        <span className="font-bold text-slate-500 group-hover:text-cyan-700 transition-colors">Quay lại kiểm tra</span>
-                    </Link>
+
                     <h1 className="text-2xl font-black text-slate-800 italic">
                         Cấu hình <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600">Quy tắc Validation</span>
                     </h1>
-                    <div className="w-32"></div>
+                    <div className="flex items-center justify-end w-32">
+                        <button
+                            onClick={async () => {
+                                await fetch('/api/auth/logout', { method: 'POST' });
+                                window.location.href = '/';
+                            }}
+                            className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                            Đăng xuất
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 px-8 pb-8 flex flex-col">

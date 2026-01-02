@@ -34,23 +34,34 @@ const XML_FIELDS: Record<string, string[]> = {
     ],
     'XML4': [
         'MA_LK', 'STT', 'MA_DICH_VU', 'MA_CHI_SO', 'TEN_CHI_SO', 'GIA_TRI', 'DON_VI_DO',
-        'MO_TA', 'KET_LUAN', 'NGAY_KQ'
+        'MO_TA', 'KET_LUAN', 'NGAY_KQ', 'MA_BS_DOC_KQ'
     ],
     'XML5': [
         'MA_LK', 'STT', 'DIEN_BIEN', 'HOI_CHAN', 'PHAU_THUAT', 'NGAY_YL'
     ],
-    'XML6': [], // Placeholder
+    'XML6': [],
     'XML7': [
         'MA_LK', 'SO_LUU_TRU', 'MA_YTE', 'MA_KHOA', 'NGAY_VAO', 'NGAY_RA', 'MA_BENH',
-        'CHAN_DOAN', 'PP_DIEU_TRI', 'LOI_DAN_BS', 'GHI_CHU', 'MA_TTDV', 'NGAY_CT', 'MA_THE_TAM'
+        'CHAN_DOAN', 'PP_DIEU_TRI', 'LOI_DAN_BS', 'GHI_CHU', 'MA_TTDV', 'NGAY_CT', 'MA_THE_TAM',
+        'HO_TEN_CHA', 'HO_TEN_ME', 'NGUOI_GIAM_HO'
     ],
-    'XML8': [],
-    'XML9': [],
+    'XML8': ['MA_LK', 'MA_LO', 'CO_SO_SX', 'HAN_DUNG', 'SO_LUONG'],
+    'XML9': [
+        'MA_LK', 'MA_BHXH_NND', 'MA_THE_NND', 'HO_TEN_NND', 'NGAYSINH_NND', 'MA_DANTOC_NND',
+        'SO_CCCD_NND', 'NGAYCAP_CCCD_NND', 'NOICAP_CCCD_NND', 'NOI_CU_TRU_NND', 'MA_QUOCTICH',
+        'MATINH_CU_TRU', 'MAXA_CU_TRU', 'HO_TEN_CHA', 'MA_THE_TAM', 'HO_TEN_CON', 'GIOI_TINH_CON',
+        'SO_CON', 'LAN_SINH', 'SO_CON_SONG', 'CAN_NANG_CON', 'NGAY_SINH_CON', 'NOI_SINH_CON',
+        'TINH_TRANG_CON', 'SINHCON_PHAUTHUAT', 'SINHCON_DUOI32TUAN', 'GHI_CHU', 'NGUOI_DO_DE',
+        'NGAY_CT', 'SO', 'QUYEN_SO', 'NGUOI_GHI_PHIEU'
+    ],
     'XML10': [],
-    'XML11': [],
+    'XML11': [
+        'MA_LK', 'S0_SERI', 'SO_CT', 'NGAY_CT', 'MA_NHOM', 'MA_DV', 'THANH_TIEN',
+        'THUE_SUAT', 'TIEN_THUE', 'TONG_TIEN', 'TY_LE', 'MA_TIEU_CHI'
+    ],
     'XML12': [],
-    'XML13': [],
-    'XML14': [],
+    'XML13': ['MA_LK', 'SO_HO_SO', 'MA_TTHC', 'MA_DOI_TUONG_KCB', 'NGAY_KY', 'NGUOI_KY'],
+    'XML14': ['MA_LK', 'SO_GIAY_HEN', 'NGAY_HEN'],
     'XML15': [],
 };
 
@@ -92,10 +103,21 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
         e.preventDefault();
         if (!editingRule) return;
 
-        const newRules = rules.map(r => r.id === editingRule.id ? editingRule : r);
+        // Check if it's a NEW rule or update
+        // Logic: if ID exists in rules list -> update. Else -> new.
+        const isExisting = rules.some(r => r.id === editingRule.id);
+
+        let newRules;
+        if (isExisting) {
+            newRules = rules.map(r => r.id === editingRule.id ? editingRule : r);
+        } else {
+            newRules = [...rules, { ...editingRule, createdAt: new Date() } as ValidationRule];
+        }
+
         setRules(newRules);
         onSave(newRules); // Persist immediately
         setEditingRule(null);
+        alert('Đã lưu quy tắc thành công!');
     };
 
     const handleAddNew = () => {
@@ -105,12 +127,15 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
             type: 'Xuất toán',
             xmlType: selectedXmlType !== 'ALL' ? selectedXmlType : 'XML1', // Default to selected type
             name: 'Quy tắc mới',
-            code: ''
+            code: '',
+            errorMessage: '',
+            description: '',
+            field: '',
+            conditionField: '',
+            conditionValue: ''
         };
-        const newRules = [...rules, newRule];
-        setRules(newRules);
-        setEditingRule(newRule); // Enter edit mode immediately
-        onSave(newRules); // Persist immediately
+        // DO NOT add to rules list yet. Just open modal.
+        setEditingRule(newRule);
     };
 
     const handleDelete = (id: string) => {
@@ -193,169 +218,227 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
 
                     {/* Main List View */}
                     <div className="flex-1 flex flex-col bg-white overflow-hidden">
-                        {/* Edit Pane (Moved to Top) */}
+                        {/* Edit Modal Overlay */}
                         {editingRule && (
-                            <div className="w-full border-b border-slate-100 bg-white p-6 animate-in slide-in-from-top-10 duration-300 shadow-lg z-20 shrink-0 max-h-[60vh] overflow-y-auto">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Chi tiết quy tắc</h3>
-                                    <button
-                                        onClick={() => setEditingRule(null)}
-                                        className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
-                                </div>
-                                <form onSubmit={handleSaveEdit} className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Mã lỗi</label>
-                                            <input type="text" value={editingRule.id} disabled className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-400" />
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-slate-200 flex flex-col animate-in zoom-in-95 duration-200">
+                                    {/* Modal Header */}
+                                    <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                                        <div>
+                                            <h3 className="text-xl font-black text-slate-800 tracking-tight">
+                                                {rules.some(r => r.id === editingRule.id) ? 'Cập nhật quy tắc' : 'Thêm quy tắc mới'}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 font-medium mt-1">Thiết lập các thông số kiểm tra logic cho hồ sơ XML</p>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sử dụng</label>
-                                            <div className="flex items-center h-[38px]">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editingRule.active}
-                                                    onChange={e => setEditingRule({ ...editingRule, active: e.target.checked })}
-                                                    className="w-5 h-5 text-cyan-600 rounded-lg border-slate-300 focus:ring-cyan-500 cursor-pointer"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Tên quy tắc</label>
-                                        <input
-                                            type="text"
-                                            value={editingRule.name}
-                                            onChange={e => setEditingRule({ ...editingRule, name: e.target.value })}
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">File XML</label>
-                                            <select
-                                                value={editingRule.xmlType}
-                                                onChange={e => setEditingRule({ ...editingRule, xmlType: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
-                                            >
-                                                {XML_TYPES.map(type => (
-                                                    <option key={type} value={type}>{type}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 space-y-4">
-                                        <h4 className="text-sm font-bold text-purple-800">Conditional Application (Optional)</h4>
-                                        <p className="text-[11px] text-purple-600">Only apply this rule if another field has a specific value.</p>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase text-purple-400 tracking-widest">Condition Field</label>
-                                                <input
-                                                    type="text"
-                                                    value={editingRule.conditionField || ''}
-                                                    onChange={e => setEditingRule({ ...editingRule, conditionField: e.target.value })}
-                                                    placeholder="e.g. MA_NHOM"
-                                                    className="w-full px-4 py-2.5 border border-purple-200 bg-white rounded-xl text-sm text-purple-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase text-purple-400 tracking-widest">Condition Value(s)</label>
-                                                <input
-                                                    type="text"
-                                                    value={editingRule.conditionValue || ''}
-                                                    onChange={e => setEditingRule({ ...editingRule, conditionValue: e.target.value })}
-                                                    placeholder="e.g. 1, 3, 5 (comma separated)"
-                                                    className="w-full px-4 py-2.5 border border-purple-200 bg-white rounded-xl text-sm text-purple-900 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-none transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Trường kiểm tra</label>
-                                        <div className="relative">
-                                            <select
-                                                value={
-                                                    (editingRule.field && !XML_FIELDS[editingRule.xmlType]?.includes(editingRule.field)) || editingRule.field === '___CUSTOM___'
-                                                        ? '___CUSTOM___'
-                                                        : (editingRule.field || '')
-                                                }
-                                                onChange={e => {
-                                                    if (e.target.value === '___CUSTOM___') {
-                                                        setEditingRule({ ...editingRule, field: '___CUSTOM___' });
-                                                    } else {
-                                                        setEditingRule({ ...editingRule, field: e.target.value });
-                                                    }
-                                                }}
-                                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="">-- Chọn trường --</option>
-                                                {(XML_FIELDS[editingRule.xmlType] || []).map(field => (
-                                                    <option key={field} value={field}>{field}</option>
-                                                ))}
-                                                <option value="___CUSTOM___">Khác (Nhập thủ công)...</option>
-                                            </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                            </div>
-                                        </div>
-                                        {((editingRule.field && !XML_FIELDS[editingRule.xmlType]?.includes(editingRule.field)) || editingRule.field === '___CUSTOM___') && (
-                                            <input
-                                                type="text"
-                                                autoFocus
-                                                value={editingRule.field === '___CUSTOM___' ? '' : editingRule.field}
-                                                placeholder="Nhập mã trường..."
-                                                className="mt-2 w-full px-4 py-2 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
-                                                onChange={e => setEditingRule({ ...editingRule, field: e.target.value })}
-                                            />
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Biểu thức điều kiện (Code)</label>
-                                        <textarea
-                                            rows={4}
-                                            value={editingRule.code}
-                                            onChange={e => setEditingRule({ ...editingRule, code: e.target.value })}
-                                            placeholder="NGAY_YL < XML1.NGAY_VAO"
-                                            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all resize-none bg-slate-50"
-                                        />
-                                        <p className="text-[10px] text-slate-400 italic">Dùng dấu so sánh: &lt;, &gt;, === null, v.v.</p>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nội dung báo lỗi (Message)</label>
-                                        <input
-                                            type="text"
-                                            value={editingRule.errorMessage || ''}
-                                            onChange={e => setEditingRule({ ...editingRule, errorMessage: e.target.value })}
-                                            placeholder="Nhập nội dung thông báo lỗi hiển thị cho người dùng..."
-                                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all placeholder:font-normal"
-                                        />
-                                    </div>
-
-                                    <div className="flex items-center gap-3 pt-4 border-t border-slate-50 mt-8">
                                         <button
-                                            type="submit"
-                                            className="flex-1 px-8 py-3 bg-cyan-600 text-white rounded-xl text-sm font-black tracking-widest uppercase hover:bg-cyan-700 transition-all shadow-lg shadow-cyan-200"
-                                        >
-                                            Lưu thay đổi
-                                        </button>
-                                        <button
-                                            type="button"
                                             onClick={() => setEditingRule(null)}
-                                            className="px-8 py-3 border border-slate-200 text-slate-600 rounded-xl text-sm font-black tracking-widest uppercase hover:bg-slate-50 transition-all"
+                                            className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all"
                                         >
-                                            Hủy
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                                         </button>
                                     </div>
-                                </form>
+
+                                    <div className="flex-1 overflow-y-auto bg-slate-50/50">
+                                        <form onSubmit={handleSaveEdit} className="p-8">
+                                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                                                {/* LEFT COLUMN: General Info */}
+                                                <div className="lg:col-span-5 space-y-6">
+                                                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                            </div>
+                                                            <h4 className="text-sm font-black uppercase text-slate-700 tracking-wide">Thông tin chung</h4>
+                                                        </div>
+
+                                                        <div className="space-y-4">
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-1.5">
+                                                                    <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Mã lỗi (ID)</label>
+                                                                    <input type="text" value={editingRule.id} disabled className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-400 cursor-not-allowed" />
+                                                                </div>
+                                                                <div className="space-y-1.5">
+                                                                    <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Trạng thái</label>
+                                                                    <label className={`block w-full px-3 py-2 rounded-lg border cursor-pointer transition-all ${editingRule.active ? 'bg-cyan-50 border-cyan-200' : 'bg-slate-50 border-slate-200'}`}>
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className={`text-xs font-bold ${editingRule.active ? 'text-cyan-700' : 'text-slate-500'}`}>
+                                                                                {editingRule.active ? 'Đang bật' : 'Đang tắt'}
+                                                                            </span>
+                                                                            <div className={`w-8 h-4 rounded-full relative transition-colors ${editingRule.active ? 'bg-cyan-500' : 'bg-slate-300'}`}>
+                                                                                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${editingRule.active ? 'left-[18px]' : 'left-0.5'}`}></div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="hidden"
+                                                                            checked={editingRule.active}
+                                                                            onChange={e => setEditingRule({ ...editingRule, active: e.target.checked })}
+                                                                        />
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Tên quy tắc</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingRule.name}
+                                                                    onChange={e => setEditingRule({ ...editingRule, name: e.target.value })}
+                                                                    placeholder="VD: Kiểm tra ngày vào viện"
+                                                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">File XML</label>
+                                                                <div className="relative">
+                                                                    <select
+                                                                        value={editingRule.xmlType}
+                                                                        onChange={e => setEditingRule({ ...editingRule, xmlType: e.target.value })}
+                                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
+                                                                    >
+                                                                        {XML_TYPES.map(type => (
+                                                                            <option key={type} value={type}>{type}</option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Trường kiểm tra</label>
+                                                                <div className="relative">
+                                                                    <select
+                                                                        value={
+                                                                            (editingRule.field && !XML_FIELDS[editingRule.xmlType]?.includes(editingRule.field)) || editingRule.field === '___CUSTOM___'
+                                                                                ? '___CUSTOM___'
+                                                                                : (editingRule.field || '')
+                                                                        }
+                                                                        onChange={e => {
+                                                                            if (e.target.value === '___CUSTOM___') {
+                                                                                setEditingRule({ ...editingRule, field: '___CUSTOM___' });
+                                                                            } else {
+                                                                                setEditingRule({ ...editingRule, field: e.target.value });
+                                                                            }
+                                                                        }}
+                                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
+                                                                    >
+                                                                        <option value="">-- Chọn trường --</option>
+                                                                        {(XML_FIELDS[editingRule.xmlType] || []).map(field => (
+                                                                            <option key={field} value={field}>{field}</option>
+                                                                        ))}
+                                                                        <option value="___CUSTOM___">Khác (Nhập thủ công)...</option>
+                                                                    </select>
+                                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                                    </div>
+                                                                </div>
+                                                                {((editingRule.field && !XML_FIELDS[editingRule.xmlType]?.includes(editingRule.field)) || editingRule.field === '___CUSTOM___') && (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editingRule.field === '___CUSTOM___' ? '' : editingRule.field}
+                                                                        placeholder="Nhập mã trường thủ công..."
+                                                                        className="mt-2 w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                                                                        onChange={e => setEditingRule({ ...editingRule, field: e.target.value })}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* RIGHT COLUMN: Logic & Settings */}
+                                                <div className="lg:col-span-7 space-y-6">
+                                                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5 h-full flex flex-col">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                                            </div>
+                                                            <h4 className="text-sm font-black uppercase text-slate-700 tracking-wide">Thiết lập Logic</h4>
+                                                        </div>
+
+                                                        {/* Code Block */}
+                                                        <div className="space-y-1.5 flex-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Biểu thức kiểm tra</label>
+                                                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold cursor-help" title="Ví dụ: NGAY_YL < XML1.NGAY_VAO">Hỗ trợ cú pháp</span>
+                                                            </div>
+                                                            <div className="relative h-32 lg:h-40">
+                                                                <textarea
+                                                                    value={editingRule.code}
+                                                                    onChange={e => setEditingRule({ ...editingRule, code: e.target.value })}
+                                                                    placeholder="VD: NGAY_YL < XML1.NGAY_VAO"
+                                                                    className="w-full h-full p-4 border border-slate-300 rounded-xl text-sm font-mono font-medium focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all resize-none bg-slate-50 text-slate-800 leading-relaxed"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Condition Block */}
+                                                        <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 space-y-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+                                                                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Điều kiện áp dụng (Tùy chọn)</h4>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-bold uppercase text-slate-400">Trường điều kiện</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editingRule.conditionField || ''}
+                                                                        onChange={e => setEditingRule({ ...editingRule, conditionField: e.target.value })}
+                                                                        placeholder="VD: MA_NHOM"
+                                                                        className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg text-xs font-mono focus:border-cyan-500 outline-none transition-all"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <label className="text-[9px] font-bold uppercase text-slate-400">Giá trị cho phép</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editingRule.conditionValue || ''}
+                                                                        onChange={e => setEditingRule({ ...editingRule, conditionValue: e.target.value })}
+                                                                        placeholder="VD: 1, 2, 3"
+                                                                        className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg text-xs font-mono focus:border-cyan-500 outline-none transition-all"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[11px] font-bold uppercase text-red-400 tracking-wider">Nội dung báo lỗi</label>
+                                                            <textarea
+                                                                rows={2}
+                                                                value={editingRule.errorMessage || ''}
+                                                                onChange={e => setEditingRule({ ...editingRule, errorMessage: e.target.value })}
+                                                                placeholder="Nhập nội dung thông báo lỗi hiển thị cho người dùng..."
+                                                                className="w-full px-4 py-3 border border-red-100 bg-red-50/30 rounded-xl text-sm font-medium text-red-700 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all placeholder:text-red-300/70 resize-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="pt-6 flex items-center justify-end gap-3 mt-4 border-t border-slate-200/50">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditingRule(null)}
+                                                    className="px-6 py-3 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95"
+                                                >
+                                                    Hủy bỏ
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-95 flex items-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                                    {rules.some(r => r.id === editingRule.id) ? 'Lưu cập nhật' : 'Tạo quy tắc mới'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
                         )}
 

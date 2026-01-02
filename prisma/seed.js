@@ -46,6 +46,24 @@ async function main() {
         });
         console.log(`Upserted rule: ${rule.name}`);
     }
+
+    // Seed Admin User
+    console.log('Seeding admin user...');
+    const bcrypt = require('bcryptjs');
+    const adminPassword = await bcrypt.hash('123456', 10);
+
+    await prisma.user.upsert({
+        where: { username: 'admin' },
+        update: {}, // Don't overwrite if exists
+        create: {
+            username: 'admin',
+            password: adminPassword,
+            name: 'Administrator',
+            role: 'ADMIN'
+        },
+    });
+    console.log('Upserted user: admin');
+
 }
 
 main()

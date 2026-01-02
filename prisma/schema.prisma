@@ -28,3 +28,29 @@ model ValidationRule {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String?
+  role      String   @default("USER") // 'ADMIN', 'USER'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DraftRule {
+  id              String   @id @default(cuid())
+  active          Boolean  @default(true)
+  type            String   // 'Xuất toán' | 'Cảnh báo'
+  xmlType         String   // XML1, XML2, ...
+  field           String?
+  name            String
+  description     String?
+  code            String
+  conditionField  String?
+  conditionValue  String?
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

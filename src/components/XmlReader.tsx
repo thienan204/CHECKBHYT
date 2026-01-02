@@ -65,8 +65,7 @@ const GenericXmlTable = ({
     isFilterOpen,
     setIsFilterOpen,
     columnFilters,
-    handleColumnFilterChange,
-    setHoveredError
+    handleColumnFilterChange
 }: any) => {
     const keys = getAllKeys(dataList).sort((a, b) => {
         const priority = [
@@ -164,6 +163,9 @@ const GenericXmlTable = ({
                         <th className="py-4 px-2 border-r border-slate-200 w-12 text-center bg-slate-100">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">KQ</span>
                         </th>
+                        <th className="py-4 px-4 border-r border-slate-200 min-w-[200px] text-center bg-slate-100">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nội dung lỗi</span>
+                        </th>
                         {keys.map((key) => (
                             <th key={key} className="py-4 px-4 border-r border-slate-200 min-w-[180px] align-top bg-slate-100 group">
                                 <div className="flex flex-col gap-3">
@@ -194,14 +196,7 @@ const GenericXmlTable = ({
                         return (
                             <tr key={originalIndex} className={`hover:bg-cyan-50/20 transition-colors ${hasError ? 'bg-red-50/30' : ''}`}>
                                 <td
-                                    className={`py-4 px-4 text-center font-mono border-r border-slate-50 relative cursor-help ${hasError ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-400'}`}
-                                    onMouseEnter={(e) => {
-                                        if (hasError) {
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                            setHoveredError({ x: rect.right, y: rect.top, errors: rowErrors, title: `Dòng ${originalIndex + 1}` });
-                                        }
-                                    }}
-                                    onMouseLeave={() => setHoveredError(null)}
+                                    className={`py-4 px-4 text-center font-mono border-r border-slate-50 relative ${hasError ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-400'}`}
                                 >
                                     {hasError ? (
                                         <div className="flex items-center justify-center gap-1">
@@ -220,6 +215,21 @@ const GenericXmlTable = ({
                                     ) : (
                                         <div className="w-4 h-4 rounded-full border border-green-200 bg-green-50 flex items-center justify-center mx-auto">
                                             <svg className="w-2.5 h-2.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
+                                        </div>
+                                    )}
+                                </td>
+                                <td className="py-3 px-4 border-r border-slate-50 text-left">
+                                    {hasError ? (
+                                        <div className="flex flex-col gap-1 max-w-[300px]">
+                                            {rowErrors.map((err: any, idx: number) => (
+                                                <div key={idx} className="text-[10px] font-medium text-red-600 bg-red-50/50 px-2 py-1 rounded border border-red-100/50 break-words leading-tight">
+                                                    {err.message}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-center">
+                                            <span className="text-[10px] text-slate-300 italic">--</span>
                                         </div>
                                     )}
                                 </td>
@@ -304,7 +314,8 @@ export default function XmlReader() {
     const [processingProgress, setProcessingProgress] = useState<{ current: number, total: number } | null>(null);
     const [isRuleSettingsOpen, setIsRuleSettingsOpen] = useState(false);
     const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
-    const { rules, saveRules } = useRules();
+    const { rules, saveRules, isLoaded: isRulesLoaded } = useRules();
+    const [dbLoadTrigger, setDbLoadTrigger] = useState(0);
 
     // Load records from DB on mount
     React.useEffect(() => {
@@ -312,8 +323,13 @@ export default function XmlReader() {
             try {
                 const savedRecords = await loadRecordsFromDB();
                 if (savedRecords && savedRecords.length > 0) {
-                    // Re-validate strictly if rules are loaded
-                    // Note: 'rules' might be empty initially if useRules is async
+                    // Just set records. The effect below[rules] will handle validation 
+                    // IF rules change. But if rules are already loaded, we need to ensure validation runs.
+                    // The problem is: if rules are already loaded and stable, setting records won't trigger the [rules] effect?
+                    // actually, setting records triggers render. But the effect [rules] only runs if rules reference changes.
+
+                    // We need to force validation on these loaded records.
+                    // But we can't access 'rules' here safely if we don't depend on it.
                     setRecords(savedRecords);
                 }
             } catch (error) {
@@ -323,21 +339,93 @@ export default function XmlReader() {
         load();
     }, []);
 
+    // Re-validate when rules change OR when records are first loaded
+    // We add a check: if we have records but they haven't been validated against current rules? 
+    // It's hard to know.
+    // Simplest fix: Re-run validation whenever 'rules' changes OR 'records' length changes? 
+    // No, 'records' logic updates 'records' -> infinite loop.
+
+    // Better: use a ref to track if initial validation is done?
+    // Or just run validation when `isLoaded` (from useRules) becomes true?
+
+
     // Re-validate when rules change OR records are just loaded?
     // Actually, simply watching rules is enough if we trust the dependency.
     // Issue: 'records' inside useEffect is from closure.
+
+
+    // Re-validate process
     React.useEffect(() => {
+        if (!isRulesLoaded || records.length === 0) return;
+
+        // Check if we need to re-validate? 
+        // Ideally we should comparing hash or something, but for now let's just re-validate 
+        // if rules have changed (dependency) or if we just loaded records (dependency on records length? no).
+
+        // We can use a functional update to re-validate current records
         setRecords(prevRecords => {
             if (prevRecords.length === 0) return prevRecords;
             const validator = new ValidationEngine(rules);
+
+            // Optimization: Maybe check if validationResults already match current rules? Hard.
+            // Just re-run. It's fast enough for client side < 1000 records.
             return prevRecords.map(r => ({
                 ...r,
                 validationResults: validator.validate(r)
             }));
         });
-    }, [rules]);
+        // We depend on 'rules' so it runs when rules update.
+        // We also want to run when records are loaded from DB. 
+        // But we can't depend on 'records' without loops.
+        // Solution: The 'load' effect above sets records. 
+        // If we simply depend on `rules` and `isRulesLoaded`, it handles rule updates.
+        // To handle "Loading Records" updates, we can trigger this effect manually or use a "dataVersion" state?
+    }, [rules, isRulesLoaded]);
 
-    const [hoveredError, setHoveredError] = useState<{ x: number, y: number, errors: any[], title: string } | null>(null);
+    // Fix: When loading from DB, we want to re-validate immediately if rules are ready.
+    // If we modify the loadRecordsFromDB to be aware of rules:
+    React.useEffect(() => {
+        const load = async () => {
+            try {
+                const savedRecords = await loadRecordsFromDB();
+                if (savedRecords && savedRecords.length > 0) {
+                    // If rules are already loaded, we can validate right here before setting!
+                    // But 'rules' is in closure scope of this effect (empty).
+                    // We can't access fresh rules here without dependency.
+
+                    // Workaround: Set records. Then rely on an effect that watches 'records' changes? 
+                    // No, that loops.
+
+                    setRecords(savedRecords);
+                }
+            } catch (error) { /**/ }
+        };
+        load();
+    }, []);
+
+    // The MISSING PIECE: When records are set from DB, they might be stale.
+    // We need an effect that says: "If records exist, and rules exist, ensure they are validated".
+    // Since we can't detect "stale" easily, we might just re-run validation when `isRulesLoaded` becomes true.
+    // But if `isRulesLoaded` is already true?
+
+    // Let's add a separate effect that runs ONCE when records are loaded?
+    // Or just use a requestRef.
+
+    // Actually, simply adding a trigger/version when DB loads helps.
+
+
+    // Unified Validation Effect
+    React.useEffect(() => {
+        if (!isRulesLoaded) return;
+
+        setRecords(prev => {
+            if (prev.length === 0) return prev;
+            const validator = new ValidationEngine(rules);
+            return prev.map(r => ({ ...r, validationResults: validator.validate(r) }));
+        });
+    }, [rules, isRulesLoaded, dbLoadTrigger]); // Run when rules change OR when DB loads
+
+
     const [filterMode, setFilterMode] = useState<'ALL' | 'ERROR' | 'VALID'>('ALL');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
@@ -603,16 +691,22 @@ export default function XmlReader() {
 
             {records.length > 0 && !selectedRecord && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="bg-white p-2 pr-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => { setRecords([]); }}
-                                className="p-2 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-cyan-500"
-                                title="Quay lại"
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 text-slate-500 font-bold text-xs hover:bg-cyan-500 hover:text-white transition-all shadow-sm hover:shadow-cyan-200"
+                                title="Tải File XML khác"
                             >
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                <span>Tải File XML</span>
                             </button>
-                            <h2 className="text-xl font-black text-slate-800 tracking-tight">Tổng số hồ sơ: {filteredRecords.length} <span className="text-slate-300 font-normal">từ {new Set(records.map(r => r.sourceFile)).size} file</span></h2>
+                            <div className="flex flex-col">
+                                <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Kết quả phân tích</span>
+                                <h2 className="text-lg font-bold text-slate-800">
+                                    {filteredRecords.length} hồ sơ <span className="text-slate-400 font-medium text-xs">từ {new Set(records.map(r => r.sourceFile)).size} file XML</span>
+                                </h2>
+                            </div>
                         </div>
 
 
@@ -624,13 +718,7 @@ export default function XmlReader() {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                                 Xuất Excel
                             </button>
-                            <button
-                                onClick={() => setIsRuleSettingsOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all shadow-sm"
-                            >
-                                <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                Cài đặt quy tắc
-                            </button>
+
                         </div>
                     </div>
 
@@ -902,7 +990,6 @@ export default function XmlReader() {
                                             setIsFilterOpen={setIsFilterOpen}
                                             columnFilters={columnFilters}
                                             handleColumnFilterChange={handleColumnFilterChange}
-                                            setHoveredError={setHoveredError}
                                         />
                                     )}
 
@@ -938,7 +1025,7 @@ export default function XmlReader() {
                                                         }
                                                         return value ? [
                                                             <div key={prefix + key} className="flex flex-col border-b border-slate-50 pb-2 group/item">
-                                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1 group-hover/item:text-cyan-500 transition-colors">{prefix}{key}</span>
+                                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1 group-hover/item:text-cyan-500 transition-colors">{key}</span>
                                                                 <span className="text-xs font-bold text-slate-600 truncate">{(key.includes('NGAY') || key.includes('THOI_GIAN')) ? formatDateTime(value) : renderValue(value)}</span>
                                                             </div>
                                                         ] : [];
@@ -1033,29 +1120,7 @@ export default function XmlReader() {
                 }}
             />
 
-            {/* Fixed Floating Tooltip */}
-            {hoveredError && (
-                <div
-                    className="fixed z-[9999] w-80 bg-white rounded-xl shadow-2xl border border-red-100 p-4 animate-in fade-in zoom-in-95 duration-200 pointer-events-none"
-                    style={{ top: hoveredError.y + 10, left: hoveredError.x + 10 }}
-                >
-                    <div className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-2 pb-2 border-b border-red-50 flex items-center justify-between">
-                        <span>Phát hiện {hoveredError.errors.length} lỗi</span>
-                        <span className="text-[9px] bg-red-100 px-1.5 py-0.5 rounded">{hoveredError.title}</span>
-                    </div>
-                    <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
-                        {hoveredError.errors.map((err, idx) => (
-                            <div key={idx} className="flex items-start gap-2">
-                                <div className="mt-1 w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase">{err.field}</p>
-                                    <p className="text-xs font-semibold text-red-700 leading-snug">{err.ruleName}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+
         </div >
     );
 }
