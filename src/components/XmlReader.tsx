@@ -127,11 +127,11 @@ const GenericXmlTable = ({
     if (keys.length === 0) return <div className="p-4 text-center text-slate-400 italic">Không có dữ liệu bảng</div>;
 
     return (
-        <div className="overflow-x-auto border border-slate-100 rounded-xl min-h-[300px]">
+        <div className="overflow-x-auto border border-slate-300 rounded-xl min-h-[300px]">
             <table className="w-full text-left text-xs font-medium text-slate-600 border-collapse min-w-[1200px]">
                 <thead className="bg-slate-100/90 sticky top-0 z-20 shadow-sm backdrop-blur-sm">
-                    <tr className="border-b border-slate-300">
-                        <th className="py-4 px-4 border-r border-slate-200 w-16 text-center align-middle relative group bg-slate-100">
+                    <tr className="border-b border-slate-300 divide-x divide-slate-300">
+                        <th className="py-4 px-4 w-16 text-center align-middle relative group bg-slate-100">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">STT</span>
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
@@ -160,14 +160,14 @@ const GenericXmlTable = ({
                                 </div>
                             )}
                         </th>
-                        <th className="py-4 px-2 border-r border-slate-200 w-12 text-center bg-slate-100">
+                        <th className="py-4 px-2 w-12 text-center bg-slate-100">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">KQ</span>
                         </th>
-                        <th className="py-4 px-4 border-r border-slate-200 min-w-[200px] text-center bg-slate-100">
+                        <th className="py-4 px-4 border-r border-slate-400 min-w-[200px] text-center bg-slate-100">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nội dung lỗi</span>
                         </th>
                         {keys.map((key) => (
-                            <th key={key} className="py-4 px-4 border-r border-slate-200 min-w-[180px] align-top bg-slate-100 group">
+                            <th key={key} className="py-4 px-4 min-w-[180px] align-top bg-slate-100 group">
                                 <div className="flex flex-col gap-3">
                                     <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">{key}</span>
                                     {showSearch && (
@@ -187,16 +187,16 @@ const GenericXmlTable = ({
                         ))}
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-300 text-slate-700">
                     {paginatedData.map((d: any, i: number) => {
                         const originalIndex = dataList.indexOf(d);
                         const rowErrors = validationResults.filter((v: any) => v.xmlType === xmlType && v.index === originalIndex);
                         const hasError = rowErrors.length > 0;
 
                         return (
-                            <tr key={originalIndex} className={`hover:bg-cyan-50/20 transition-colors ${hasError ? 'bg-red-50/30' : ''}`}>
+                            <tr key={originalIndex} className={`hover:bg-cyan-50/20 transition-colors divide-x divide-slate-300 ${hasError ? 'bg-red-50/30' : ''}`}>
                                 <td
-                                    className={`py-4 px-4 text-center font-mono border-r border-slate-50 relative ${hasError ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-400'}`}
+                                    className={`py-4 px-4 text-center font-mono relative ${hasError ? 'bg-red-50 text-red-600 font-bold' : 'text-slate-400'}`}
                                 >
                                     {hasError ? (
                                         <div className="flex items-center justify-center gap-1">
@@ -207,7 +207,7 @@ const GenericXmlTable = ({
                                         startIdx + i + 1
                                     )}
                                 </td>
-                                <td className="py-3 px-2 border-r border-slate-50 text-center">
+                                <td className="py-3 px-2 text-center">
                                     {hasError ? (
                                         <div className="w-4 h-4 rounded-full border border-red-200 bg-red-50 flex items-center justify-center mx-auto">
                                             <svg className="w-2.5 h-2.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -218,7 +218,7 @@ const GenericXmlTable = ({
                                         </div>
                                     )}
                                 </td>
-                                <td className="py-3 px-4 border-r border-slate-50 text-left">
+                                <td className="py-3 px-4 border-r border-slate-400 text-left">
                                     {hasError ? (
                                         <div className="flex flex-col gap-1 max-w-[300px]">
                                             {rowErrors.map((err: any, idx: number) => (
@@ -242,7 +242,7 @@ const GenericXmlTable = ({
                                         <td
                                             key={key}
                                             onClick={() => handleCopy(displayValue, originalIndex, key)}
-                                            className="py-4 px-4 border-r border-slate-50 text-slate-700 whitespace-pre-wrap min-w-[150px] cursor-copy hover:bg-cyan-100/50 active:bg-cyan-200/50 transition-colors relative group"
+                                            className="py-4 px-4 text-slate-700 whitespace-pre-wrap min-w-[150px] cursor-copy hover:bg-cyan-100/50 active:bg-cyan-200/50 transition-colors relative group"
                                             title="Click để copy"
                                         >
                                             {displayValue}
@@ -429,7 +429,8 @@ export default function XmlReader() {
     const [filterMode, setFilterMode] = useState<'ALL' | 'ERROR' | 'VALID'>('ALL');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
-    const [maBnFilter, setMaBnFilter] = useState('');
+    // const [maBnFilter, setMaBnFilter] = useState(''); // REPLACED by mainTableFilters
+    const [mainTableFilters, setMainTableFilters] = useState<Record<string, string>>({});
     const [mainFilterMode, setMainFilterMode] = useState<'ALL' | 'ERROR' | 'VALID'>('ERROR');
     const [isMainFilterOpen, setIsMainFilterOpen] = useState(false);
 
@@ -448,16 +449,30 @@ export default function XmlReader() {
             if (record.validationResults.some(v => v.isError)) return false;
         }
 
-        // MA_BN Filter
-        if (!maBnFilter) return true;
-        const maBn = record.summary?.MA_BN ? String(record.summary.MA_BN) : '';
-        return maBn.toLowerCase().includes(maBnFilter.toLowerCase());
+        // Column Filters
+        return Object.entries(mainTableFilters).every(([key, value]) => {
+            if (!value) return true;
+            let recordValue = '';
+
+            if (key === 'MA_BN') recordValue = record.summary?.MA_BN || '';
+            else if (key === 'HO_TEN') recordValue = record.summary?.HO_TEN || '';
+            else if (key === 'NGAY_SINH') {
+                // Format the date to match what user sees: DD/MM/YYYY
+                const rawDate = renderValue(record.summary?.NGAY_SINH);
+                recordValue = formatDateTime(rawDate);
+            }
+            else if (key === 'MA_THE_BHYT') recordValue = record.summary?.MA_THE_BHYT || '';
+            else if (key === 'MA_LK') recordValue = record.summary?.MA_LK || '';
+            else if (key === 'SOURCE_FILE') recordValue = record.sourceFile || '';
+
+            return String(recordValue).toLowerCase().includes(value.toLowerCase());
+        });
     });
 
     // Reset pagination when filters change
     React.useEffect(() => {
         setCurrentPage(1);
-    }, [mainFilterMode, maBnFilter, rules, records]);
+    }, [mainFilterMode, mainTableFilters, rules, records]);
 
     // Derived State for Pagination
     const totalPages = Math.ceil(filteredRecords.length / pageSize);
@@ -468,6 +483,13 @@ export default function XmlReader() {
         setColumnFilters(prev => ({
             ...prev,
             [`${xmlType}_${field}`]: value
+        }));
+    };
+
+    const handleMainTableFilterChange = (field: string, value: string) => {
+        setMainTableFilters(prev => ({
+            ...prev,
+            [field]: value
         }));
     };
 
@@ -562,6 +584,11 @@ export default function XmlReader() {
             { header: 'Ngày sinh', key: 'ngay_sinh', width: 12 },
             { header: 'Mã thẻ', key: 'ma_the', width: 20 },
             { header: 'NGAY_YL', key: 'ngay_loi', width: 16 },
+            { header: 'NGAY_TH_YL', key: 'ngay_th_yl', width: 16 },
+            { header: 'NGAY_KQ', key: 'ngay_kq', width: 16 },
+            { header: 'NGAY_VAO', key: 'ngay_vao', width: 16 },
+            { header: 'NGAY_RA', key: 'ngay_ra', width: 16 },
+            { header: 'NGAY_VAO_NOI_TRU', key: 'ngay_vao_noi_tru', width: 16 },
             { header: 'Mã dịch vụ', key: 'ma_dich_vu', width: 15 },
             { header: 'Chi tiết lỗi', key: 'error_details', width: 60 },
         ];
@@ -588,6 +615,11 @@ export default function XmlReader() {
                     ngay_sinh: renderValue(record.summary?.NGAY_SINH),
                     ma_the: renderValue(record.summary?.MA_THE_BHYT),
                     ngay_loi: '',
+                    ngay_th_yl: '',
+                    ngay_kq: '',
+                    ngay_vao: renderValue(record.summary?.NGAY_VAO ? formatDateTime(record.summary.NGAY_VAO) : ''),
+                    ngay_ra: renderValue(record.summary?.NGAY_RA ? formatDateTime(record.summary.NGAY_RA) : ''),
+                    ngay_vao_noi_tru: renderValue(record.summary?.NGAY_VAO_NOI_TRU ? formatDateTime(record.summary.NGAY_VAO_NOI_TRU) : ''),
                     ma_dich_vu: '',
                     error_details: ''
                 });
@@ -597,12 +629,14 @@ export default function XmlReader() {
                     let extractedDate = '';
                     let extractedCode = '';
 
+                    let item: any = null;
+
                     // Try to find the specific item
                     if (err.xmlType && err.index !== undefined) {
                         const group = record.groups.find(g => g.type === err.xmlType);
                         if (group) {
                             const dataList = getXmlDataList(group);
-                            const item = dataList[err.index];
+                            item = dataList[err.index];
                             if (item) {
                                 // Try common code fields
                                 extractedCode = item.MA_DICH_VU || item.MA_THUOC || item.MA_VAT_TU || item.MA_BENH || '';
@@ -620,6 +654,11 @@ export default function XmlReader() {
                         ngay_sinh: renderValue(record.summary?.NGAY_SINH),
                         ma_the: renderValue(record.summary?.MA_THE_BHYT),
                         ngay_loi: extractedDate ? formatDateTime(extractedDate) : '',
+                        ngay_th_yl: item?.NGAY_TH_YL ? formatDateTime(item.NGAY_TH_YL) : '',
+                        ngay_kq: item?.NGAY_KQ ? formatDateTime(item.NGAY_KQ) : '',
+                        ngay_vao: renderValue(record.summary?.NGAY_VAO ? formatDateTime(record.summary.NGAY_VAO) : ''),
+                        ngay_ra: renderValue(record.summary?.NGAY_RA ? formatDateTime(record.summary.NGAY_RA) : ''),
+                        ngay_vao_noi_tru: renderValue(record.summary?.NGAY_VAO_NOI_TRU ? formatDateTime(record.summary.NGAY_VAO_NOI_TRU) : ''),
                         ma_dich_vu: renderValue(extractedCode),
                         error_details: `[${err.xmlType}] ${err.message || err.ruleName}`
                     });
@@ -693,14 +732,7 @@ export default function XmlReader() {
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
                     <div className="bg-white p-2 pr-4 rounded-2xl border border-slate-100 shadow-sm mb-6 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => { setRecords([]); }}
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 text-slate-500 font-bold text-xs hover:bg-cyan-500 hover:text-white transition-all shadow-sm hover:shadow-cyan-200"
-                                title="Tải File XML khác"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                                <span>Tải File XML</span>
-                            </button>
+
                             <div className="flex flex-col">
                                 <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Kết quả phân tích</span>
                                 <h2 className="text-lg font-bold text-slate-800">
@@ -712,6 +744,14 @@ export default function XmlReader() {
 
                         <div className="flex items-center gap-3">
                             <button
+                                onClick={() => { setRecords([]); }}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 text-slate-600 font-bold text-xs hover:bg-cyan-500 hover:text-white transition-all shadow-sm hover:shadow-cyan-200"
+                                title="Tải File XML khác"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                <span>Tải File XML</span>
+                            </button>
+                            <button
                                 onClick={handleExportExcel}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition-all shadow-sm shadow-green-200"
                             >
@@ -719,67 +759,140 @@ export default function XmlReader() {
                                 Xuất Excel
                             </button>
 
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsMainFilterOpen(!isMainFilterOpen)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm border ${mainFilterMode !== 'ALL'
+                                        ? 'bg-cyan-50 border-cyan-200 text-cyan-700 shadow-cyan-100'
+                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                                    <span>
+                                        {mainFilterMode === 'ALL' && 'Lọc trạng thái'}
+                                        {mainFilterMode === 'ERROR' && 'Hồ sơ lỗi'}
+                                        {mainFilterMode === 'VALID' && 'Hồ sơ đúng'}
+                                    </span>
+                                    <svg className={`w-3 h-3 transition-transform ${isMainFilterOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                                {isMainFilterOpen && (
+                                    <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="px-3 py-2 text-[10px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-50 mb-1">Lọc theo trạng thái</div>
+                                        <button onClick={() => { setMainFilterMode('ALL'); setIsMainFilterOpen(false); }} className={`w-full px-4 py-2 text-xs font-bold flex items-center gap-2 hover:bg-slate-50 ${mainFilterMode === 'ALL' ? 'text-cyan-600 bg-cyan-50/50' : 'text-slate-600'}`}>
+                                            <span className={`w-2 h-2 rounded-full ${mainFilterMode === 'ALL' ? 'bg-cyan-500' : 'bg-slate-300'}`}></span> Tất cả
+                                        </button>
+                                        <button onClick={() => { setMainFilterMode('ERROR'); setIsMainFilterOpen(false); }} className={`w-full px-4 py-2 text-xs font-bold flex items-center gap-2 hover:bg-slate-50 ${mainFilterMode === 'ERROR' ? 'text-red-600 bg-red-50/50' : 'text-slate-600'}`}>
+                                            <span className={`w-2 h-2 rounded-full ${mainFilterMode === 'ERROR' ? 'bg-red-500' : 'bg-slate-300'}`}></span> Hồ sơ có lỗi
+                                        </button>
+                                        <button onClick={() => { setMainFilterMode('VALID'); setIsMainFilterOpen(false); }} className={`w-full px-4 py-2 text-xs font-bold flex items-center gap-2 hover:bg-slate-50 ${mainFilterMode === 'VALID' ? 'text-green-600 bg-green-50/50' : 'text-slate-600'}`}>
+                                            <span className={`w-2 h-2 rounded-full ${mainFilterMode === 'VALID' ? 'bg-green-500' : 'bg-slate-300'}`}></span> Hồ sơ hợp lệ
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
                         </div>
                     </div>
 
                     {/* Data Grid */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[300px]">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-300 overflow-hidden min-h-[300px]">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs font-medium text-slate-600 border-collapse">
                                 <thead>
-                                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                                        <th className="py-4 px-2 font-bold text-slate-400 uppercase tracking-tighter w-16 text-center relative z-20">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <span>TT</span>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); setIsMainFilterOpen(!isMainFilterOpen); }}
-                                                    className={`p - 1 rounded - lg transition - all ${isMainFilterOpen || mainFilterMode !== 'ALL' ? 'bg-cyan-100 text-cyan-600' : 'hover:bg-slate-100 text-slate-400'}`}
-                                                >
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                                                </button>
-                                            </div>
-                                            {mainFilterMode !== 'ALL' && (
-                                                <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-cyan-500"></div>
-                                            )}
-                                            {isMainFilterOpen && (
-                                                <div className="absolute top-full left-0 mt-2 w-40 bg-white rounded-xl shadow-2xl border border-slate-100 py-1.5 z-50 text-left animate-in fade-in zoom-in-95 duration-200">
-                                                    <div className="px-3 py-2 text-[10px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-50 mb-1">Lọc theo trạng thái</div>
-                                                    <button onClick={() => { setMainFilterMode('ALL'); setIsMainFilterOpen(false); }} className={`w - full px - 4 py - 2 text - xs font - bold flex items - center gap - 2 hover: bg - slate - 50 ${mainFilterMode === 'ALL' ? 'text-cyan-600 bg-cyan-50/50' : 'text-slate-600'} `}>
-                                                        <span className={`w - 2 h - 2 rounded - full ${mainFilterMode === 'ALL' ? 'bg-cyan-500' : 'bg-slate-300'} `}></span> Tất cả
-                                                    </button>
-                                                    <button onClick={() => { setMainFilterMode('ERROR'); setIsMainFilterOpen(false); }} className={`w - full px - 4 py - 2 text - xs font - bold flex items - center gap - 2 hover: bg - slate - 50 ${mainFilterMode === 'ERROR' ? 'text-red-600 bg-red-50/50' : 'text-slate-600'} `}>
-                                                        <span className={`w - 2 h - 2 rounded - full ${mainFilterMode === 'ERROR' ? 'bg-red-500' : 'bg-slate-300'} `}></span> Có lỗi
-                                                    </button>
-                                                    <button onClick={() => { setMainFilterMode('VALID'); setIsMainFilterOpen(false); }} className={`w - full px - 4 py - 2 text - xs font - bold flex items - center gap - 2 hover: bg - slate - 50 ${mainFilterMode === 'VALID' ? 'text-green-600 bg-green-50/50' : 'text-slate-600'} `}>
-                                                        <span className={`w - 2 h - 2 rounded - full ${mainFilterMode === 'VALID' ? 'bg-green-500' : 'bg-slate-300'} `}></span> Không lỗi
-                                                    </button>
-                                                </div>
-                                            )}
+                                    <tr className="bg-slate-50/50 border-b border-slate-200 divide-x divide-slate-200">
+                                        <th className="py-4 px-2 font-black text-slate-700 uppercase tracking-tighter w-16 text-center">
+                                            TT
                                         </th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter w-32 text-center">Kiểm tra</th>
-                                        <th className="py-4 px-2 font-bold text-slate-400 uppercase tracking-tighter w-12 text-center">KQ</th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter">Ngày sinh</th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter">Họ tên</th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter group min-w-[150px]">
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter w-32 text-center">Trạng thái</th>
+
+                                        {/* NGAY SINH */}
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter group min-w-[120px]">
+                                            <div className="flex flex-col gap-2">
+                                                <span>Ngày sinh</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Tìm..."
+                                                    className="w-full px-2 py-1 rounded border border-slate-300 text-[10px] font-normal focus:outline-none focus:border-cyan-500"
+                                                    value={mainTableFilters['NGAY_SINH'] || ''}
+                                                    onChange={(e) => handleMainTableFilterChange('NGAY_SINH', e.target.value)}
+                                                />
+                                            </div>
+                                        </th>
+
+                                        {/* HO TEN */}
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter group min-w-[150px]">
+                                            <div className="flex flex-col gap-2">
+                                                <span>Họ tên</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Tìm..."
+                                                    className="w-full px-2 py-1 rounded border border-slate-200 text-[10px] font-normal focus:outline-none focus:border-cyan-500"
+                                                    value={mainTableFilters['HO_TEN'] || ''}
+                                                    onChange={(e) => handleMainTableFilterChange('HO_TEN', e.target.value)}
+                                                />
+                                            </div>
+                                        </th>
+
+                                        {/* MA BN */}
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter group min-w-[120px]">
                                             <div className="flex flex-col gap-2">
                                                 <span>Mã BN</span>
                                                 <input
                                                     type="text"
                                                     placeholder="Tìm..."
                                                     className="w-full px-2 py-1 rounded border border-slate-200 text-[10px] font-normal focus:outline-none focus:border-cyan-500"
-                                                    value={maBnFilter}
-                                                    onChange={(e) => setMaBnFilter(e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
+                                                    value={mainTableFilters['MA_BN'] || ''}
+                                                    onChange={(e) => handleMainTableFilterChange('MA_BN', e.target.value)}
                                                 />
                                             </div>
                                         </th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter">Giới tính</th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter">Mã thẻ BHYT</th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter">Mã LK</th>
-                                        <th className="py-4 px-4 font-bold text-slate-400 uppercase tracking-tighter">Nguồn File</th>
+
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter">Giới tính</th>
+
+                                        {/* MA THE BHYT */}
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter group min-w-[150px]">
+                                            <div className="flex flex-col gap-2">
+                                                <span>Mã thẻ BHYT</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Tìm..."
+                                                    className="w-full px-2 py-1 rounded border border-slate-200 text-[10px] font-normal focus:outline-none focus:border-cyan-500"
+                                                    value={mainTableFilters['MA_THE_BHYT'] || ''}
+                                                    onChange={(e) => handleMainTableFilterChange('MA_THE_BHYT', e.target.value)}
+                                                />
+                                            </div>
+                                        </th>
+
+                                        {/* MA LK */}
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter group min-w-[120px]">
+                                            <div className="flex flex-col gap-2">
+                                                <span>Mã LK</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Tìm..."
+                                                    className="w-full px-2 py-1 rounded border border-slate-200 text-[10px] font-normal focus:outline-none focus:border-cyan-500"
+                                                    value={mainTableFilters['MA_LK'] || ''}
+                                                    onChange={(e) => handleMainTableFilterChange('MA_LK', e.target.value)}
+                                                />
+                                            </div>
+                                        </th>
+
+                                        {/* SOURCE FILE */}
+                                        <th className="py-4 px-4 font-black text-slate-700 uppercase tracking-tighter group min-w-[150px]">
+                                            <div className="flex flex-col gap-2">
+                                                <span>Nguồn File</span>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Tìm..."
+                                                    className="w-full px-2 py-1 rounded border border-slate-200 text-[10px] font-normal focus:outline-none focus:border-cyan-500"
+                                                    value={mainTableFilters['SOURCE_FILE'] || ''}
+                                                    onChange={(e) => handleMainTableFilterChange('SOURCE_FILE', e.target.value)}
+                                                />
+                                            </div>
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-slate-200">
                                     {paginatedRecords.map((record, i) => {
                                         const actualIndex = startIdx + i;
                                         const s = record.summary;
@@ -787,7 +900,7 @@ export default function XmlReader() {
                                             <tr
                                                 key={`${record.id}-${actualIndex}`}
                                                 onClick={() => handleRowClick(record)}
-                                                className="hover:bg-cyan-50/30 cursor-pointer transition-colors group"
+                                                className="hover:bg-cyan-50/30 cursor-pointer transition-colors group divide-x divide-slate-200"
                                             >
                                                 <td className="py-4 px-4 text-center text-slate-400 font-mono">{actualIndex + 1}</td>
                                                 <td className="py-4 px-4 text-center">
@@ -801,11 +914,6 @@ export default function XmlReader() {
                                                     ) : (
                                                         <span className="px-2 py-0.5 rounded text-[10px] font-black bg-green-50 text-green-600">Đạt</span>
                                                     )}
-                                                </td>
-                                                <td className="py-4 px-2 text-center">
-                                                    <div className="w-5 h-5 rounded-full border border-green-200 bg-green-50 flex items-center justify-center mx-auto">
-                                                        <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg>
-                                                    </div>
                                                 </td>
                                                 <td className="py-4 px-4 text-slate-500 font-mono text-xs">{formatDateTime(s?.NGAY_SINH)}</td>
                                                 <td className="py-4 px-4 font-black text-slate-900 uppercase italic tracking-tighter">{renderValue(s?.HO_TEN)}</td>
@@ -882,7 +990,7 @@ export default function XmlReader() {
 
                             <button onClick={() => setSelectedRecord(null)} className="flex items-center gap-2 px-4 py-1.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                Hủy
+                                Quay lại
                             </button>
                         </div>
                     </header>
@@ -928,7 +1036,7 @@ export default function XmlReader() {
                                     }
                                 `}
                             >
-                                <span>KIỂM TRA</span>
+                                <span>TRẠNG THÁI</span>
                                 {selectedRecord.validationResults.length > 0 && (
                                     <span className={`
                                         flex items-center justify-center w-5 h-5 text-[10px] rounded-full 

@@ -30,9 +30,8 @@ export default function RootLayout({
         <nav className="fixed top-6 left-0 right-0 z-50 px-6 flex justify-between pointer-events-none">
           {/* Left: Home */}
           <div className="pointer-events-auto bg-white/90 backdrop-blur-md border border-slate-200 p-1.5 rounded-2xl shadow-lg flex items-center gap-1 transition-transform hover:scale-105">
-            <a href="/" className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md font-bold text-sm transition-all flex items-center gap-2 hover:shadow-cyan-200/50">
+            <a href="/" className="p-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-md font-bold text-sm transition-all flex items-center justify-center hover:shadow-cyan-200/50" title="Trang chủ">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-              Trang chủ
             </a>
           </div>
 
