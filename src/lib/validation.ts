@@ -11,6 +11,7 @@ export interface ValidationRule {
     name: string;
     description?: string;
     code: string; // The evaluation logic
+    mathExpression?: string; // Optional: Code for mathematical calculation
     conditionField?: string; // Optional: Field to check condition on
     conditionValue?: string; // Optional: Comma-separated values for the condition field
     errorMessage?: string; // Optional: Custom error message to display

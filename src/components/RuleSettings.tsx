@@ -128,6 +128,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
             xmlType: selectedXmlType !== 'ALL' ? selectedXmlType : 'XML1', // Default to selected type
             name: 'Quy tắc mới',
             code: '',
+            mathExpression: '',
             errorMessage: '',
             description: '',
             field: '',
@@ -371,6 +372,23 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                                                     onChange={e => setEditingRule({ ...editingRule, code: e.target.value })}
                                                                     placeholder="VD: NGAY_YL < XML1.NGAY_VAO"
                                                                     className="w-full h-full p-4 border border-slate-300 rounded-xl text-sm font-mono font-medium focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all resize-none bg-slate-50 text-slate-800 leading-relaxed"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Math Expression Block */}
+                                                        <div className="space-y-1.5 flex-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Biểu thức toán học</label>
+                                                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold cursor-help" title="Ví dụ: XML1.TONG_CHI - XML2.THANH_TIEN">Hỗ trợ cú pháp</span>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="text"
+                                                                    value={editingRule.mathExpression || ''}
+                                                                    onChange={e => setEditingRule({ ...editingRule, mathExpression: e.target.value })}
+                                                                    placeholder="VD: A + B * C"
+                                                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-mono font-medium focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50 text-slate-800"
                                                                 />
                                                             </div>
                                                         </div>
