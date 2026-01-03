@@ -1215,6 +1215,7 @@ export default function XmlReader() {
                 isOpen={isRuleSettingsOpen}
                 onClose={() => setIsRuleSettingsOpen(false)}
                 rules={rules}
+                sampleRecords={records.slice(0, 10)}
                 onSave={(newRules) => {
                     saveRules(newRules);
                     // Rerun validation on all records using functional update to guarantee fresh state

@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ValidationRule, DEFAULT_RULES, RuleType } from '@/lib/validation';
+import { ValidationRule, DEFAULT_RULES, RuleType, ValidationEngine } from '@/lib/validation';
+import { HosoRecord } from '@/lib/xml';
 
 interface RuleSettingsProps {
     isOpen: boolean;
     onClose: () => void;
     rules: ValidationRule[];
     onSave: (rules: ValidationRule[]) => void;
+    sampleRecords?: HosoRecord[];
 }
 
 const XML_FIELDS: Record<string, string[]> = {
@@ -67,12 +69,41 @@ const XML_FIELDS: Record<string, string[]> = {
 
 const XML_TYPES = Array.from({ length: 15 }, (_, i) => `XML${i + 1}`);
 
-export default function RuleSettings({ isOpen, onClose, rules: initialRules, onSave, isModal = true }: RuleSettingsProps & { isModal?: boolean }) {
+export default function RuleSettings({ isOpen, onClose, rules: initialRules, onSave, sampleRecords, isModal = true }: RuleSettingsProps & { isModal?: boolean }) {
     // Initialize state with props, but also sync when props change
     const [rules, setRules] = useState<ValidationRule[]>(initialRules.length > 0 ? initialRules : DEFAULT_RULES);
     const [editingRule, setEditingRule] = useState<ValidationRule | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedXmlType, setSelectedXmlType] = useState<string>('ALL');
+    const [testResult, setTestResult] = useState<{ matched: number, total: number, errors: string[] } | null>(null);
+
+    const handleTestLogic = () => {
+        if (!editingRule || !sampleRecords || sampleRecords.length === 0) {
+            alert('Không có dữ liệu mẫu để kiểm tra (cần tải file XML trước).');
+            return;
+        }
+
+        const validator = new ValidationEngine([]);
+        let matchCount = 0;
+        const errors: string[] = [];
+
+        sampleRecords.forEach((record, idx) => {
+            const result = validator.evaluateRule(editingRule, record);
+            if (result.error) {
+                if (errors.length < 5) errors.push(`Hồ sơ #${idx + 1}: ${result.error}`);
+                else if (errors.length === 5) errors.push('...');
+            } else if (result.isMatch) {
+                matchCount++;
+            }
+        });
+
+        setTestResult({ matched: matchCount, total: sampleRecords.length, errors });
+    };
+
+    // Construct effect to clear test results when rule code changes
+    useEffect(() => {
+        setTestResult(null);
+    }, [editingRule?.code, editingRule?.xmlType]);
 
     // Sync state when props.rules changes (important for persistence to reflect back)
     useEffect(() => {
@@ -373,6 +404,38 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                                                     placeholder="VD: NGAY_YL < XML1.NGAY_VAO"
                                                                     className="w-full h-full p-4 border border-slate-300 rounded-xl text-sm font-mono font-medium focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all resize-none bg-slate-50 text-slate-800 leading-relaxed"
                                                                 />
+                                                            </div>
+                                                        </div>
+                                                        <div className="mb-2">
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleTestLogic}
+                                                                    className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold hover:bg-purple-100 transition-colors flex items-center gap-1 shrink-0"
+                                                                    title="Chạy thử quy tắc với dữ liệu hiện tại"
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                                    Kiểm tra logic
+                                                                </button>
+
+                                                                {testResult && (
+                                                                    <div className="flex-1 text-xs bg-slate-50 rounded-lg p-2 border border-slate-200">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className={`font-bold ${testResult.errors.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                                                {testResult.errors.length > 0 ? 'Có lỗi thực thi' : 'Không có lỗi thực thi'}
+                                                                            </span>
+                                                                            <span className="text-slate-400">|</span>
+                                                                            <span className="text-slate-600">Khớp: <b>{testResult.matched}</b>/{testResult.total}</span>
+                                                                        </div>
+                                                                        {testResult.errors.length > 0 && (
+                                                                            <div className="mt-1.5 max-h-20 overflow-y-auto pt-1 border-t border-slate-200/50 text-red-600 font-mono text-[10px] space-y-0.5">
+                                                                                {testResult.errors.map((e, i) => (
+                                                                                    <div key={i} className="break-all">{e}</div>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
 

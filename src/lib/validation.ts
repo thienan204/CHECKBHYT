@@ -177,7 +177,70 @@ export class ValidationEngine {
         };
     }
 
-    private evaluateRuleCode(code: string, context: any): boolean {
+    public evaluateRule(rule: ValidationRule, record: HosoRecord): { isMatch: boolean, error?: string } {
+        try {
+            const rootContext: Record<string, any> = {};
+            record.groups.forEach(g => {
+                if (g.type === 'XML1' && g.data?.TONG_HOP) {
+                    rootContext[g.type] = g.data.TONG_HOP;
+                } else {
+                    rootContext[g.type] = g.data;
+                }
+            });
+
+            const listPath = XML_LIST_PATHS[rule.xmlType];
+
+            if (rule.xmlType === 'XML1' || !listPath) {
+                const context = { ...rootContext };
+                try {
+                    const result = this.evaluateRuleCode(rule.code, context, true);
+                    return { isMatch: result };
+                } catch (e: any) {
+                    return { isMatch: false, error: e.message || String(e) };
+                }
+            }
+
+            const group = record.groups.find(g => g.type === rule.xmlType);
+            const list = getXmlDataList(group);
+
+            if (!list || !Array.isArray(list) || list.length === 0) {
+                return { isMatch: false };
+            }
+
+            for (const item of list) {
+                if (rule.conditionField && rule.conditionValue) {
+                    let conditionVal = item[rule.conditionField];
+                    const allowedValues = rule.conditionValue.split(',').map((s: string) => s.trim());
+                    const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
+                    if (!valStr || !allowedValues.includes(valStr)) {
+                        continue;
+                    }
+                }
+
+                const itemContext = {
+                    ...rootContext,
+                    [rule.xmlType]: item,
+                    'XML': item
+                };
+                const extendedContext = { ...itemContext, ...item };
+
+                try {
+                    if (this.evaluateRuleCode(rule.code, extendedContext, true)) {
+                        return { isMatch: true };
+                    }
+                } catch (e: any) {
+                    return { isMatch: false, error: `Row error: ${e.message || String(e)}` };
+                }
+            }
+
+            return { isMatch: false };
+
+        } catch (error: any) {
+            return { isMatch: false, error: error.message || String(error) };
+        }
+    }
+
+    private evaluateRuleCode(code: string, context: any, throwError = false): boolean {
         // Basic evaluation logic. 
         try {
             // Strip legacy assignment syntax (e.g. "DK_LOI = ...")
@@ -271,6 +334,7 @@ export class ValidationEngine {
             }
             return false;
         } catch (e) {
+            if (throwError) throw e;
             return false;
         }
     }
