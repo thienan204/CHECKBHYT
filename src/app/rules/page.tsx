@@ -2,10 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import RuleSettings from '@/components/RuleSettings';
 import { useRules } from '@/hooks/useRules';
 
 export default function RulesPage() {
+    const router = useRouter();
     const { rules, saveRules, isLoaded } = useRules();
 
     if (!isLoaded) return null; // Or a loading spinner
@@ -41,7 +43,7 @@ export default function RulesPage() {
                     <div className="flex-1 bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden relative">
                         <RuleSettings
                             isOpen={true}
-                            onClose={() => { }}
+                            onClose={() => router.push('/')}
                             rules={rules}
                             onSave={saveRules}
                             isModal={false}

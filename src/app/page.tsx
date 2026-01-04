@@ -1,4 +1,11 @@
-import XmlReader from '@/components/XmlReader';
+'use client';
+
+import dynamic from 'next/dynamic';
+
+const XmlReader = dynamic(() => import('@/components/XmlReader'), {
+  ssr: false,
+  loading: () => <div className="p-8 text-center text-gray-500">Đang tải công cụ...</div>
+});
 import Link from 'next/link';
 
 export default function Home() {
@@ -13,8 +20,8 @@ export default function Home() {
 
 
 
-      <div className="w-full px-[20px] py-16">
-        <div className="text-center mb-16 space-y-4">
+      <div className="w-full px-[20px] py-8">
+        <div className="text-center mb-6 space-y-4">
 
           <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight italic py-2">
             Công cụ <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 pr-2">Kiểm tra lỗi</span>

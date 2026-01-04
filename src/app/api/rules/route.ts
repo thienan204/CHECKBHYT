@@ -53,7 +53,7 @@ export async function POST(request: Request) {
             // But Prisma schema has `id String @id @default(cuid())`.
             // If FE sends ID, we use it. If collision, it will fail (unlikely if strictly sequential or guids).
             const rulesToCreate = body.map((rule: any) => ({
-                id: rule.id || undefined, // If empty, let Prisma generate (though FE usually has generated it)
+                id: rule.id || undefined,
                 active: rule.active,
                 type: rule.type,
                 xmlType: rule.xmlType,
@@ -61,6 +61,8 @@ export async function POST(request: Request) {
                 name: rule.name,
                 description: rule.description,
                 code: rule.code,
+                mathExpression: rule.mathExpression,
+                checkNotNull: rule.checkNotNull,
                 conditionField: rule.conditionField,
                 conditionValue: rule.conditionValue,
                 errorMessage: rule.errorMessage

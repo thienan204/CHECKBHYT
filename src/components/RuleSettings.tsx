@@ -1,8 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ValidationRule, DEFAULT_RULES, RuleType, ValidationEngine } from '@/lib/validation';
+import { ValidationRule, DEFAULT_RULES, ValidationEngine } from '@/lib/validation';
 import { HosoRecord } from '@/lib/xml';
+import { Modal, Form, Input, Select, Switch, Button, Popconfirm, Table, Badge, Card, Row, Col, Space, Alert, Tag, Tooltip, message, AutoComplete, Checkbox } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, ToolOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+
+const { Option } = Select;
+const { TextArea } = Input;
 
 interface RuleSettingsProps {
     isOpen: boolean;
@@ -10,6 +16,7 @@ interface RuleSettingsProps {
     rules: ValidationRule[];
     onSave: (rules: ValidationRule[]) => void;
     sampleRecords?: HosoRecord[];
+    isModal?: boolean;
 }
 
 const XML_FIELDS: Record<string, string[]> = {
@@ -20,7 +27,8 @@ const XML_FIELDS: Record<string, string[]> = {
         'KET_QUA_DTRI', 'TINH_TRANG_RV', 'NGAY_TTOAN', 'T_TONGCHI', 'T_XETNGHIEM', 'T_CDHA',
         'T_THUOC', 'T_MAU', 'T_PTTT', 'T_VTYT', 'T_DVKT_TYLE', 'T_THUOC_TYLE', 'T_VTYT_TYLE',
         'T_KHAM', 'T_GIUONG', 'T_VCHUYEN', 'T_BNTT', 'T_BHTT', 'T_NGUONKHAC', 'T_NGOAIDS',
-        'NAM_QT', 'THANG_QT', 'MA_LOAI_KCB', 'MA_KHOA', 'MA_CSKCB', 'MA_KHUVUC', 'MA_PTTT_QT', 'CAN_NANG'
+        'NAM_QT', 'THANG_QT', 'MA_LOAI_KCB', 'MA_KHOA', 'MA_CSKCB', 'MA_KHUVUC', 'MA_PTTT_QT', 'CAN_NANG',
+        'MA_TTDV'
     ],
     'XML2': [
         'MA_LK', 'STT', 'MA_THUOC', 'MA_NHOM', 'TEN_THUOC', 'DON_VI_TINH', 'HAM_LUONG',
@@ -29,10 +37,11 @@ const XML_FIELDS: Record<string, string[]> = {
         'T_NGOAIDS', 'MA_KHOA', 'MA_BAC_SI', 'MA_BENH', 'NGAY_YL', 'NGAY_KQ', 'MA_PTTT'
     ],
     'XML3': [
-        'MA_LK', 'STT', 'MA_DICH_VU', 'MA_VAT_TU', 'MA_NHOM', 'TEN_DICH_VU', 'DON_VI_TINH',
-        'SO_LUONG', 'DON_GIA', 'TY_LE_TT', 'THANH_TIEN', 'T_TRANTT', 'MUC_HUONG', 'T_NGUONKHAC',
-        'T_BNTT', 'T_BHTT', 'T_BNCCT', 'T_NGOAIDS', 'MA_KHOA', 'MA_GIUONG', 'MA_BAC_SI',
-        'MA_BENH', 'NGAY_YL', 'NGAY_TH_YL', 'NGAY_KQ', 'MA_PTTT'
+        'MA_LK', 'STT', 'MA_DICH_VU', 'MA_VAT_TU', 'MA_NHOM', 'GOI_VTYT', 'TEN_VAT_TU', 'TEN_DICH_VU',
+        'DON_VI_TINH', 'PHAM_VI', 'SO_LUONG', 'DON_GIA', 'DON_GIA_BH', 'TT_THAU', 'TY_LE_TT', 'TYLE_TT_BH', 'THANH_TIEN',
+        'THANH_TIEN_BH', 'THANH_TIEN_BV', 'T_TRANTT',
+        'MUC_HUONG', 'T_NGUONKHAC', 'T_BNTT', 'T_BHTT', 'T_BNCCT', 'T_NGOAIDS', 'MA_KHOA', 'MA_GIUONG',
+        'MA_BAC_SI', 'MA_BENH', 'NGAY_YL', 'NGAY_TH_YL', 'NGAY_KQ', 'MA_PTTT'
     ],
     'XML4': [
         'MA_LK', 'STT', 'MA_DICH_VU', 'MA_CHI_SO', 'TEN_CHI_SO', 'GIA_TRI', 'DON_VI_DO',
@@ -69,17 +78,33 @@ const XML_FIELDS: Record<string, string[]> = {
 
 const XML_TYPES = Array.from({ length: 15 }, (_, i) => `XML${i + 1}`);
 
-export default function RuleSettings({ isOpen, onClose, rules: initialRules, onSave, sampleRecords, isModal = true }: RuleSettingsProps & { isModal?: boolean }) {
-    // Initialize state with props, but also sync when props change
+export default function RuleSettings({ isOpen, onClose, rules: initialRules, onSave, sampleRecords, isModal = true }: RuleSettingsProps) {
     const [rules, setRules] = useState<ValidationRule[]>(initialRules.length > 0 ? initialRules : DEFAULT_RULES);
     const [editingRule, setEditingRule] = useState<ValidationRule | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedXmlType, setSelectedXmlType] = useState<string>('ALL');
     const [testResult, setTestResult] = useState<{ matched: number, total: number, errors: string[] } | null>(null);
+    const [form] = Form.useForm();
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    useEffect(() => {
+        setRules(initialRules);
+    }, [initialRules]);
+
+    useEffect(() => {
+        if (isEditModalOpen && editingRule) {
+            form.resetFields(); // Reset to default/initial values first
+            form.setFieldsValue(editingRule);
+            setTestResult(null);
+        }
+    }, [editingRule, form, isEditModalOpen]);
 
     const handleTestLogic = () => {
-        if (!editingRule || !sampleRecords || sampleRecords.length === 0) {
-            alert('Không có dữ liệu mẫu để kiểm tra (cần tải file XML trước).');
+        const currentRule = form.getFieldsValue(true) as ValidationRule; // Get current form values
+        // We need to merge with existing ID if editing, or mock one if new, but primarily we need the code and xmlType
+
+        if (!sampleRecords || sampleRecords.length === 0) {
+            message.warning('Không có dữ liệu mẫu để kiểm tra (cần tải file XML trước).');
             return;
         }
 
@@ -88,7 +113,14 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
         const errors: string[] = [];
 
         sampleRecords.forEach((record, idx) => {
-            const result = validator.evaluateRule(editingRule, record);
+            // Create a temporary rule object for testing
+            const tempRule: ValidationRule = {
+                ...currentRule,
+                id: 'temp-test',
+                active: true // Always treat as active for testing
+            };
+
+            const result = validator.evaluateRule(tempRule, record);
             if (result.error) {
                 if (errors.length < 5) errors.push(`Hồ sơ #${idx + 1}: ${result.error}`);
                 else if (errors.length === 5) errors.push('...');
@@ -98,57 +130,45 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
         });
 
         setTestResult({ matched: matchCount, total: sampleRecords.length, errors });
+        if (errors.length > 0) message.error('Có lỗi khi thực thi logic!');
+        else message.success(`Kiểm tra hoàn tất: khớp ${matchCount}/${sampleRecords.length} hồ sơ.`);
     };
 
-    // Construct effect to clear test results when rule code changes
-    useEffect(() => {
-        setTestResult(null);
-    }, [editingRule?.code, editingRule?.xmlType]);
+    const handleSaveEdit = () => {
+        form.validateFields().then(values => {
+            console.log('Saving Rule Values:', values); // DEBUG
+            const isExisting = rules.some(r => r.id === values.id);
+            let newRules;
 
-    // Sync state when props.rules changes (important for persistence to reflect back)
-    useEffect(() => {
-        setRules(initialRules);
-    }, [initialRules]);
+            const ruleData = { ...values };
+            // Ensure ID is set if it was a new rule (though form usually has it from initialValues)
+            if (!ruleData.id) ruleData.id = Date.now().toString();
 
-    if (isModal && !isOpen) return null;
+            if (isExisting) {
+                newRules = rules.map(r => r.id === ruleData.id ? { ...r, ...ruleData } : r);
+            } else {
+                newRules = [...rules, { ...ruleData, createdAt: new Date() } as ValidationRule];
+            }
 
-    console.log('RuleSettings debug:', {
-        rulesCount: rules.length,
-        searchTerm,
-        selectedXmlType,
-        sampleRule: rules[0]
-    });
+            setRules(newRules);
 
-    const filteredRules = rules.filter(r => {
-        // Safe access guards
-        const name = r.name || '';
-        const xmlType = r.xmlType || '';
+            console.log('Calling onSave/API with:', newRules); // DEBUG
 
-        const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            xmlType.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = selectedXmlType === 'ALL' || xmlType === selectedXmlType;
-        return matchesSearch && matchesType;
-    });
+            // Wrap in promise to handle async result if present
+            Promise.resolve(onSave(newRules))
+                .then(() => {
+                    setIsEditModalOpen(false);
+                    setEditingRule(null);
+                    message.success('Đã lưu quy tắc thành công!');
+                })
+                .catch(err => {
+                    console.error('Save error:', err);
+                    message.error(`Lỗi khi lưu vào CSDL: ${err.message}`);
+                });
 
-    const handleSaveEdit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editingRule) return;
-
-        // Check if it's a NEW rule or update
-        // Logic: if ID exists in rules list -> update. Else -> new.
-        const isExisting = rules.some(r => r.id === editingRule.id);
-
-        let newRules;
-        if (isExisting) {
-            newRules = rules.map(r => r.id === editingRule.id ? editingRule : r);
-        } else {
-            newRules = [...rules, { ...editingRule, createdAt: new Date() } as ValidationRule];
-        }
-
-        setRules(newRules);
-        onSave(newRules); // Persist immediately
-        setEditingRule(null);
-        alert('Đã lưu quy tắc thành công!');
+        }).catch(info => {
+            console.log('Validate Failed:', info);
+        });
     };
 
     const handleAddNew = () => {
@@ -156,469 +176,514 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
             id: Date.now().toString(),
             active: true,
             type: 'Xuất toán',
-            xmlType: selectedXmlType !== 'ALL' ? selectedXmlType : 'XML1', // Default to selected type
+            xmlType: selectedXmlType !== 'ALL' ? selectedXmlType : 'XML1',
             name: 'Quy tắc mới',
             code: '',
             mathExpression: '',
             errorMessage: '',
             description: '',
             field: '',
+            checkNotNull: false,
             conditionField: '',
             conditionValue: ''
         };
-        // DO NOT add to rules list yet. Just open modal.
         setEditingRule(newRule);
+        setIsEditModalOpen(true);
     };
 
     const handleDelete = (id: string) => {
-        if (confirm('Bạn có chắc chắn muốn xóa quy tắc này?')) {
-            const newRules = rules.filter(r => r.id !== id);
-            setRules(newRules);
-            if (editingRule?.id === id) {
-                setEditingRule(null);
-            }
-            onSave(newRules); // Persist immediately
-        }
+        const newRules = rules.filter(r => r.id !== id);
+        setRules(newRules);
+        onSave(newRules);
+        message.success('Đã xóa quy tắc.');
     };
 
-    // Toggle active status
     const handleToggleActive = (id: string, checked: boolean) => {
         const newRules = rules.map(r => r.id === id ? { ...r, active: checked } : r);
         setRules(newRules);
-        onSave(newRules); // Persist immediately
+        onSave(newRules);
+        message.info(`Đã ${checked ? 'bật' : 'tắt'} quy tắc.`);
     };
 
-    // Conditional styles based on isModal
-    const containerClasses = isModal
-        ? "fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300"
-        : "w-full h-full min-h-screen bg-slate-50 flex flex-col";
+    const filteredRules = rules.filter(r => {
+        const name = r.name || '';
+        const xmlType = r.xmlType || '';
+        const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            xmlType.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesType = selectedXmlType === 'ALL' || xmlType === selectedXmlType;
+        return matchesSearch && matchesType;
+    });
 
-    const contentClasses = isModal
-        ? "bg-white w-full max-w-6xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200"
-        : "flex-1 flex flex-col overflow-hidden bg-white/50"; // Simplified for full page
-
-    return (
-        <div className={containerClasses}>
-            <div className={contentClasses}>
-                {/* Header */}
-                <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight">Cài đặt quy tắc kiểm tra</h2>
-                    {isModal ? (
-                        <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-                            <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    ) : (
-                        <div className="flex gap-2">
-                            {/* Non-modal header actions if needed */}
-                        </div>
-                    )}
+    const columns: ColumnsType<ValidationRule> = [
+        {
+            title: 'Trạng thái',
+            dataIndex: 'active',
+            key: 'active',
+            width: 100,
+            render: (active, record) => (
+                <Switch
+                    size="small"
+                    checked={active}
+                    onChange={(checked) => handleToggleActive(record.id, checked)}
+                />
+            )
+        },
+        {
+            title: 'Loại',
+            dataIndex: 'type',
+            key: 'type',
+            width: 100,
+            render: (type) => (
+                <Tag color={type === 'Xuất toán' ? 'red' : 'orange'}>
+                    {type === 'Xuất toán' ? 'Xuất toán' : 'Cảnh báo'}
+                </Tag>
+            )
+        },
+        {
+            title: 'File XML',
+            dataIndex: 'xmlType',
+            key: 'xmlType',
+            width: 80,
+            render: (text) => <Tag color="blue">{text}</Tag>
+        },
+        {
+            title: 'Tên quy tắc',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text, record) => (
+                <div>
+                    <div className="font-bold text-slate-700">{text}</div>
+                    <div className="text-xs text-slate-500 font-mono">{record.field}</div>
                 </div>
+            )
+        },
+        {
+            title: 'Thông báo lỗi',
+            dataIndex: 'errorMessage',
+            key: 'errorMessage',
+            render: (text) => <span className="text-red-500">{text}</span>
+        },
+        {
+            title: 'Hành động',
+            key: 'action',
+            width: 100,
+            render: (_, record) => (
+                <Space size="small">
+                    <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => {
+                            setEditingRule(record);
+                            setIsEditModalOpen(true);
+                        }}
+                    />
+                    <Popconfirm
+                        title="Xóa quy tắc"
+                        description="Bạn có chắc chắn muốn xóa quy tắc này?"
+                        onConfirm={() => handleDelete(record.id)}
+                        okText="Có"
+                        cancelText="Không"
+                    >
+                        <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                </Space>
+            )
+        }
+    ];
 
-                <div className="flex-1 overflow-hidden flex">
-                    {/* Sidebar */}
-                    <div className="w-64 bg-slate-50 border-r border-slate-100 flex flex-col overflow-y-auto">
-                        <div className="p-4 space-y-1">
-                            <button
-                                onClick={() => setSelectedXmlType('ALL')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-between group transition-all ${selectedXmlType === 'ALL' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-200' : 'text-slate-600 hover:bg-white hover:shadow-sm'}`}
-                            >
-                                <span>Tất cả</span>
-                                <span className={`px-2 py-0.5 rounded text-[10px] ${selectedXmlType === 'ALL' ? 'bg-cyan-500/50 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                                    {rules.length}
-                                </span>
-                            </button>
-                            <div className="my-2 border-b border-slate-100"></div>
-                            {XML_TYPES.map(type => {
-                                const count = rules.filter(r => r.xmlType === type).length;
-                                return (
-                                    <button
-                                        key={type}
-                                        onClick={() => setSelectedXmlType(type)}
-                                        className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-between group transition-all ${selectedXmlType === type ? 'bg-white text-cyan-600 shadow-md border border-cyan-100' : 'text-slate-500 hover:bg-white hover:text-slate-700'}`}
-                                    >
-                                        <span>File {type}</span>
-                                        {count > 0 && (
-                                            <span className={`px-2 py-0.5 rounded text-[10px] ${selectedXmlType === type ? 'bg-cyan-50 text-cyan-600' : 'bg-slate-200 text-slate-400'}`}>
-                                                {count}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Main List View */}
-                    <div className="flex-1 flex flex-col bg-white overflow-hidden">
-                        {/* Edit Modal Overlay */}
-                        {editingRule && (
-                            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                                <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-slate-200 flex flex-col animate-in zoom-in-95 duration-200">
-                                    {/* Modal Header */}
-                                    <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-                                        <div>
-                                            <h3 className="text-xl font-black text-slate-800 tracking-tight">
-                                                {rules.some(r => r.id === editingRule.id) ? 'Cập nhật quy tắc' : 'Thêm quy tắc mới'}
-                                            </h3>
-                                            <p className="text-xs text-slate-500 font-medium mt-1">Thiết lập các thông số kiểm tra logic cho hồ sơ XML</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setEditingRule(null)}
-                                            className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-all"
-                                        >
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                                        </button>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto bg-slate-50/50">
-                                        <form onSubmit={handleSaveEdit} className="p-8">
-                                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                                                {/* LEFT COLUMN: General Info */}
-                                                <div className="lg:col-span-5 space-y-6">
-                                                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                            </div>
-                                                            <h4 className="text-sm font-black uppercase text-slate-700 tracking-wide">Thông tin chung</h4>
-                                                        </div>
-
-                                                        <div className="space-y-4">
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div className="space-y-1.5">
-                                                                    <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Mã lỗi (ID)</label>
-                                                                    <input type="text" value={editingRule.id} disabled className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-400 cursor-not-allowed" />
-                                                                </div>
-                                                                <div className="space-y-1.5">
-                                                                    <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Trạng thái</label>
-                                                                    <label className={`block w-full px-3 py-2 rounded-lg border cursor-pointer transition-all ${editingRule.active ? 'bg-cyan-50 border-cyan-200' : 'bg-slate-50 border-slate-200'}`}>
-                                                                        <div className="flex items-center justify-between">
-                                                                            <span className={`text-xs font-bold ${editingRule.active ? 'text-cyan-700' : 'text-slate-500'}`}>
-                                                                                {editingRule.active ? 'Đang bật' : 'Đang tắt'}
-                                                                            </span>
-                                                                            <div className={`w-8 h-4 rounded-full relative transition-colors ${editingRule.active ? 'bg-cyan-500' : 'bg-slate-300'}`}>
-                                                                                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${editingRule.active ? 'left-[18px]' : 'left-0.5'}`}></div>
-                                                                            </div>
-                                                                        </div>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="hidden"
-                                                                            checked={editingRule.active}
-                                                                            onChange={e => setEditingRule({ ...editingRule, active: e.target.checked })}
-                                                                        />
-                                                                    </label>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Tên quy tắc</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={editingRule.name}
-                                                                    onChange={e => setEditingRule({ ...editingRule, name: e.target.value })}
-                                                                    placeholder="VD: Kiểm tra ngày vào viện"
-                                                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:bg-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
-                                                                />
-                                                            </div>
-
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">File XML</label>
-                                                                <div className="relative">
-                                                                    <select
-                                                                        value={editingRule.xmlType}
-                                                                        onChange={e => setEditingRule({ ...editingRule, xmlType: e.target.value })}
-                                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
-                                                                    >
-                                                                        {XML_TYPES.map(type => (
-                                                                            <option key={type} value={type}>{type}</option>
-                                                                        ))}
-                                                                    </select>
-                                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-1.5">
-                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Trường kiểm tra</label>
-                                                                <div className="relative">
-                                                                    <select
-                                                                        value={
-                                                                            (editingRule.field && !XML_FIELDS[editingRule.xmlType]?.includes(editingRule.field)) || editingRule.field === '___CUSTOM___'
-                                                                                ? '___CUSTOM___'
-                                                                                : (editingRule.field || '')
-                                                                        }
-                                                                        onChange={e => {
-                                                                            if (e.target.value === '___CUSTOM___') {
-                                                                                setEditingRule({ ...editingRule, field: '___CUSTOM___' });
-                                                                            } else {
-                                                                                setEditingRule({ ...editingRule, field: e.target.value });
-                                                                            }
-                                                                        }}
-                                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-mono font-bold text-slate-700 focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
-                                                                    >
-                                                                        <option value="">-- Chọn trường --</option>
-                                                                        {(XML_FIELDS[editingRule.xmlType] || []).map(field => (
-                                                                            <option key={field} value={field}>{field}</option>
-                                                                        ))}
-                                                                        <option value="___CUSTOM___">Khác (Nhập thủ công)...</option>
-                                                                    </select>
-                                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                                                                    </div>
-                                                                </div>
-                                                                {((editingRule.field && !XML_FIELDS[editingRule.xmlType]?.includes(editingRule.field)) || editingRule.field === '___CUSTOM___') && (
-                                                                    <input
-                                                                        type="text"
-                                                                        value={editingRule.field === '___CUSTOM___' ? '' : editingRule.field}
-                                                                        placeholder="Nhập mã trường thủ công..."
-                                                                        className="mt-2 w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-mono focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
-                                                                        onChange={e => setEditingRule({ ...editingRule, field: e.target.value })}
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* RIGHT COLUMN: Logic & Settings */}
-                                                <div className="lg:col-span-7 space-y-6">
-                                                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5 h-full flex flex-col">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                                                            </div>
-                                                            <h4 className="text-sm font-black uppercase text-slate-700 tracking-wide">Thiết lập Logic</h4>
-                                                        </div>
-
-                                                        {/* Code Block */}
-                                                        <div className="space-y-1.5 flex-1">
-                                                            <div className="flex items-center justify-between">
-                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Biểu thức kiểm tra</label>
-                                                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold cursor-help" title="Ví dụ: NGAY_YL < XML1.NGAY_VAO">Hỗ trợ cú pháp</span>
-                                                            </div>
-                                                            <div className="relative h-32 lg:h-40">
-                                                                <textarea
-                                                                    value={editingRule.code}
-                                                                    onChange={e => setEditingRule({ ...editingRule, code: e.target.value })}
-                                                                    placeholder="VD: NGAY_YL < XML1.NGAY_VAO"
-                                                                    className="w-full h-full p-4 border border-slate-300 rounded-xl text-sm font-mono font-medium focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all resize-none bg-slate-50 text-slate-800 leading-relaxed"
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <div className="mb-2">
-                                                            <div className="flex items-start justify-between gap-3">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={handleTestLogic}
-                                                                    className="px-3 py-1.5 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold hover:bg-purple-100 transition-colors flex items-center gap-1 shrink-0"
-                                                                    title="Chạy thử quy tắc với dữ liệu hiện tại"
-                                                                >
-                                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                    Kiểm tra logic
-                                                                </button>
-
-                                                                {testResult && (
-                                                                    <div className="flex-1 text-xs bg-slate-50 rounded-lg p-2 border border-slate-200">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className={`font-bold ${testResult.errors.length > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                                                {testResult.errors.length > 0 ? 'Có lỗi thực thi' : 'Không có lỗi thực thi'}
-                                                                            </span>
-                                                                            <span className="text-slate-400">|</span>
-                                                                            <span className="text-slate-600">Khớp: <b>{testResult.matched}</b>/{testResult.total}</span>
-                                                                        </div>
-                                                                        {testResult.errors.length > 0 && (
-                                                                            <div className="mt-1.5 max-h-20 overflow-y-auto pt-1 border-t border-slate-200/50 text-red-600 font-mono text-[10px] space-y-0.5">
-                                                                                {testResult.errors.map((e, i) => (
-                                                                                    <div key={i} className="break-all">{e}</div>
-                                                                                ))}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Math Expression Block */}
-                                                        <div className="space-y-1.5 flex-1">
-                                                            <div className="flex items-center justify-between">
-                                                                <label className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Biểu thức toán học</label>
-                                                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold cursor-help" title="Ví dụ: XML1.TONG_CHI - XML2.THANH_TIEN">Hỗ trợ cú pháp</span>
-                                                            </div>
-                                                            <div className="relative">
-                                                                <input
-                                                                    type="text"
-                                                                    value={editingRule.mathExpression || ''}
-                                                                    onChange={e => setEditingRule({ ...editingRule, mathExpression: e.target.value })}
-                                                                    placeholder="VD: A + B * C"
-                                                                    className="w-full px-4 py-3 border border-slate-300 rounded-xl text-sm font-mono font-medium focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none transition-all bg-slate-50 text-slate-800"
-                                                                />
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Condition Block */}
-                                                        <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 space-y-3">
-                                                            <div className="flex items-center gap-2">
-                                                                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
-                                                                <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Điều kiện áp dụng (Tùy chọn)</h4>
-                                                            </div>
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div className="space-y-1">
-                                                                    <label className="text-[9px] font-bold uppercase text-slate-400">Trường điều kiện</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={editingRule.conditionField || ''}
-                                                                        onChange={e => setEditingRule({ ...editingRule, conditionField: e.target.value })}
-                                                                        placeholder="VD: MA_NHOM"
-                                                                        className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg text-xs font-mono focus:border-cyan-500 outline-none transition-all"
-                                                                    />
-                                                                </div>
-                                                                <div className="space-y-1">
-                                                                    <label className="text-[9px] font-bold uppercase text-slate-400">Giá trị cho phép</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={editingRule.conditionValue || ''}
-                                                                        onChange={e => setEditingRule({ ...editingRule, conditionValue: e.target.value })}
-                                                                        placeholder="VD: 1, 2, 3"
-                                                                        className="w-full px-3 py-2 border border-slate-200 bg-white rounded-lg text-xs font-mono focus:border-cyan-500 outline-none transition-all"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="space-y-1.5">
-                                                            <label className="text-[11px] font-bold uppercase text-red-400 tracking-wider">Nội dung báo lỗi</label>
-                                                            <textarea
-                                                                rows={2}
-                                                                value={editingRule.errorMessage || ''}
-                                                                onChange={e => setEditingRule({ ...editingRule, errorMessage: e.target.value })}
-                                                                placeholder="Nhập nội dung thông báo lỗi hiển thị cho người dùng..."
-                                                                className="w-full px-4 py-3 border border-red-100 bg-red-50/30 rounded-xl text-sm font-medium text-red-700 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all placeholder:text-red-300/70 resize-none"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Action Buttons */}
-                                            <div className="pt-6 flex items-center justify-end gap-3 mt-4 border-t border-slate-200/50">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setEditingRule(null)}
-                                                    className="px-6 py-3 border border-slate-200 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95"
-                                                >
-                                                    Hủy bỏ
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-95 flex items-center gap-2"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-                                                    {rules.some(r => r.id === editingRule.id) ? 'Lưu cập nhật' : 'Tạo quy tắc mới'}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="p-6 flex items-center justify-between gap-4 border-b border-slate-50 shrink-0">
-                            <div className="relative flex-1 max-w-md">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                </span>
-                                <input
-                                    type="text"
-                                    placeholder={`Tìm kiếm trong ${selectedXmlType === 'ALL' ? 'tất cả' : selectedXmlType}...`}
-                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-cyan-500/20 focus:bg-white transition-all outline-none"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            <button
-                                onClick={handleAddNew}
-                                className="px-5 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-bold hover:bg-cyan-700 transition-all flex items-center gap-2 shadow-lg shadow-cyan-200"
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                                Thêm quy tắc {selectedXmlType !== 'ALL' ? selectedXmlType : ''}
-                            </button>
-                        </div>
-
-                        <div className="p-6 overflow-y-auto flex-1">
-                            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                                <table className="w-full text-left text-xs border-collapse">
-                                    <thead className="bg-slate-50/80 sticky top-0 border-b border-slate-100">
-                                        <tr>
-                                            <th className="py-4 px-4 font-bold text-slate-400 w-16 text-center">ID</th>
-                                            <th className="py-4 px-4 font-bold text-slate-400 w-16 text-center">Bật</th>
-
-                                            <th className="py-4 px-4 font-bold text-slate-400 w-20">File</th>
-                                            <th className="py-4 px-4 font-bold text-slate-400 w-32">Trường</th>
-                                            <th className="py-4 px-4 font-bold text-slate-400">Nội dung lỗi</th>
-                                            <th className="py-4 px-4 w-24"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50">
-                                        {filteredRules.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={6} className="py-12 text-center text-slate-400 italic">
-                                                    Chưa có quy tắc nào cho {selectedXmlType !== 'ALL' ? selectedXmlType : 'mục này'}
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filteredRules.map((rule) => (
-                                                <tr key={rule.id} className="hover:bg-cyan-50/20 transition-colors group">
-                                                    <td className="py-4 px-4 text-center font-mono text-slate-400">{rule.id}</td>
-                                                    <td className="py-4 px-4 text-center">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={rule.active}
-                                                            onChange={(e) => handleToggleActive(rule.id, e.target.checked)}
-                                                            className="w-4 h-4 text-cyan-600 rounded border-slate-300 focus:ring-cyan-500 cursor-pointer"
-                                                        />
-                                                    </td>
-
-                                                    <td className="py-4 px-4 font-bold text-slate-600">{rule.xmlType}</td>
-                                                    <td className="py-4 px-4 font-mono text-slate-500">{rule.field || '-'}</td>
-                                                    <td className="py-4 px-4 font-medium text-slate-900">{rule.errorMessage || rule.name}</td>
-                                                    <td className="py-4 px-4 text-right flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={() => setEditingRule(rule)}
-                                                            className="p-1.5 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-all"
-                                                            title="Chỉnh sửa"
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDelete(rule.id)}
-                                                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                            title="Xóa"
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6" /></svg>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-
+    // Sidebar Content
+    const Sidebar = (
+        <div className="w-64 border-r h-full bg-gray-50 p-4 overflow-y-auto">
+            <Button type="primary" icon={<PlusOutlined />} block onClick={handleAddNew} className="mb-4">
+                Thêm quy tắc mới
+            </Button>
+            <div className="space-y-1">
+                <div
+                    className={`p-2 rounded cursor-pointer ${selectedXmlType === 'ALL' ? 'bg-blue-100 text-blue-600 font-semibold' : 'hover:bg-gray-100'}`}
+                    onClick={() => setSelectedXmlType('ALL')}
+                >
+                    All Types <Badge count={rules.length} style={{ backgroundColor: '#52c41a' }} offset={[10, 0]} />
                 </div>
-
-                {/* Footer buttons (Conditional) */}
-                {isModal && (
-                    <div className="px-8 py-4 border-t border-slate-100 flex items-center justify-end gap-3 bg-white shrink-0">
-                        <button onClick={onClose} className="px-10 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-black tracking-widest uppercase hover:bg-slate-900 transition-all shadow-xl shadow-slate-200">
-                            Đóng
-                        </button>
+                {XML_TYPES.map(type => (
+                    <div
+                        key={type}
+                        className={`p-2 rounded cursor-pointer flex justify-between ${selectedXmlType === type ? 'bg-blue-100 text-blue-600 font-semibold' : 'hover:bg-gray-100'}`}
+                        onClick={() => setSelectedXmlType(type)}
+                    >
+                        <span>{type}</span>
+                        <Badge
+                            count={rules.filter(r => r.xmlType === type).length}
+                            style={{ backgroundColor: selectedXmlType === type ? '#1890ff' : '#d9d9d9' }}
+                        />
                     </div>
-                )}
+                ))}
             </div>
         </div>
+    );
+
+    const MainContent = (
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className="p-4 border-b bg-white flex justify-between items-center">
+                <h2 className="text-lg font-bold">Danh sách quy tắc {selectedXmlType !== 'ALL' ? `(${selectedXmlType})` : ''}</h2>
+                <Input
+                    placeholder="Tìm kiếm quy tắc..."
+                    prefix={<SearchOutlined />}
+                    className="w-64"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+                <Table
+                    columns={columns}
+                    dataSource={filteredRules}
+                    rowKey="id"
+                    pagination={{ pageSize: 10 }}
+                    size="small"
+                />
+            </div>
+        </div>
+    );
+
+    const modalContent = (
+        <div className="flex h-[70vh]">
+            {Sidebar}
+            {MainContent}
+        </div>
+    );
+
+    // If not using Antd Modal as wrapper (e.g. full page), render directly
+    // But requirement is Modal replacement.
+
+    if (!isModal) {
+        return (
+            <div className="h-full flex flex-col bg-white">
+                {modalContent}
+
+                {/* Keep the Edit Modal logic available */}
+                <Modal
+                    title={editingRule?.id === 'new' || !rules.some(r => r.id === editingRule?.id) ? "Thêm quy tắc mới" : "Chỉnh sửa quy tắc"}
+                    open={isEditModalOpen}
+                    onCancel={() => { setIsEditModalOpen(false); setEditingRule(null); }}
+                    onOk={handleSaveEdit}
+                    width={900}
+                    okText="Lưu"
+                    cancelText="Hủy"
+                >
+                    <Form
+                        form={form}
+                        layout="vertical"
+                        initialValues={editingRule || {}}
+                    >
+                        <Form.Item name="id" hidden><Input /></Form.Item>
+                        <Form.Item name="createdAt" hidden><Input /></Form.Item>
+
+                        <Row gutter={24}>
+                            <Col span={10}>
+                                <Card title="Thông tin chung" size="small" variant="borderless" className="bg-gray-50">
+                                    <Row gutter={12}>
+                                        <Col span={12}>
+                                            <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+                                                <Switch />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item name="type" label="Loại vi phạm" rules={[{ required: true }]}>
+                                                <Select>
+                                                    <Option value="Xuất toán">Xuất toán</Option>
+                                                    <Option value="Cảnh báo">Cảnh báo</Option>
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+
+                                    <Form.Item name="name" label="Tên quy tắc" rules={[{ required: true, message: 'Nhập tên quy tắc' }]}>
+                                        <Input placeholder="VD: Kiểm tra ngày vào viện" />
+                                    </Form.Item>
+
+                                    <Row gutter={12}>
+                                        <Col span={12}>
+                                            <Form.Item name="xmlType" label="File XML" rules={[{ required: true }]}>
+                                                <Select onChange={() => {
+                                                    // Reset field when type changes
+                                                    const currentFields = form.getFieldsValue();
+                                                    if (currentFields.field && !XML_FIELDS[currentFields.xmlType]?.includes(currentFields.field)) {
+                                                        form.setFieldsValue({ field: '' });
+                                                    }
+                                                }}>
+                                                    {XML_TYPES.map(t => <Option key={t} value={t}>{t}</Option>)}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item shouldUpdate={(prev, curr) => prev.xmlType !== curr.xmlType}>
+                                                {() => {
+                                                    const type = form.getFieldValue('xmlType') || 'XML1';
+                                                    const fields = XML_FIELDS[type] || [];
+                                                    return (
+                                                        <Form.Item name="field" label="Trường dữ liệu">
+                                                            <AutoComplete
+                                                                options={fields.map(f => ({ value: f }))}
+                                                                placeholder="Chọn hoặc nhập"
+                                                                allowClear
+                                                                filterOption={(inputValue, option) =>
+                                                                    option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                                }
+                                                            />
+                                                        </Form.Item>
+                                                    );
+                                                }}
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+
+                                    <Form.Item name="errorMessage" label="Nội dung báo lỗi">
+                                        <TextArea rows={2} placeholder="Thông báo hiển thị khi vi phạm..." />
+                                    </Form.Item>
+                                </Card>
+                            </Col>
+
+                            <Col span={14}>
+                                <Card title="Thiết lập Logic" size="small" variant="borderless" className="bg-blue-50">
+                                    <Form.Item
+                                        name="code"
+                                        label="Biểu thức logic"
+                                        help="Ví dụ: NGAY_YL < XML1.NGAY_VAO"
+                                        tooltip="Sử dụng mã trường. Dùng root.XML1... để truy cập chéo bảng."
+                                    >
+                                        <TextArea rows={4} className="font-mono bg-sky-50" />
+                                    </Form.Item>
+
+                                    <div className="mb-4 p-3 bg-white rounded border border-blue-100">
+                                        <Space orientation="vertical" style={{ width: '100%' }}>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-500 text-xs font-bold uppercase">Công cụ kiểm tra</span>
+                                                <Button size="small" type="dashed" icon={<ToolOutlined />} onClick={handleTestLogic}>Chạy thử Logic</Button>
+                                            </div>
+                                            {testResult && (
+                                                <div className="mt-2 text-xs">
+                                                    {testResult.errors.length > 0 ? (
+                                                        <div className="text-red-600">
+                                                            <CloseCircleOutlined /> Có lỗi:
+                                                            <ul className="list-disc pl-4 mt-1">
+                                                                {testResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-green-600">
+                                                            <CheckCircleOutlined /> Khớp {testResult.matched}/{testResult.total} hồ sơ mẫu.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </Space>
+                                    </div>
+
+                                    <Form.Item name="mathExpression" label="Biểu thức toán học (Tùy chọn)">
+                                        <Input placeholder="VD: (A + B) * C" className="font-mono" />
+                                    </Form.Item>
+
+                                    <Row gutter={12}>
+                                        <Col span={12}>
+                                            <Form.Item name="conditionField" label="Trường điều kiện">
+                                                <Input placeholder="VD: MA_NHOM" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item name="conditionValue" label="Giá trị điều kiện">
+                                                <Input placeholder="VD: 1, 2, 3" />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+
+                                    <Form.Item
+                                        name="checkNotNull"
+                                        valuePropName="checked"
+                                        extra={<span className="text-gray-400 text-xs">Nếu tích chọn, hệ thống sẽ báo lỗi khi trường dữ liệu đã chọn bị rỗng hoặc null.</span>}
+                                    >
+                                        <Checkbox className="text-red-600 font-medium">
+                                            Bắt buộc có dữ liệu (Không được để trống)
+                                        </Checkbox>
+                                    </Form.Item>
+                                </Card>
+                            </Col>
+                        </Row>
+                    </Form>
+                </Modal>
+            </div>
+        );
+    }
+
+    // Default Modal behavior
+    return (
+        <>
+            <Modal
+                title="Cài đặt Quy tắc Kiểm tra"
+                open={isOpen}
+                onCancel={onClose}
+                width={1200}
+                footer={[
+                    <Button key="close" onClick={() => onClose()}>
+                        Đóng
+                    </Button>
+                ]}
+                style={{ top: 20 }}
+                styles={{ body: { padding: 0 } }}
+                destroyOnHidden
+            >
+                {modalContent}
+            </Modal>
+
+
+            <Modal
+                title={editingRule?.id === 'new' || !rules.some(r => r.id === editingRule?.id) ? "Thêm quy tắc mới" : "Chỉnh sửa quy tắc"}
+                open={isEditModalOpen}
+                onCancel={() => { setIsEditModalOpen(false); setEditingRule(null); }}
+                onOk={handleSaveEdit}
+                width={900}
+                okText="Lưu"
+                cancelText="Hủy"
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                    initialValues={editingRule || {}}
+                >
+                    <Form.Item name="id" hidden><Input /></Form.Item>
+                    <Form.Item name="createdAt" hidden><Input /></Form.Item>
+
+                    <Row gutter={24}>
+                        <Col span={10}>
+                            <Card title="Thông tin chung" size="small" variant="borderless" className="bg-gray-50">
+                                <Row gutter={12}>
+                                    <Col span={12}>
+                                        <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+                                            <Switch />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item name="type" label="Loại vi phạm" rules={[{ required: true }]}>
+                                            <Select>
+                                                <Option value="Xuất toán">Xuất toán</Option>
+                                                <Option value="Cảnh báo">Cảnh báo</Option>
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+
+                                <Form.Item name="name" label="Tên quy tắc" rules={[{ required: true, message: 'Nhập tên quy tắc' }]}>
+                                    <Input placeholder="VD: Kiểm tra ngày vào viện" />
+                                </Form.Item>
+
+                                <Row gutter={12}>
+                                    <Col span={12}>
+                                        <Form.Item name="xmlType" label="File XML" rules={[{ required: true }]}>
+                                            <Select onChange={() => {
+                                                // Reset field when type changes
+                                                const currentFields = form.getFieldsValue();
+                                                if (currentFields.field && !XML_FIELDS[currentFields.xmlType]?.includes(currentFields.field)) {
+                                                    form.setFieldsValue({ field: '' });
+                                                }
+                                            }}>
+                                                {XML_TYPES.map(t => <Option key={t} value={t}>{t}</Option>)}
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item shouldUpdate={(prev, curr) => prev.xmlType !== curr.xmlType}>
+                                            {() => {
+                                                const type = form.getFieldValue('xmlType') || 'XML1';
+                                                const fields = XML_FIELDS[type] || [];
+                                                return (
+                                                    <Form.Item name="field" label="Trường dữ liệu">
+                                                        <AutoComplete
+                                                            options={fields.map(f => ({ value: f }))}
+                                                            placeholder="Chọn hoặc nhập"
+                                                            allowClear
+                                                            filterOption={(inputValue, option) =>
+                                                                option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                            }
+                                                        />
+                                                    </Form.Item>
+                                                );
+                                            }}
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+
+                                <Form.Item name="errorMessage" label="Nội dung báo lỗi">
+                                    <TextArea rows={2} placeholder="Thông báo hiển thị khi vi phạm..." />
+                                </Form.Item>
+                            </Card>
+                        </Col>
+
+                        <Col span={14}>
+                            <Card title="Thiết lập Logic" size="small" variant="borderless" className="bg-blue-50">
+                                <Form.Item
+                                    name="code"
+                                    label="Biểu thức logic"
+                                    help="Ví dụ: NGAY_YL < XML1.NGAY_VAO"
+                                    tooltip="Sử dụng mã trường. Dùng root.XML1... để truy cập chéo bảng."
+                                >
+                                    <TextArea rows={4} className="font-mono bg-sky-50" />
+                                </Form.Item>
+
+                                <div className="mb-4 p-3 bg-white rounded border border-blue-100">
+                                    <Space orientation="vertical" style={{ width: '100%' }}>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-500 text-xs font-bold uppercase">Công cụ kiểm tra</span>
+                                            <Button size="small" type="dashed" icon={<ToolOutlined />} onClick={handleTestLogic}>Chạy thử Logic</Button>
+                                        </div>
+                                        {testResult && (
+                                            <div className="mt-2 text-xs">
+                                                {testResult.errors.length > 0 ? (
+                                                    <div className="text-red-600">
+                                                        <CloseCircleOutlined /> Có lỗi:
+                                                        <ul className="list-disc pl-4 mt-1">
+                                                            {testResult.errors.map((e, i) => <li key={i}>{e}</li>)}
+                                                        </ul>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-green-600">
+                                                        <CheckCircleOutlined /> Khớp {testResult.matched}/{testResult.total} hồ sơ mẫu.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </Space>
+                                </div>
+
+                                <Form.Item name="mathExpression" label="Biểu thức toán học (Tùy chọn)">
+                                    <Input placeholder="VD: (A + B) * C" className="font-mono" />
+                                </Form.Item>
+
+                                <Row gutter={12}>
+                                    <Col span={12}>
+                                        <Form.Item name="conditionField" label="Trường điều kiện">
+                                            <Input placeholder="VD: MA_NHOM" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item name="conditionValue" label="Giá trị điều kiện">
+                                            <Input placeholder="VD: 1, 2, 3" />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+
+                                <Form.Item
+                                    name="checkNotNull"
+                                    valuePropName="checked"
+                                    extra={<span className="text-gray-400 text-xs">Nếu tích chọn, hệ thống sẽ báo lỗi khi trường dữ liệu đã chọn bị rỗng hoặc null.</span>}
+                                >
+                                    <Checkbox className="text-red-600 font-medium">
+                                        Bắt buộc có dữ liệu (Không được để trống)
+                                    </Checkbox>
+                                </Form.Item>
+                            </Card>
+                        </Col>
+                    </Row>
+                </Form>
+            </Modal>
+        </>
     );
 }

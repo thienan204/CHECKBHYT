@@ -11,6 +11,7 @@ export interface HosoRecord {
     summary: any; // XML1 (TONG_HOP)
     groups: XMLGroup[]; // All XML files for this HOSO
     validationResults: ValidationResult[];
+    uuid?: string;
 }
 
 export interface ExtendedHosoRecord extends HosoRecord {
@@ -24,7 +25,10 @@ export interface XMLData {
 export function getXmlDataList(group: XMLGroup | undefined | null): any[] {
     if (!group?.data) return [];
     const type = group.type;
-    if (type === 'XML1') return [];
+    if (type === 'XML1') {
+        const data = group.data?.TONG_HOP || group.data;
+        return data ? [data] : [];
+    }
 
     // Try generic extraction
     const keys = Object.keys(group.data);
@@ -70,13 +74,31 @@ export function getXmlDataList(group: XMLGroup | undefined | null): any[] {
             return Array.isArray(group.data.CHITIEU_DU_LIEU_GIAY_RA_VIEN.DSACH_GIAY_RA_VIEN.GIAY_RA_VIEN) ? group.data.CHITIEU_DU_LIEU_GIAY_RA_VIEN.DSACH_GIAY_RA_VIEN.GIAY_RA_VIEN : [group.data.CHITIEU_DU_LIEU_GIAY_RA_VIEN.DSACH_GIAY_RA_VIEN.GIAY_RA_VIEN];
     }
 
+    // Generic fallback: if data is an object, return it as a single-item list
+    // This ensures XML7, XML8, etc. are at least displayed as a single row/object if strict path extraction fails
+    if (group.data && typeof group.data === 'object') {
+        // If it looks like a wrapped object with one key that is an object/array, maybe unwrap it?
+        // E.g. { "XML8": { ... } } -> return [{ ... }]
+        // But for now, just return the data root or try to find a likely child
+
+        // Try to find the first inner object that looks like data
+        const keys = Object.keys(group.data);
+        if (keys.length === 1 && typeof group.data[keys[0]] === 'object') {
+            const child = group.data[keys[0]];
+            // logic for nested lists
+            if (Array.isArray(child)) return child;
+            return [child];
+        }
+
+        return [group.data];
+    }
+
     return [];
 };
 
 export function parseXmlContent(xmlContent: string): XMLData {
     const parser = new XMLParser({
         ignoreAttributes: false,
-        cdataPropName: "__cdata",
         trimValues: true,
         parseTagValue: false, // Keep all values as strings (preserve leading zeros, no number conversion)
     });
@@ -96,7 +118,6 @@ export function parseXmlContent(xmlContent: string): XMLData {
     // Parser for inner Base64 XML content
     const innerParser = new XMLParser({
         ignoreAttributes: false,
-        cdataPropName: "__cdata",
         trimValues: true,
         parseTagValue: false,
     });

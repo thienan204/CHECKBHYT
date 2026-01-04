@@ -16,10 +16,13 @@ const DB_NAME = 'xml-reader-db';
 const STORE_NAME = 'records';
 
 export async function initDB() {
-    return openDB<XmlReaderDB>(DB_NAME, 1, {
-        upgrade(db) {
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+    return openDB<XmlReaderDB>(DB_NAME, 2, {
+        upgrade(db, oldVersion, newVersion, transaction) {
+            if (oldVersion < 2) {
+                if (db.objectStoreNames.contains(STORE_NAME)) {
+                    db.deleteObjectStore(STORE_NAME);
+                }
+                db.createObjectStore(STORE_NAME, { keyPath: 'uuid' });
             }
         },
     });
@@ -46,6 +49,17 @@ export async function saveRecordsToDB(records: ExtendedHosoRecord[]) {
     for (const record of records) {
         await store.put(record);
     }
+    await tx.done;
+}
+
+export async function addRecordsToDB(records: ExtendedHosoRecord[]) {
+    const db = await initDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+
+    // Efficiently add multiple records in one transaction
+    await Promise.all(records.map(record => store.put(record)));
+
     await tx.done;
 }
 

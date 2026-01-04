@@ -11,13 +11,19 @@ export function useRules() {
         // Optimistic update
         setRules(newRules);
         try {
-            await fetch('/api/rules', {
+            const res = await fetch('/api/rules', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newRules)
             });
+            if (!res.ok) {
+                const errorData = await res.json(); // contains { error, details }
+                const msg = errorData.details || errorData.error || 'Failed to save rules';
+                throw new Error(msg);
+            }
         } catch (error) {
             console.error('Failed to save rules:', error);
+            throw error; // Propagate error to UI
         }
     };
 
@@ -59,8 +65,9 @@ export function useRules() {
                         // Let's just trust state.
                         setRules(localRules);
                     } else {
-                        // Both empty
-                        setRules([]);
+                        // Both empty, load defaults
+                        console.log('No rules found in DB/Local, loading defaults...');
+                        await saveRules(DEFAULT_RULES);
                     }
                 }
             } catch (error) {

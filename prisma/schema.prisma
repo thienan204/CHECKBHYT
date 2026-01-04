@@ -22,6 +22,8 @@ model ValidationRule {
   name            String
   description     String?
   code            String
+  mathExpression  String?
+  checkNotNull    Boolean  @default(false)
   conditionField  String?
   conditionValue  String?
   errorMessage    String?
@@ -48,6 +50,8 @@ model DraftRule {
   name            String
   description     String?
   code            String
+  mathExpression  String?
+  checkNotNull    Boolean  @default(false)
   conditionField  String?
   conditionValue  String?
   errorMessage    String?
