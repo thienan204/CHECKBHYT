@@ -416,6 +416,7 @@ export default function XmlReader() {
         worksheet.columns = [
             { header: 'STT', key: 'stt', width: 5 },
             { header: 'Mã LK', key: 'ma_lk', width: 14 },
+            { header: 'Mã BN', key: 'ma_bn', width: 14 },
             { header: 'Họ tên', key: 'ho_ten', width: 25 },
             { header: 'Mã thẻ', key: 'ma_the', width: 20 },
             { header: 'Ngày vào', key: 'ngay_vao', width: 16 },
@@ -438,6 +439,7 @@ export default function XmlReader() {
                 worksheet.addRow({
                     stt: index + 1,
                     ma_lk: renderValue(record.summary?.MA_LK),
+                    ma_bn: renderValue(record.summary?.MA_BN),
                     ho_ten: renderValue(record.summary?.HO_TEN),
                     ma_the: renderValue(record.summary?.MA_THE_BHYT),
                     ngay_vao: formatDateTime(record.summary?.NGAY_VAO),
@@ -469,6 +471,7 @@ export default function XmlReader() {
                     worksheet.addRow({
                         stt: index + 1,
                         ma_lk: renderValue(record.summary?.MA_LK),
+                        ma_bn: renderValue(record.summary?.MA_BN),
                         ho_ten: renderValue(record.summary?.HO_TEN),
                         ma_the: renderValue(record.summary?.MA_THE_BHYT),
                         ngay_vao: formatDateTime(record.summary?.NGAY_VAO),
@@ -773,9 +776,33 @@ export default function XmlReader() {
                                 <div className="h-4 w-px bg-slate-300"></div>
                                 <div className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                     {selectedRecord.summary?.HO_TEN}
-                                    <Tag color="blue" className="m-0 rounded-full px-2 text-xs">{selectedRecord.summary?.MA_LK}</Tag>
+                                    <Tooltip title="Click để copy Mã LK">
+                                        <Tag
+                                            color="blue"
+                                            className="m-0 rounded-full px-2 text-xs cursor-pointer hover:opacity-80 active:scale-95 transition-all"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigator.clipboard.writeText(selectedRecord.summary?.MA_LK || '');
+                                                message.success('Đã copy Mã LK!');
+                                            }}
+                                        >
+                                            {selectedRecord.summary?.MA_LK}
+                                        </Tag>
+                                    </Tooltip>
                                     {selectedRecord.summary?.MA_BN && (
-                                        <Tag color="purple" className="m-0 rounded-full px-2 text-xs">{selectedRecord.summary?.MA_BN}</Tag>
+                                        <Tooltip title="Click để copy Mã BN">
+                                            <Tag
+                                                color="purple"
+                                                className="m-0 rounded-full px-2 text-xs cursor-pointer hover:opacity-80 active:scale-95 transition-all"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    navigator.clipboard.writeText(selectedRecord.summary?.MA_BN || '');
+                                                    message.success('Đã copy Mã BN!');
+                                                }}
+                                            >
+                                                {selectedRecord.summary?.MA_BN}
+                                            </Tag>
+                                        </Tooltip>
                                     )}
                                 </div>
                             </div>

@@ -19,6 +19,24 @@ interface RuleSettingsProps {
     isModal?: boolean;
 }
 
+const XML_TYPE_LABELS: Record<string, string> = {
+    'XML1': 'XML1_TONGHOP',
+    'XML2': 'XML2_THUOC',
+    'XML3': 'XML3_DVKT_VT',
+    'XML4': 'XML4_DICHVULS',
+    'XML5': 'XML5_DIENBIENLS',
+    'XML6': 'XML6_HIV',
+    'XML7': 'XML7_GRV',
+    'XML8': 'XML8_TOMTATBA',
+    'XML9': 'XML9_GCHUNGSINH',
+    'XML10': 'XML10_DUONGTHAI',
+    'XML11': 'XML11_NGHIBHXH',
+    'XML12': 'XML12_GDYK',
+    'XML13': 'XML13_GCV',
+    'XML14': 'XML14_HENKHAM',
+    'XML15': 'XML15_LAO'
+};
+
 const XML_FIELDS: Record<string, string[]> = {
     'XML1': [
         'MA_LK', 'MA_BN', 'HO_TEN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 'MA_THE', 'MA_DKBD',
@@ -185,7 +203,9 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
             field: '',
             checkNotNull: false,
             conditionField: '',
-            conditionValue: ''
+            conditionValue: '',
+            conditionMaDichVu: '',
+            conditionMaDichVuValue: ''
         };
         setEditingRule(newRule);
         setIsEditModalOpen(true);
@@ -216,6 +236,13 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
 
     const columns: ColumnsType<ValidationRule> = [
         {
+            title: 'STT',
+            key: 'stt',
+            width: 50,
+            align: 'center',
+            render: (_: any, __: any, index: number) => index + 1,
+        },
+        {
             title: 'Trạng thái',
             dataIndex: 'active',
             key: 'active',
@@ -244,7 +271,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
             dataIndex: 'xmlType',
             key: 'xmlType',
             width: 80,
-            render: (text) => <Tag color="blue">{text}</Tag>
+            render: (text) => <Tag color="blue">{XML_TYPE_LABELS[text as string] || text}</Tag>
         },
         {
             title: 'Tên quy tắc',
@@ -310,7 +337,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                         className={`p-2 rounded cursor-pointer flex justify-between ${selectedXmlType === type ? 'bg-blue-100 text-blue-600 font-semibold' : 'hover:bg-gray-100'}`}
                         onClick={() => setSelectedXmlType(type)}
                     >
-                        <span>{type}</span>
+                        <span>{XML_TYPE_LABELS[type] || type}</span>
                         <Badge
                             count={rules.filter(r => r.xmlType === type).length}
                             style={{ backgroundColor: selectedXmlType === type ? '#1890ff' : '#d9d9d9' }}
@@ -324,7 +351,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
     const MainContent = (
         <div className="flex-1 flex flex-col h-full overflow-hidden">
             <div className="p-4 border-b bg-white flex justify-between items-center">
-                <h2 className="text-lg font-bold">Danh sách quy tắc {selectedXmlType !== 'ALL' ? `(${selectedXmlType})` : ''}</h2>
+                <h2 className="text-lg font-bold m-0 whitespace-nowrap mr-3">Danh sách quy tắc {selectedXmlType !== 'ALL' ? `(${XML_TYPE_LABELS[selectedXmlType] || selectedXmlType})` : ''}</h2>
                 <Input
                     placeholder="Tìm kiếm quy tắc..."
                     prefix={<SearchOutlined />}
@@ -366,7 +393,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                     open={isEditModalOpen}
                     onCancel={() => { setIsEditModalOpen(false); setEditingRule(null); }}
                     onOk={handleSaveEdit}
-                    width={900}
+                    width={1200}
                     okText="Lưu"
                     cancelText="Hủy"
                 >
@@ -378,17 +405,17 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                         <Form.Item name="id" hidden><Input /></Form.Item>
                         <Form.Item name="createdAt" hidden><Input /></Form.Item>
 
-                        <Row gutter={24}>
+                        <Row gutter={16}>
                             <Col span={10}>
                                 <Card title="Thông tin chung" size="small" variant="borderless" className="bg-gray-50">
-                                    <Row gutter={12}>
+                                    <Row gutter={8}>
                                         <Col span={12}>
-                                            <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+                                            <Form.Item name="active" label="Trạng thái" valuePropName="checked" style={{ marginBottom: 12 }}>
                                                 <Switch />
                                             </Form.Item>
                                         </Col>
                                         <Col span={12}>
-                                            <Form.Item name="type" label="Loại vi phạm" rules={[{ required: true }]}>
+                                            <Form.Item name="type" label="Loại vi phạm" rules={[{ required: true }]} style={{ marginBottom: 12 }}>
                                                 <Select>
                                                     <Option value="Xuất toán">Xuất toán</Option>
                                                     <Option value="Cảnh báo">Cảnh báo</Option>
@@ -397,13 +424,13 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                         </Col>
                                     </Row>
 
-                                    <Form.Item name="name" label="Tên quy tắc" rules={[{ required: true, message: 'Nhập tên quy tắc' }]}>
+                                    <Form.Item name="name" label="Tên quy tắc" rules={[{ required: true, message: 'Nhập tên quy tắc' }]} style={{ marginBottom: 12 }}>
                                         <Input placeholder="VD: Kiểm tra ngày vào viện" />
                                     </Form.Item>
 
-                                    <Row gutter={12}>
+                                    <Row gutter={8}>
                                         <Col span={12}>
-                                            <Form.Item name="xmlType" label="File XML" rules={[{ required: true }]}>
+                                            <Form.Item name="xmlType" label="File XML" rules={[{ required: true }]} style={{ marginBottom: 12 }}>
                                                 <Select onChange={() => {
                                                     // Reset field when type changes
                                                     const currentFields = form.getFieldsValue();
@@ -411,25 +438,30 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                                         form.setFieldsValue({ field: '' });
                                                     }
                                                 }}>
-                                                    {XML_TYPES.map(t => <Option key={t} value={t}>{t}</Option>)}
+                                                    {XML_TYPES.map(t => <Option key={t} value={t}>{XML_TYPE_LABELS[t] || t}</Option>)}
                                                 </Select>
                                             </Form.Item>
                                         </Col>
                                         <Col span={12}>
-                                            <Form.Item shouldUpdate={(prev, curr) => prev.xmlType !== curr.xmlType}>
+                                            <Form.Item shouldUpdate={(prev, curr) => prev.xmlType !== curr.xmlType} style={{ marginBottom: 12 }}>
                                                 {() => {
                                                     const type = form.getFieldValue('xmlType') || 'XML1';
                                                     const fields = XML_FIELDS[type] || [];
                                                     return (
-                                                        <Form.Item name="field" label="Trường dữ liệu">
-                                                            <AutoComplete
-                                                                options={fields.map(f => ({ value: f }))}
-                                                                placeholder="Chọn hoặc nhập"
+                                                        <Form.Item name="field" label="Trường dữ liệu" style={{ marginBottom: 0 }}>
+                                                            <Select
+                                                                showSearch
+                                                                placeholder="Chọn trường dữ liệu"
+                                                                optionFilterProp="children"
                                                                 allowClear
-                                                                filterOption={(inputValue, option) =>
-                                                                    option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                                filterOption={(input, option) =>
+                                                                    (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
                                                                 }
-                                                            />
+                                                            >
+                                                                {fields.map(f => (
+                                                                    <Option key={f} value={f}>{f}</Option>
+                                                                ))}
+                                                            </Select>
                                                         </Form.Item>
                                                     );
                                                 }}
@@ -437,7 +469,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                         </Col>
                                     </Row>
 
-                                    <Form.Item name="errorMessage" label="Nội dung báo lỗi">
+                                    <Form.Item name="errorMessage" label="Nội dung báo lỗi" style={{ marginBottom: 12 }}>
                                         <TextArea rows={2} placeholder="Thông báo hiển thị khi vi phạm..." />
                                     </Form.Item>
                                 </Card>
@@ -450,6 +482,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                         label="Biểu thức logic"
                                         help="Ví dụ: NGAY_YL < XML1.NGAY_VAO"
                                         tooltip="Sử dụng mã trường. Dùng root.XML1... để truy cập chéo bảng."
+                                        style={{ marginBottom: 12 }}
                                     >
                                         <TextArea rows={4} className="font-mono bg-sky-50" />
                                     </Form.Item>
@@ -479,19 +512,32 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                         </Space>
                                     </div>
 
-                                    <Form.Item name="mathExpression" label="Biểu thức toán học (Tùy chọn)">
+                                    <Form.Item name="mathExpression" label="Biểu thức toán học (Tùy chọn)" style={{ marginBottom: 12 }}>
                                         <Input placeholder="VD: (A + B) * C" className="font-mono" />
                                     </Form.Item>
 
-                                    <Row gutter={12}>
+                                    <Row gutter={8}>
                                         <Col span={12}>
-                                            <Form.Item name="conditionField" label="Trường điều kiện">
+                                            <Form.Item name="conditionField" label="Trường điều kiện" style={{ marginBottom: 12 }}>
                                                 <Input placeholder="VD: MA_NHOM" />
                                             </Form.Item>
                                         </Col>
                                         <Col span={12}>
-                                            <Form.Item name="conditionValue" label="Giá trị điều kiện">
+                                            <Form.Item name="conditionValue" label="Giá trị điều kiện" style={{ marginBottom: 12 }}>
                                                 <Input placeholder="VD: 1, 2, 3" />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+
+                                    <Row gutter={8}>
+                                        <Col span={12}>
+                                            <Form.Item name="conditionMaDichVu" label="Trường điều kiện (Mã DV/Thuốc)" style={{ marginBottom: 12 }}>
+                                                <Input placeholder="VD: MA_DICH_VU (Mặc định)" />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Form.Item name="conditionMaDichVuValue" label="Giá trị mã dịch vụ" style={{ marginBottom: 12 }}>
+                                                <TextArea rows={2} placeholder="VD: XN001, TH002" />
                                             </Form.Item>
                                         </Col>
                                     </Row>
@@ -500,6 +546,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                         name="checkNotNull"
                                         valuePropName="checked"
                                         extra={<span className="text-gray-400 text-xs">Nếu tích chọn, hệ thống sẽ báo lỗi khi trường dữ liệu đã chọn bị rỗng hoặc null.</span>}
+                                        style={{ marginBottom: 12 }}
                                     >
                                         <Checkbox className="text-red-600 font-medium">
                                             Bắt buộc có dữ liệu (Không được để trống)
@@ -540,7 +587,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                 open={isEditModalOpen}
                 onCancel={() => { setIsEditModalOpen(false); setEditingRule(null); }}
                 onOk={handleSaveEdit}
-                width={900}
+                width={1200}
                 okText="Lưu"
                 cancelText="Hủy"
             >
@@ -552,17 +599,17 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                     <Form.Item name="id" hidden><Input /></Form.Item>
                     <Form.Item name="createdAt" hidden><Input /></Form.Item>
 
-                    <Row gutter={24}>
+                    <Row gutter={16}>
                         <Col span={10}>
                             <Card title="Thông tin chung" size="small" variant="borderless" className="bg-gray-50">
-                                <Row gutter={12}>
+                                <Row gutter={8}>
                                     <Col span={12}>
-                                        <Form.Item name="active" label="Trạng thái" valuePropName="checked">
+                                        <Form.Item name="active" label="Trạng thái" valuePropName="checked" style={{ marginBottom: 12 }}>
                                             <Switch />
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="type" label="Loại vi phạm" rules={[{ required: true }]}>
+                                        <Form.Item name="type" label="Loại vi phạm" rules={[{ required: true }]} style={{ marginBottom: 12 }}>
                                             <Select>
                                                 <Option value="Xuất toán">Xuất toán</Option>
                                                 <Option value="Cảnh báo">Cảnh báo</Option>
@@ -571,13 +618,13 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                     </Col>
                                 </Row>
 
-                                <Form.Item name="name" label="Tên quy tắc" rules={[{ required: true, message: 'Nhập tên quy tắc' }]}>
+                                <Form.Item name="name" label="Tên quy tắc" rules={[{ required: true, message: 'Nhập tên quy tắc' }]} style={{ marginBottom: 12 }}>
                                     <Input placeholder="VD: Kiểm tra ngày vào viện" />
                                 </Form.Item>
 
-                                <Row gutter={12}>
+                                <Row gutter={8}>
                                     <Col span={12}>
-                                        <Form.Item name="xmlType" label="File XML" rules={[{ required: true }]}>
+                                        <Form.Item name="xmlType" label="File XML" rules={[{ required: true }]} style={{ marginBottom: 12 }}>
                                             <Select onChange={() => {
                                                 // Reset field when type changes
                                                 const currentFields = form.getFieldsValue();
@@ -585,25 +632,30 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                                     form.setFieldsValue({ field: '' });
                                                 }
                                             }}>
-                                                {XML_TYPES.map(t => <Option key={t} value={t}>{t}</Option>)}
+                                                {XML_TYPES.map(t => <Option key={t} value={t}>{XML_TYPE_LABELS[t] || t}</Option>)}
                                             </Select>
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item shouldUpdate={(prev, curr) => prev.xmlType !== curr.xmlType}>
+                                        <Form.Item shouldUpdate={(prev, curr) => prev.xmlType !== curr.xmlType} style={{ marginBottom: 12 }}>
                                             {() => {
                                                 const type = form.getFieldValue('xmlType') || 'XML1';
                                                 const fields = XML_FIELDS[type] || [];
                                                 return (
-                                                    <Form.Item name="field" label="Trường dữ liệu">
-                                                        <AutoComplete
-                                                            options={fields.map(f => ({ value: f }))}
-                                                            placeholder="Chọn hoặc nhập"
+                                                    <Form.Item name="field" label="Trường dữ liệu" style={{ marginBottom: 0 }}>
+                                                        <Select
+                                                            showSearch
+                                                            placeholder="Chọn trường dữ liệu"
+                                                            optionFilterProp="children"
                                                             allowClear
-                                                            filterOption={(inputValue, option) =>
-                                                                option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !== -1
+                                                            filterOption={(input, option) =>
+                                                                (option?.children as unknown as string).toLowerCase().includes(input.toLowerCase())
                                                             }
-                                                        />
+                                                        >
+                                                            {fields.map(f => (
+                                                                <Option key={f} value={f}>{f}</Option>
+                                                            ))}
+                                                        </Select>
                                                     </Form.Item>
                                                 );
                                             }}
@@ -611,7 +663,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                     </Col>
                                 </Row>
 
-                                <Form.Item name="errorMessage" label="Nội dung báo lỗi">
+                                <Form.Item name="errorMessage" label="Nội dung báo lỗi" style={{ marginBottom: 12 }}>
                                     <TextArea rows={2} placeholder="Thông báo hiển thị khi vi phạm..." />
                                 </Form.Item>
                             </Card>
@@ -624,6 +676,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                     label="Biểu thức logic"
                                     help="Ví dụ: NGAY_YL < XML1.NGAY_VAO"
                                     tooltip="Sử dụng mã trường. Dùng root.XML1... để truy cập chéo bảng."
+                                    style={{ marginBottom: 12 }}
                                 >
                                     <TextArea rows={4} className="font-mono bg-sky-50" />
                                 </Form.Item>
@@ -653,19 +706,32 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                     </Space>
                                 </div>
 
-                                <Form.Item name="mathExpression" label="Biểu thức toán học (Tùy chọn)">
+                                <Form.Item name="mathExpression" label="Biểu thức toán học (Tùy chọn)" style={{ marginBottom: 12 }}>
                                     <Input placeholder="VD: (A + B) * C" className="font-mono" />
                                 </Form.Item>
 
-                                <Row gutter={12}>
+                                <Row gutter={8}>
                                     <Col span={12}>
-                                        <Form.Item name="conditionField" label="Trường điều kiện">
+                                        <Form.Item name="conditionField" label="Trường điều kiện" style={{ marginBottom: 12 }}>
                                             <Input placeholder="VD: MA_NHOM" />
                                         </Form.Item>
                                     </Col>
                                     <Col span={12}>
-                                        <Form.Item name="conditionValue" label="Giá trị điều kiện">
+                                        <Form.Item name="conditionValue" label="Giá trị điều kiện" style={{ marginBottom: 12 }}>
                                             <Input placeholder="VD: 1, 2, 3" />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+
+                                <Row gutter={8}>
+                                    <Col span={12}>
+                                        <Form.Item name="conditionMaDichVu" label="Trường điều kiện (Mã DV/Thuốc)" style={{ marginBottom: 12 }}>
+                                            <Input placeholder="VD: MA_DICH_VU (Mặc định)" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item name="conditionMaDichVuValue" label="Giá trị mã dịch vụ" style={{ marginBottom: 12 }}>
+                                            <TextArea rows={2} placeholder="VD: XN001, TH002" />
                                         </Form.Item>
                                     </Col>
                                 </Row>
@@ -674,6 +740,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                     name="checkNotNull"
                                     valuePropName="checked"
                                     extra={<span className="text-gray-400 text-xs">Nếu tích chọn, hệ thống sẽ báo lỗi khi trường dữ liệu đã chọn bị rỗng hoặc null.</span>}
+                                    style={{ marginBottom: 12 }}
                                 >
                                     <Checkbox className="text-red-600 font-medium">
                                         Bắt buộc có dữ liệu (Không được để trống)

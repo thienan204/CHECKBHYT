@@ -15,6 +15,8 @@ export interface ValidationRule {
     checkNotNull?: boolean; // Optional: Check if field is not null
     conditionField?: string; // Optional: Field to check condition on
     conditionValue?: string; // Optional: Comma-separated values for the condition field
+    conditionMaDichVu?: string; // Optional: Field name for service code
+    conditionMaDichVuValue?: string; // Optional: Comma-separated values for service code
     errorMessage?: string; // Optional: Custom error message to display
 }
 
@@ -282,6 +284,21 @@ export class ValidationEngine {
                 if (rule.conditionField && rule.conditionValue) {
                     let conditionVal = item[rule.conditionField];
                     const allowedValues = rule.conditionValue.split(',').map((s: string) => s.trim());
+                    const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
+                    if (!valStr || !allowedValues.includes(valStr)) {
+                        continue;
+                    }
+                }
+
+                if (rule.conditionMaDichVuValue) {
+                    const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                    let conditionVal = item[fieldToCheck];
+                    // Fallback: if scanning for generic service/drug/material
+                    if (conditionVal === undefined && !rule.conditionMaDichVu) {
+                        conditionVal = item['MA_DICH_VU'] || item['MA_THUOC'] || item['MA_VAT_TU'];
+                    }
+
+                    const allowedValues = rule.conditionMaDichVuValue.split(',').map((s: string) => s.trim());
                     const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
                     if (!valStr || !allowedValues.includes(valStr)) {
                         continue;
