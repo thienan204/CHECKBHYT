@@ -251,6 +251,27 @@ export default function XmlReader() {
         },
         fileList: []
     };
+
+    // --- Header Actions ---
+    const renderHeaderActions = () => (
+        <div className="flex justify-end gap-3 mb-4">
+            <Button
+                onClick={() => router.push('/report')}
+                icon={<FileExcelOutlined />}
+                className="bg-white text-green-700 border-green-200 hover:border-green-400 hover:text-green-800"
+            >
+                Xem báo cáo chi tiết
+            </Button>
+            <Button
+                onClick={handleExportExcel}
+                icon={<FileExcelOutlined />}
+                className="bg-green-600 text-white hover:bg-green-700 border-none shadow-md shadow-green-200"
+            >
+                Xuất Excel Tổng Hợp
+            </Button>
+        </div>
+    );
+
     // Columns for Main List of Records
     const mainColumns: ColumnsType<ExtendedHosoRecord> = [
         {
@@ -890,6 +911,13 @@ export default function XmlReader() {
                                                 { value: 'VALID', label: 'Chỉ hồ sơ đúng' }
                                             ]}
                                         />
+                                        <Button
+                                            icon={<FileExcelOutlined />}
+                                            onClick={() => router.push(`/report?filter=${mainFilter}`)}
+                                            className="text-green-600 border-green-200 hover:text-green-700 hover:border-green-400"
+                                        >
+                                            Xem báo cáo
+                                        </Button>
                                         <Button
                                             type="primary"
                                             icon={<FileExcelOutlined />}
