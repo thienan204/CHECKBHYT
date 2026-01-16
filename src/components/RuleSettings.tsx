@@ -59,20 +59,20 @@ const XML_FIELDS: Record<string, string[]> = {
         'DON_VI_TINH', 'PHAM_VI', 'SO_LUONG', 'DON_GIA', 'DON_GIA_BH', 'TT_THAU', 'TY_LE_TT', 'TYLE_TT_BH', 'THANH_TIEN',
         'THANH_TIEN_BH', 'THANH_TIEN_BV', 'T_TRANTT',
         'MUC_HUONG', 'T_NGUONKHAC', 'T_BNTT', 'T_BHTT', 'T_BNCCT', 'T_NGOAIDS', 'MA_KHOA', 'MA_GIUONG',
-        'MA_BAC_SI', 'MA_BENH', 'NGAY_YL', 'NGAY_TH_YL', 'NGAY_KQ', 'MA_PTTT'
+        'MA_BAC_SI', 'MA_BENH', 'NGAY_YL', 'NGAY_TH_YL', 'NGAY_KQ', 'MA_PTTT', 'MA_MAY'
     ],
     'XML4': [
         'MA_LK', 'STT', 'MA_DICH_VU', 'MA_CHI_SO', 'TEN_CHI_SO', 'GIA_TRI', 'DON_VI_DO',
-        'MO_TA', 'KET_LUAN', 'NGAY_KQ', 'MA_BS_DOC_KQ'
+        'MO_TA', 'KET_LUAN', 'NGAY_KQ', 'MA_BS_DOC_KQ', 'NGUOI_THUC_HIEN'
     ],
     'XML5': [
-        'MA_LK', 'STT', 'DIEN_BIEN', 'HOI_CHAN', 'PHAU_THUAT', 'NGAY_YL'
+        'MA_LK', 'STT', 'DIEN_BIEN', 'HOI_CHAN', 'PHAU_THUAT', 'NGAY_YL', 'NGUOI_THUC_HIEN'
     ],
     'XML6': [],
     'XML7': [
         'MA_LK', 'SO_LUU_TRU', 'MA_YTE', 'MA_KHOA', 'NGAY_VAO', 'NGAY_RA', 'MA_BENH',
         'CHAN_DOAN', 'PP_DIEU_TRI', 'LOI_DAN_BS', 'GHI_CHU', 'MA_TTDV', 'NGAY_CT', 'MA_THE_TAM',
-        'HO_TEN_CHA', 'HO_TEN_ME', 'NGUOI_GIAM_HO'
+        'HO_TEN_CHA', 'HO_TEN_ME', 'NGUOI_GIAM_HO', 'MA_BS'
     ],
     'XML8': ['MA_LK', 'MA_LO', 'CO_SO_SX', 'HAN_DUNG', 'SO_LUONG'],
     'XML9': [

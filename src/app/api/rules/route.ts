@@ -65,6 +65,8 @@ export async function POST(request: Request) {
                 checkNotNull: rule.checkNotNull,
                 conditionField: rule.conditionField,
                 conditionValue: rule.conditionValue,
+                conditionMaDichVu: rule.conditionMaDichVu,
+                conditionMaDichVuValue: rule.conditionMaDichVuValue,
                 errorMessage: rule.errorMessage
             }));
 

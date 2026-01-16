@@ -12,9 +12,11 @@
     "checkNotNull": false,
     "conditionField": "MA_NHOM",
     "conditionValue": "1,2,3,8,13",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_TH_YL lớn hơn hoặc bằng NGAY_KQ",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767176843600",
@@ -29,9 +31,11 @@
     "checkNotNull": false,
     "conditionField": "MA_NHOM",
     "conditionValue": "1,2,3,8,18",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_KQ bằng hoặc lớn hơn NGAY_RA viện",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767235724974",
@@ -46,26 +50,30 @@
     "checkNotNull": false,
     "conditionField": null,
     "conditionValue": null,
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "MA_GIUONG không đúng định dạng",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767237135767",
     "active": true,
     "type": "Xuất toán",
-    "xmlType": "XML7",
+    "xmlType": "XML9",
     "field": "MA_THE_TAM",
     "name": "Kiểm tra MA_THE_TAM",
     "description": null,
-    "code": "XML7.MA_THE_TAM !=null && ( XML7.MA_THE_TAM>15 !! XML7.MA_THE_TAM<15)",
+    "code": "(MA_THE_TAM != null && MA_THE_TAM != \"\") && (MA_THE_TAM.length != 15)",
     "mathExpression": null,
     "checkNotNull": false,
     "conditionField": null,
     "conditionValue": null,
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "MA_THE_TAM không đúng định dạng",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767265410288",
@@ -80,9 +88,11 @@
     "checkNotNull": false,
     "conditionField": "MA_NHOM",
     "conditionValue": "1,2,3",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_YL lớn hơn hoặc bằng NGAY_TH_YL",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767278606478",
@@ -97,9 +107,11 @@
     "checkNotNull": false,
     "conditionField": "MA_NHOM",
     "conditionValue": "8",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_YL  lớn hơn hoặc bằng NGAY_TH_YL PTTT",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767422990107",
@@ -114,9 +126,11 @@
     "checkNotNull": false,
     "conditionField": "MA_NHOM",
     "conditionValue": "1,2,3,8,13,15",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_YL lớn hơn hoặc bằng NGAY_KQ",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767425011179",
@@ -131,9 +145,11 @@
     "checkNotNull": false,
     "conditionField": "MA_NHOM",
     "conditionValue": "1,2,3,8,18",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "MA_TTDV không được để trống",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767501281160",
@@ -148,9 +164,11 @@
     "checkNotNull": false,
     "conditionField": "",
     "conditionValue": "",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "Sai thành tiền so với SO_LUONG, DON_GIA của  XML3",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   },
   {
     "id": "1767540482692",
@@ -165,8 +183,105 @@
     "checkNotNull": false,
     "conditionField": "",
     "conditionValue": "",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
     "errorMessage": "XML4.GIA_TRỊ lớn hơn 250 ký tự",
-    "createdAt": "2026-01-04T15:33:14.852Z",
-    "updatedAt": "2026-01-04T15:33:14.852Z"
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
+  },
+  {
+    "id": "1767947958309",
+    "active": true,
+    "type": "Xuất toán",
+    "xmlType": "XML7",
+    "field": "MA_TTDV",
+    "name": "MA_TTDV không được để trống",
+    "description": null,
+    "code": "",
+    "mathExpression": "",
+    "checkNotNull": true,
+    "conditionField": "",
+    "conditionValue": "",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
+    "errorMessage": "MA_TTDV không được để trống",
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
+  },
+  {
+    "id": "1767950902581",
+    "active": true,
+    "type": "Xuất toán",
+    "xmlType": "XML3",
+    "field": "NGAY_KQ",
+    "name": "NGAY_KQ không được nhỏ hơn NGAY_YL",
+    "description": null,
+    "code": "NGAY_KQ<XML3.NGAY_YL",
+    "mathExpression": "",
+    "checkNotNull": false,
+    "conditionField": "MA_NHOM",
+    "conditionValue": "1,2,3,8,13",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
+    "errorMessage": "NGAY_KQ không được nhỏ hơn NGAY_YL",
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
+  },
+  {
+    "id": "1767951606332",
+    "active": false,
+    "type": "Xuất toán",
+    "xmlType": "XML5",
+    "field": "NGUOI_THUC_HIEN",
+    "name": "NGUOI_THUC_HIEN không được để trống",
+    "description": null,
+    "code": "",
+    "mathExpression": "",
+    "checkNotNull": true,
+    "conditionField": "",
+    "conditionValue": "",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
+    "errorMessage": "NGUOI_THUC_HIEN không được để trống",
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
+  },
+  {
+    "id": "1768033903984",
+    "active": true,
+    "type": "Xuất toán",
+    "xmlType": "XML3",
+    "field": "NGAY_KQ",
+    "name": "NGAY_KQ nhỏ hơn hoặc bằng ngày NGAY_TH_YL",
+    "description": null,
+    "code": "NGAY_KQ<=NGAY_TH_YL",
+    "mathExpression": "",
+    "checkNotNull": false,
+    "conditionField": "MA_NHOM",
+    "conditionValue": "1,2,3,8,13",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
+    "errorMessage": "NGAY_KQ trước NGAY_TH_YL",
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
+  },
+  {
+    "id": "1768445961548",
+    "active": false,
+    "type": "Xuất toán",
+    "xmlType": "XML3",
+    "field": "MA_MAY",
+    "name": "MA_MAY không được để trống",
+    "description": null,
+    "code": "",
+    "mathExpression": "",
+    "checkNotNull": true,
+    "conditionField": "MA_NHOM",
+    "conditionValue": "1,2,3,8,18",
+    "conditionMaDichVu": "",
+    "conditionMaDichVuValue": "",
+    "errorMessage": "MA_MAY không được để trống",
+    "createdAt": "2026-01-15T14:37:21.040Z",
+    "updatedAt": "2026-01-15T14:37:21.040Z"
   }
 ]

@@ -37,7 +37,7 @@ const XML_LIST_PATHS: Record<string, string> = {
     'XML3': 'CHITIEU_CHITIET_DVKT_VTYT.DSACH_CHI_TIET_DVKT.CHI_TIET_DVKT',
     'XML4': 'CHITIEU_CHITIET_DICHVUCANLAMSANG.DSACH_CHI_TIET_CLS.CHI_TIET_CLS',
     'XML5': 'CHITIEU_CHITIET_DIENBIENLAMSANG.DSACH_CHI_TIET_DIEN_BIEN_BENH.CHI_TIET_DIEN_BIEN_BENH',
-    // XML7 is usually a single object CHI_TIEU_DU_LIEU_GIAY_RA_VIEN, or treated as flat.
+    'XML7': 'CHITIEU_DU_LIEU_GIAY_RA_VIEN.GIAY_RA_VIEN',
 };
 
 /**
@@ -102,7 +102,7 @@ export class ValidationEngine {
 
                     if (!isError && rule.checkNotNull && rule.field) {
                         const val = context[rule.field];
-                        if (val === undefined || val === null || val === '') isError = true;
+                        if (val === undefined || val === null || String(val).trim() === '') isError = true;
                     }
 
                     if (isError) {
@@ -143,22 +143,33 @@ export class ValidationEngine {
                                 }
                             }
 
-                            // Context for this item:
-                            // We allow accessing the specific item via its XML type name (e.g. XML3.NGAY_YL)
-                            // And accessing global context (XML1.NGAY_VAO)
+                            // DEBUG INFO
+                            let debugMsg = '';
+
+                            if (rule.conditionMaDichVuValue) {
+                                const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                                let conditionVal = item[fieldToCheck];
+
+                                const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                                const valStr = this.getDataValue(conditionVal);
+
+                                if (!valStr || !allowedValues.includes(valStr)) {
+                                    return;
+                                }
+                            } else if (rule.conditionMaDichVu || rule.name.includes('MA_MAY')) {
+                                // Logic if condition is MISSING but we suspect it should be there
+                                const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                                const valStr = this.getDataValue(item[fieldToCheck]);
+                                debugMsg = `[DEBUG: RuleCondValue='${rule.conditionMaDichVuValue}', RowVal='${valStr}']`;
+                            }
+                            // End check
+
                             const itemContext = {
                                 ...rootContext,
                                 [rule.xmlType]: item, // Overwrite the raw list with the specific item for this key
                                 'XML': item // Generic alias for the current item
                             };
 
-                            // Also allow direct field access if the code assumes "this" is the item
-                            // But for safety and clarity in "code", explicit XML3.FIELD is better.
-                            // We can merge item into context root for "implicit" access if we wanted, 
-                            // but let's stick to the rule code format.
-
-                            // Check 'implicit' access? 
-                            // If user writes "NGAY_YL < ...", we should look in [rule.xmlType] first.
                             const extendedContext = { ...itemContext, ...item }; // Merge item props to top level for convenience
 
                             let isError = false;
@@ -177,11 +188,11 @@ export class ValidationEngine {
 
                             if (!isError && rule.checkNotNull && rule.field) {
                                 const val = extendedContext[rule.field];
-                                if (val === undefined || val === null || val === '') isError = true;
+                                if (val === undefined || val === null || String(val).trim() === '') isError = true;
                             }
 
                             if (isError) {
-                                results.push(this.createResult(rule, index));
+                                results.push(this.createResult(rule, index, debugMsg));
                             }
                         });
                     }
@@ -209,22 +220,33 @@ export class ValidationEngine {
         return list.filter((item: any) => item);
     }
 
-    private createResult(rule: ValidationRule, index?: number): ValidationResult {
+    private createResult(rule: ValidationRule, index?: number, debugInfo?: string): ValidationResult {
         return {
             ruleId: rule.id,
             ruleName: rule.name,
             type: rule.type,
             xmlType: rule.xmlType,
             field: rule.field,
-            message: rule.errorMessage || rule.name,
+            message: (rule.errorMessage || rule.name) + (debugInfo ? ` ${debugInfo}` : ''),
             isError: rule.type === 'Xuất toán',
             index
         };
     }
 
+    // Helper to extract value from simple or complex XML node
+    private getDataValue(val: any): string {
+        if (val === undefined || val === null) return '';
+        if (typeof val === 'object' && val.__cdata !== undefined) return String(val.__cdata).trim();
+        // If it's an object but not cdata, it might be text node? 
+        // fast-xml-parser usually puts text in #text if attributes exist.
+        if (typeof val === 'object' && val['#text'] !== undefined) return String(val['#text']).trim();
+        return String(val).trim();
+    }
+
     public evaluateRule(rule: ValidationRule, record: HosoRecord): { isMatch: boolean, error?: string } {
         try {
             const rootContext: Record<string, any> = {};
+            // ... (keep context setup)
             record.groups.forEach(g => {
                 if (g.type === 'XML1' && g.data?.TONG_HOP) {
                     rootContext[g.type] = g.data.TONG_HOP;
@@ -254,8 +276,9 @@ export class ValidationEngine {
                 // 3. Check Not Null (if checked)
                 if (!isError && rule.checkNotNull && rule.field) {
                     const val = ctx[rule.field];
-                    const isNull = val === undefined || val === null || val === '';
-                    if (isNull) isError = true;
+                    // USE HELPER HERE
+                    const strVal = this.getDataValue(val);
+                    if (strVal === '') isError = true;
                 }
 
                 return isError;
@@ -283,8 +306,10 @@ export class ValidationEngine {
             for (const item of list) {
                 if (rule.conditionField && rule.conditionValue) {
                     let conditionVal = item[rule.conditionField];
-                    const allowedValues = rule.conditionValue.split(',').map((s: string) => s.trim());
-                    const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
+                    // USE HELPER HERE + Split by regex
+                    const allowedValues = rule.conditionValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                    const valStr = this.getDataValue(conditionVal);
+
                     if (!valStr || !allowedValues.includes(valStr)) {
                         continue;
                     }
@@ -293,13 +318,16 @@ export class ValidationEngine {
                 if (rule.conditionMaDichVuValue) {
                     const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
                     let conditionVal = item[fieldToCheck];
-                    // Fallback: if scanning for generic service/drug/material
-                    if (conditionVal === undefined && !rule.conditionMaDichVu) {
-                        conditionVal = item['MA_DICH_VU'] || item['MA_THUOC'] || item['MA_VAT_TU'];
-                    }
 
-                    const allowedValues = rule.conditionMaDichVuValue.split(',').map((s: string) => s.trim());
-                    const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
+                    const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                    // USE HELPER HERE
+                    const valStr = this.getDataValue(conditionVal);
+
+                    // ONE-TIME DEBUG LOG
+                    // if (rule.conditionMaDichVuValue.includes('23.0058.1487') && !allowedValues.includes(valStr)) {
+                    //    console.log(`[DEBUG MISMATCH] Rule ${rule.id} expects ${rule.conditionMaDichVuValue}. Got '${valStr}' from ${fieldToCheck}. Allowed: ${JSON.stringify(allowedValues)}`);
+                    // }
+
                     if (!valStr || !allowedValues.includes(valStr)) {
                         continue;
                     }
@@ -542,5 +570,16 @@ export const DEFAULT_RULES: ValidationRule[] = [
         name: 'Thiếu mã tình trạng dịch vụ (Trạm y tế)',
         code: '(MA_TTDV == null || MA_TTDV == "") && XML1.MA_LOAI_KCB == "03"',
         errorMessage: 'Thiếu MA_TTDV đối với hồ sơ Trạm y tế (03)'
+    },
+    {
+        id: '7',
+        active: true,
+        checkNotNull: false,
+        type: 'Cảnh báo',
+        xmlType: 'XML1',
+        field: 'MA_THE_TAM',
+        name: 'Sai định dạng Mã thẻ tạm',
+        code: '(MA_THE_TAM != null && MA_THE_TAM != "") && (MA_THE_TAM.length != 15)',
+        errorMessage: 'Mã thẻ tạm phải có độ dài 15 ký tự'
     }
 ];

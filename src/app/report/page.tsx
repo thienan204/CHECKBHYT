@@ -174,10 +174,8 @@ export default function ReportPage() {
         const worksheet = workbook.addWorksheet('Báo cáo lỗi');
         worksheet.columns = [
             { header: 'STT', key: 'stt', width: 5 },
-            { header: 'Mã LK', key: 'ma_lk', width: 14 },
             { header: 'Mã BN', key: 'ma_bn', width: 14 },
             { header: 'Họ tên', key: 'ho_ten', width: 25 },
-            { header: 'Mã thẻ', key: 'ma_the', width: 20 },
             { header: 'Ngày vào', key: 'ngay_vao', width: 16 },
             { header: 'Ngày ra', key: 'ngay_ra', width: 16 },
             { header: 'Ngày YL', key: 'ngay_yl', width: 16 },
@@ -185,8 +183,10 @@ export default function ReportPage() {
             { header: 'Ngày KQ', key: 'ngay_kq', width: 16 },
             { header: 'Ngày Vào Nội Trú', key: 'ngay_vao_noi_tru', width: 16 },
             { header: 'Mã DV/Thuốc', key: 'ma_dv', width: 15 },
-            { header: 'Tên DV/Thuốc', key: 'ten_dv', width: 40 },
             { header: 'Chi tiết lỗi', key: 'chi_tiet_loi', width: 60 },
+            { header: 'Tên DV/Thuốc', key: 'ten_dv', width: 40 },
+            { header: 'Mã LK', key: 'ma_lk', width: 14 },
+            { header: 'Mã thẻ', key: 'ma_the', width: 20 },
         ];
         worksheet.getRow(1).font = { bold: true };
 
@@ -218,52 +218,40 @@ export default function ReportPage() {
         );
     };
 
+    const createOnCell = (dataIndex: keyof ReportRow) => (record: ReportRow) => {
+        return {
+            onClick: (e: React.MouseEvent) => {
+                const text = String(record[dataIndex] || '');
+                if (text) {
+                    navigator.clipboard.writeText(text);
+                    message.success('Đã copy: ' + text);
+                }
+                setSelectedRowKey(record.key);
+            },
+            style: { cursor: 'pointer' }
+        };
+    };
+
     const columns = [
         { title: 'STT', dataIndex: 'stt', key: 'stt', width: 50, fixed: 'left' as const, align: 'center' as const, render: (_: any, __: any, index: number) => index + 1 },
-        { title: 'Mã LK', dataIndex: 'ma_lk', key: 'ma_lk', width: 120, fixed: 'left' as const, render: renderCopyable },
-        { title: 'Mã BN', dataIndex: 'ma_bn', key: 'ma_bn', width: 120, render: renderCopyable },
-        { title: 'Họ tên', dataIndex: 'ho_ten', key: 'ho_ten', width: 180, render: renderCopyable },
-        { title: 'Mã thẻ', dataIndex: 'ma_the', key: 'ma_the', width: 150, render: renderCopyable },
-        { title: 'Ngày vào', dataIndex: 'ngay_vao', key: 'ngay_vao', width: 140, render: renderCopyable },
-        { title: 'Ngày ra', dataIndex: 'ngay_ra', key: 'ngay_ra', width: 140, render: renderCopyable },
-        { title: 'Ngày YL', dataIndex: 'ngay_yl', key: 'ngay_yl', width: 140, render: renderCopyable },
-        { title: 'Ngày TH YL', dataIndex: 'ngay_th_yl', key: 'ngay_th_yl', width: 140, render: renderCopyable },
-        { title: 'Ngày KQ', dataIndex: 'ngay_kq', key: 'ngay_kq', width: 140, render: renderCopyable },
-        { title: 'Ngày Vào NT', dataIndex: 'ngay_vao_noi_tru', key: 'ngay_vao_noi_tru', width: 140, render: renderCopyable },
-        { title: 'Mã DV/Thuốc', dataIndex: 'ma_dv', key: 'ma_dv', width: 120, render: renderCopyable },
-        {
-            title: 'Tên DV/Thuốc', dataIndex: 'ten_dv', key: 'ten_dv', width: 250, ellipsis: true, render: (text: string) => (
-                <Tooltip title={text}>
-                    <span
-                        className="cursor-pointer hover:text-blue-600 hover:underline transition-colors block truncate"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(text);
-                            message.success('Đã copy tên dịch vụ');
-                        }}
-                    >
-                        {text}
-                    </span>
-                </Tooltip>
-            )
-        },
+        { title: 'Mã BN', dataIndex: 'ma_bn', key: 'ma_bn', width: 120, onCell: createOnCell('ma_bn') },
+        { title: 'Họ tên', dataIndex: 'ho_ten', key: 'ho_ten', width: 180, onCell: createOnCell('ho_ten') },
+        { title: 'Ngày vào', dataIndex: 'ngay_vao', key: 'ngay_vao', width: 140, onCell: createOnCell('ngay_vao') },
+        { title: 'Ngày ra', dataIndex: 'ngay_ra', key: 'ngay_ra', width: 140, onCell: createOnCell('ngay_ra') },
+        { title: 'Ngày TH YL', dataIndex: 'ngay_th_yl', key: 'ngay_th_yl', width: 140, onCell: createOnCell('ngay_th_yl') },
+        { title: 'Ngày KQ', dataIndex: 'ngay_kq', key: 'ngay_kq', width: 140, onCell: createOnCell('ngay_kq') },
+        { title: 'Ngày Vào NT', dataIndex: 'ngay_vao_noi_tru', key: 'ngay_vao_noi_tru', width: 140, onCell: createOnCell('ngay_vao_noi_tru') },
+        { title: 'Ngày YL', dataIndex: 'ngay_yl', key: 'ngay_yl', width: 140, onCell: createOnCell('ngay_yl') },
+        { title: 'Mã DV/Thuốc', dataIndex: 'ma_dv', key: 'ma_dv', width: 120, onCell: createOnCell('ma_dv'), sorter: (a: ReportRow, b: ReportRow) => (a.ma_dv || '').localeCompare(b.ma_dv || '') },
         {
             title: 'Chi tiết lỗi',
             dataIndex: 'chi_tiet_loi',
             key: 'chi_tiet_loi',
             width: 300,
+            onCell: createOnCell('chi_tiet_loi'),
             render: (text: string) => text ? (
                 <Tooltip title={text}>
-                    <span
-                        className="cursor-pointer text-red-600 block hover:underline"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(text);
-                            message.success('Đã copy lỗi');
-                        }}
-                    >
-                        {text}
-                    </span>
+                    <div className="truncate text-red-600 font-medium">{text}</div>
                 </Tooltip>
             ) : <Tag color="success">Hợp lệ</Tag>,
             filters: [
@@ -276,7 +264,22 @@ export default function ReportPage() {
                 return true;
             },
         },
+        {
+            title: 'Tên DV/Thuốc', dataIndex: 'ten_dv', key: 'ten_dv', width: 250, ellipsis: true, onCell: createOnCell('ten_dv'), render: (text: string) => (
+                <Tooltip title={text}>
+                    <div className="truncate">{text}</div>
+                </Tooltip>
+            )
+        },
+        { title: 'Mã LK', dataIndex: 'ma_lk', key: 'ma_lk', width: 120, onCell: createOnCell('ma_lk') },
+        { title: 'Mã thẻ', dataIndex: 'ma_the', key: 'ma_the', width: 150, onCell: createOnCell('ma_the') },
     ];
+
+    const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+
+    const handleRowClick = (record: ReportRow) => {
+        setSelectedRowKey(record.key);
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 pt-12">
@@ -336,7 +339,13 @@ export default function ReportPage() {
                             showTotal: (total) => `Tổng ${total} bản ghi`
                         }}
                         size="small"
-                        rowClassName={(record) => record.isError ? "bg-red-50/50 hover:bg-red-50" : ""}
+                        onRow={(record) => ({
+                            onClick: () => setSelectedRowKey(record.key), // Only Select
+                        })}
+                        rowClassName={(record) => record.key === selectedRowKey
+                            ? 'bg-yellow-100 font-medium'
+                            : (record.isError ? "bg-red-50/50 hover:bg-red-50" : "")
+                        }
                         bordered
                     />
                 </Card>
