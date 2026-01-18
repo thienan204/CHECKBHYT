@@ -19,6 +19,9 @@ const renderValue = (val: any) => {
 const formatDateTime = (dateStr: any) => {
     const s = renderValue(dateStr);
     if (!s) return '';
+    if (s.length >= 12) {
+        return `${s.substring(6, 8)}/${s.substring(4, 6)}/${s.substring(0, 4)} ${s.substring(8, 10)}:${s.substring(10, 12)}`;
+    }
     if (s.length >= 8) {
         return `${s.substring(6, 8)}/${s.substring(4, 6)}/${s.substring(0, 4)}`;
     }
@@ -30,8 +33,23 @@ export default function KiemTraChuyenDeXml3Group15Page() {
     const [data, setData] = useState<any[]>([]);
     const [searchText, setSearchText] = useState('');
     const [filteredData, setFilteredData] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<Record<string, string>>({});
 
     useEffect(() => {
+        const fetchDepts = async () => {
+            try {
+                const res = await fetch('/api/departments');
+                if (res.ok) {
+                    const data = await res.json();
+                    const map: Record<string, string> = {};
+                    data.forEach((d: any) => map[d.ma_khoa] = d.ten_khoa);
+                    setDepartments(map);
+                }
+            } catch (e) {
+                console.error("Error fetching departments", e);
+            }
+        };
+        fetchDepts();
         loadData();
     }, []);
 
@@ -117,6 +135,20 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             render: (text) => <span className="text-slate-700 font-medium">{renderValue(text)}</span>,
             sorter: (a, b) => String(a.HO_TEN).localeCompare(String(b.HO_TEN)),
         },
+        {
+            title: 'Mã Khoa',
+            dataIndex: 'MA_KHOA',
+            key: 'MA_KHOA_COL',
+            width: 100,
+            render: (text) => <span className="font-bold text-blue-700">{renderValue(text)}</span>
+        },
+        {
+            title: 'Tên Khoa',
+            dataIndex: 'MA_KHOA',
+            key: 'TEN_KHOA_COL',
+            width: 200,
+            render: (text) => <span className="text-slate-600">{departments[renderValue(text)] || ''}</span>
+        },
         // Only essential columns for bed checking
         {
             title: 'Mã Giường',
@@ -158,13 +190,6 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                     <div className="truncate">{renderValue(text)}</div>
                 </Tooltip>
             )
-        },
-        {
-            title: 'Mã Khoa',
-            dataIndex: 'MA_KHOA',
-            key: 'MA_KHOA',
-            width: 100,
-            render: (text) => renderValue(text)
         },
     ];
 
@@ -219,12 +244,15 @@ export default function KiemTraChuyenDeXml3Group15Page() {
 
                             data.forEach(item => {
                                 const rawDate = String(item.NGAY_YL || '');
-                                const dateOnly = rawDate.length >= 8 ? rawDate.substring(0, 8) : rawDate;
+                                // Check up to Hour (YYYYMMDDHH), ignore minutes
+                                const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+
                                 const maGiuong = String(item.MA_GIUONG || '').trim();
                                 const maDichVu = String(item.MA_DICH_VU || '').trim();
+                                const maKhoa = String(item.MA_KHOA || '').trim();
 
-                                // Duplicate Key: Date + Bed + Service Code
-                                const key = `${dateOnly}_${maGiuong}_${maDichVu}`;
+                                // Duplicate Key: DateHour + Bed + Service Code + Department Code
+                                const key = `${dateHour}_${maGiuong}_${maDichVu}_${maKhoa}`;
                                 if (!groups[key]) groups[key] = [];
                                 groups[key].push(item);
                             });
@@ -234,9 +262,9 @@ export default function KiemTraChuyenDeXml3Group15Page() {
 
                             setFilteredData(duplicates);
                             if (duplicates.length > 0) {
-                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường (Nhóm 15).\nTiêu chí: Cùng Ngày, Cùng Giường, Cùng Mã Dịch Vụ.`);
+                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường (Nhóm 15).\nTiêu chí: Cùng Giờ chỉ định (dd/MM/yyyy HH:00), Cùng Giường, Cùng Mã Dịch Vụ, Cùng Mã Khoa.`);
                             } else {
-                                alert("Không tìm thấy bản ghi nào trùng giường trong Nhóm 15.");
+                                alert("Không tìm thấy bản ghi nào trùng giường trong Nhóm 15 (theo tiêu chí mới: Mã Khoa + Giờ chỉ định).");
                             }
                         }}
                     >

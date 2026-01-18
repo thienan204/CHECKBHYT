@@ -62,3 +62,10 @@ model DraftRule {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model Department {
+  ma_khoa         String   @id
+  ten_khoa        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

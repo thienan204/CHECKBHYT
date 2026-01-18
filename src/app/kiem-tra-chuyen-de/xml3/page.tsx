@@ -19,6 +19,9 @@ const renderValue = (val: any) => {
 const formatDateTime = (dateStr: any) => {
     const s = renderValue(dateStr);
     if (!s) return '';
+    if (s.length >= 12) {
+        return `${s.substring(6, 8)}/${s.substring(4, 6)}/${s.substring(0, 4)} ${s.substring(8, 10)}:${s.substring(10, 12)}`;
+    }
     if (s.length >= 8) {
         return `${s.substring(6, 8)}/${s.substring(4, 6)}/${s.substring(0, 4)}`;
     }
@@ -313,17 +316,19 @@ export default function KiemTraChuyenDeXml3Page() {
                             // 1. Filter Bed Groups (13, 14, 15)
                             const bedItems = data.filter(item => ['13', '14', '15'].includes(String(item.MA_NHOM)));
 
-                            // 2. Group by NGAY_YL (Date only) + MA_GIUONG + MA_DICH_VU (Cross-patient check)
+                            // 2. Group by NGAY_YL (Hour) + MA_GIUONG + MA_DICH_VU + MA_KHOA
                             const groups: Record<string, any[]> = {};
                             bedItems.forEach(item => {
                                 const rawDate = String(item.NGAY_YL || '');
-                                // Take first 8 chars (YYYYMMDD) to ignore time
-                                const dateOnly = rawDate.length >= 8 ? rawDate.substring(0, 8) : rawDate;
+                                // Check up to Hour (YYYYMMDDHH), ignore minutes
+                                const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+
                                 const maGiuong = String(item.MA_GIUONG || '').trim();
                                 const maDichVu = String(item.MA_DICH_VU || '').trim();
+                                const maKhoa = String(item.MA_KHOA || '').trim();
 
-                                // Key does NOT include MA_LK anymore
-                                const key = `${dateOnly}_${maGiuong}_${maDichVu}`;
+                                // Key does NOT include MA_LK anymore, include MA_KHOA
+                                const key = `${dateHour}_${maGiuong}_${maDichVu}_${maKhoa}`;
                                 if (!groups[key]) groups[key] = [];
                                 groups[key].push(item);
                             });
@@ -334,9 +339,9 @@ export default function KiemTraChuyenDeXml3Page() {
                             // 4. Update view
                             setFilteredData(duplicates);
                             if (duplicates.length > 0) {
-                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường (cùng ngày, cùng giường, cùng mã dịch vụ, có thể khác bệnh nhân) trong các nhóm 13, 14, 15.`);
+                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường.\nTiêu chí: Cùng Giờ (dd/MM/yyyy HH:00), Cùng Giường, Cùng Mã Dịch Vụ, Cùng Mã Khoa.`);
                             } else {
-                                alert("Không tìm thấy bản ghi nào trùng giường (xét theo nhóm 13, 14, 15, ngày y lệnh và mã dịch vụ).");
+                                alert("Không tìm thấy bản ghi nào trùng giường (xét theo nhóm 13, 14, 15...).");
                             }
                         }}
                     >

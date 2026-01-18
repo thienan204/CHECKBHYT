@@ -142,6 +142,7 @@ const getDynamicColumns = (
 export default function XmlReader() {
     const router = useRouter();
     const [records, setRecords] = useState<ExtendedHosoRecord[]>([]);
+    const [departments, setDepartments] = useState<Record<string, string>>({});
     const [selectedRecord, setSelectedRecord] = useState<ExtendedHosoRecord | null>(null);
     const [activeTab, setActiveTab] = useState<string>('XML1');
     const [processingProgress, setProcessingProgress] = useState<{ current: number, total: number } | null>(null);
@@ -154,6 +155,21 @@ export default function XmlReader() {
 
     // Load DB
     useEffect(() => {
+        const fetchDepts = async () => {
+            try {
+                const res = await fetch('/api/departments');
+                if (res.ok) {
+                    const data = await res.json();
+                    const map: Record<string, string> = {};
+                    data.forEach((d: any) => map[d.ma_khoa] = d.ten_khoa);
+                    setDepartments(map);
+                }
+            } catch (e) {
+                console.error("Error fetching departments", e);
+            }
+        };
+        fetchDepts();
+
         loadRecordsFromDB().then(saved => {
             if (saved.length > 0) setRecords(saved);
         });
@@ -372,6 +388,37 @@ export default function XmlReader() {
             width: 120,
         },
         {
+            title: (
+                <div className="flex flex-col gap-1">
+                    <span>Mã Khoa</span>
+                    <Input
+                        placeholder="Tìm..."
+                        size="small"
+                        allowClear
+                        value={colFilters.MA_KHOA}
+                        onChange={(e) => setColFilters(prev => ({ ...prev, MA_KHOA: e.target.value }))}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            ),
+            key: 'MA_KHOA',
+            width: 100,
+            render: (_, record) => {
+                const code = record.summary?.MA_KHOA;
+                return <div className="font-medium text-blue-700">{code}</div>;
+            }
+        },
+        {
+            title: 'Tên Khoa',
+            key: 'TEN_KHOA',
+            width: 200,
+            render: (_, record) => {
+                const code = record.summary?.MA_KHOA;
+                const name = departments[code || ''];
+                return <div className="text-slate-600 truncate">{name}</div>;
+            }
+        },
+        {
             title: 'Họ tên',
             dataIndex: ['summary', 'HO_TEN'],
             key: 'HO_TEN',
@@ -413,6 +460,10 @@ export default function XmlReader() {
             const k = colFilters.MA_BN.toLowerCase();
             result = result.filter(r => String(r.summary?.MA_BN || '').toLowerCase().includes(k));
         }
+        if (colFilters.MA_KHOA) {
+            const k = colFilters.MA_KHOA.toLowerCase();
+            result = result.filter(r => String(r.summary?.MA_KHOA || '').toLowerCase().includes(k));
+        }
 
         if (searchText) {
             const lower = searchText.toLowerCase();
@@ -438,6 +489,8 @@ export default function XmlReader() {
             { header: 'STT', key: 'stt', width: 5 },
             { header: 'Mã LK', key: 'ma_lk', width: 14 },
             { header: 'Mã BN', key: 'ma_bn', width: 14 },
+            { header: 'Mã Khoa', key: 'ma_khoa', width: 10 },
+            { header: 'Tên Khoa', key: 'ten_khoa', width: 25 },
             { header: 'Họ tên', key: 'ho_ten', width: 25 },
             { header: 'Mã thẻ', key: 'ma_the', width: 20 },
             { header: 'Ngày vào', key: 'ngay_vao', width: 16 },
@@ -461,6 +514,7 @@ export default function XmlReader() {
                     stt: index + 1,
                     ma_lk: renderValue(record.summary?.MA_LK),
                     ma_bn: renderValue(record.summary?.MA_BN),
+                    ma_khoa: renderValue(record.summary?.MA_KHOA),
                     ho_ten: renderValue(record.summary?.HO_TEN),
                     ma_the: renderValue(record.summary?.MA_THE_BHYT),
                     ngay_vao: formatDateTime(record.summary?.NGAY_VAO),
@@ -474,6 +528,7 @@ export default function XmlReader() {
                     let ngayYL = '';
                     let ngayTHYL = '';
                     let ngayKQ = '';
+                    let maKhoa = renderValue(record.summary?.MA_KHOA);
 
                     if (err.xmlType && err.index !== undefined) {
                         const group = record.groups.find(g => g.type === err.xmlType);
@@ -486,6 +541,7 @@ export default function XmlReader() {
                                 ngayYL = formatDateTime(item.NGAY_YL);
                                 ngayTHYL = formatDateTime(item.NGAY_TH_YL);
                                 ngayKQ = formatDateTime(item.NGAY_KQ);
+                                if (item.MA_KHOA) maKhoa = renderValue(item.MA_KHOA);
                             }
                         }
                     }
@@ -493,6 +549,8 @@ export default function XmlReader() {
                         stt: index + 1,
                         ma_lk: renderValue(record.summary?.MA_LK),
                         ma_bn: renderValue(record.summary?.MA_BN),
+                        ma_khoa: maKhoa,
+                        ten_khoa: departments[maKhoa] || '',
                         ho_ten: renderValue(record.summary?.HO_TEN),
                         ma_the: renderValue(record.summary?.MA_THE_BHYT),
                         ngay_vao: formatDateTime(record.summary?.NGAY_VAO),

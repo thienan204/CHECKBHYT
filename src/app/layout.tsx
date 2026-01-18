@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -18,11 +19,14 @@ export const metadata: Metadata = {
   description: "Công cụ kiểm tra và phân tích lỗi hồ sơ Bảo Hiểm Xã Hội",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const isLoggedIn = cookieStore.has('auth_token');
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -40,6 +44,13 @@ export default function RootLayout({
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
               Kiểm tra chuyên đề
             </a>
+
+            {isLoggedIn && (
+              <a href="/departments" className="px-5 py-2.5 rounded-xl text-slate-500 font-bold text-sm hover:text-cyan-600 hover:bg-cyan-50 transition-all flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                Q.Lý Khoa
+              </a>
+            )}
           </div>
 
           {/* Right: Rules */}

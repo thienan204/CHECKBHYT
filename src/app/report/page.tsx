@@ -50,6 +50,8 @@ interface ReportRow {
     ngay_vao_noi_tru: string;
     ma_dv: string;
     ten_dv: string;
+    ma_khoa: string;
+    ten_khoa: string;
     chi_tiet_loi: string;
     isError: boolean;
 }
@@ -61,9 +63,25 @@ export default function ReportPage() {
 
     const [loading, setLoading] = useState(true);
     const [fullDataSource, setFullDataSource] = useState<ReportRow[]>([]);
+    const [departments, setDepartments] = useState<Record<string, string>>({});
     const [filterType, setFilterType] = useState<'ALL' | 'ERROR' | 'VALID'>(initialFilter);
 
     useEffect(() => {
+        const fetchDepts = async () => {
+            try {
+                const res = await fetch('/api/departments');
+                if (res.ok) {
+                    const data = await res.json();
+                    const map: Record<string, string> = {};
+                    data.forEach((d: any) => map[d.ma_khoa] = d.ten_khoa);
+                    setDepartments(map);
+                }
+            } catch (e) {
+                console.error("Error fetching departments", e);
+            }
+        };
+        fetchDepts();
+
         const fetchData = async () => {
             try {
                 const records = await loadRecordsFromDB();
@@ -90,6 +108,8 @@ export default function ReportPage() {
                             ngay_vao_noi_tru: ngayVaoNoiTru,
                             ma_dv: '',
                             ten_dv: '',
+                            ma_khoa: renderValue(record.summary?.MA_KHOA),
+                            ten_khoa: departments[renderValue(record.summary?.MA_KHOA)] || '',
                             chi_tiet_loi: '',
                             isError: false
                         });
@@ -100,6 +120,7 @@ export default function ReportPage() {
                             let ngayYL = '';
                             let ngayTHYL = '';
                             let ngayKQ = '';
+                            let maKhoa = renderValue(record.summary?.MA_KHOA);
 
                             if (err.xmlType && err.index !== undefined) {
                                 const group = record.groups.find(g => g.type === err.xmlType);
@@ -112,6 +133,7 @@ export default function ReportPage() {
                                         ngayYL = formatDateTime(item.NGAY_YL);
                                         ngayTHYL = formatDateTime(item.NGAY_TH_YL);
                                         ngayKQ = formatDateTime(item.NGAY_KQ);
+                                        if (item.MA_KHOA) maKhoa = renderValue(item.MA_KHOA);
                                     }
                                 }
                             }
@@ -131,6 +153,8 @@ export default function ReportPage() {
                                 ngay_vao_noi_tru: ngayVaoNoiTru,
                                 ma_dv: renderValue(code),
                                 ten_dv: renderValue(name),
+                                ma_khoa: maKhoa,
+                                ten_khoa: departments[maKhoa] || '',
                                 chi_tiet_loi: `[${err.xmlType}] ${err.message || err.ruleName}`,
                                 isError: true
                             });
@@ -175,6 +199,9 @@ export default function ReportPage() {
         worksheet.columns = [
             { header: 'STT', key: 'stt', width: 5 },
             { header: 'Mã BN', key: 'ma_bn', width: 14 },
+            { header: 'Mã BN', key: 'ma_bn', width: 14 },
+            { header: 'Mã Khoa', key: 'ma_khoa', width: 10 },
+            { header: 'Tên Khoa', key: 'ten_khoa', width: 25 },
             { header: 'Họ tên', key: 'ho_ten', width: 25 },
             { header: 'Ngày vào', key: 'ngay_vao', width: 16 },
             { header: 'Ngày ra', key: 'ngay_ra', width: 16 },
@@ -192,7 +219,11 @@ export default function ReportPage() {
 
         // Recalculate STT for export
         filteredDataSource.forEach((row, idx) => {
-            worksheet.addRow({ ...row, stt: idx + 1 });
+            worksheet.addRow({
+                ...row,
+                stt: idx + 1,
+                ten_khoa: departments[row.ma_khoa] || ''
+            });
         });
 
         const buffer = await workbook.xlsx.writeBuffer();
@@ -235,6 +266,21 @@ export default function ReportPage() {
     const columns = [
         { title: 'STT', dataIndex: 'stt', key: 'stt', width: 50, fixed: 'left' as const, align: 'center' as const, render: (_: any, __: any, index: number) => index + 1 },
         { title: 'Mã BN', dataIndex: 'ma_bn', key: 'ma_bn', width: 120, onCell: createOnCell('ma_bn') },
+        {
+            title: 'Mã Khoa',
+            dataIndex: 'ma_khoa',
+            key: 'ma_khoa',
+            width: 100,
+            onCell: createOnCell('ma_khoa'),
+            render: (text: string) => <span className="font-bold text-blue-700">{text}</span>
+        },
+        {
+            title: 'Tên Khoa',
+            dataIndex: 'ten_khoa',
+            key: 'ten_khoa',
+            width: 200,
+            render: (_, record: ReportRow) => <span className="text-slate-600">{departments[record.ma_khoa] || ''}</span>
+        },
         { title: 'Họ tên', dataIndex: 'ho_ten', key: 'ho_ten', width: 180, onCell: createOnCell('ho_ten') },
         { title: 'Ngày vào', dataIndex: 'ngay_vao', key: 'ngay_vao', width: 140, onCell: createOnCell('ngay_vao') },
         { title: 'Ngày ra', dataIndex: 'ngay_ra', key: 'ngay_ra', width: 140, onCell: createOnCell('ngay_ra') },
