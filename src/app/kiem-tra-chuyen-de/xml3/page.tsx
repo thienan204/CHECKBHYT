@@ -316,32 +316,45 @@ export default function KiemTraChuyenDeXml3Page() {
                             // 1. Filter Bed Groups (13, 14, 15)
                             const bedItems = data.filter(item => ['13', '14', '15'].includes(String(item.MA_NHOM)));
 
-                            // 2. Group by NGAY_YL (Hour) + MA_GIUONG + MA_DICH_VU + MA_KHOA
-                            const groups: Record<string, any[]> = {};
-                            bedItems.forEach(item => {
-                                const rawDate = String(item.NGAY_YL || '');
-                                // Check up to Hour (YYYYMMDDHH), ignore minutes
-                                const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+                            const mapYL: Record<string, any[]> = {};
+                            const mapKQ: Record<string, any[]> = {};
 
+                            bedItems.forEach(item => {
                                 const maGiuong = String(item.MA_GIUONG || '').trim();
                                 const maDichVu = String(item.MA_DICH_VU || '').trim();
                                 const maKhoa = String(item.MA_KHOA || '').trim();
 
-                                // Key does NOT include MA_LK anymore, include MA_KHOA
-                                const key = `${dateHour}_${maGiuong}_${maDichVu}_${maKhoa}`;
-                                if (!groups[key]) groups[key] = [];
-                                groups[key].push(item);
+                                const rawDate = String(item.NGAY_YL || '');
+                                const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+                                // Criteria 1: Khoa + Giuong + DV + Ngay YL
+                                const keyYL = `${maKhoa}_${maGiuong}_${maDichVu}_${dateHour}`;
+                                if (!mapYL[keyYL]) mapYL[keyYL] = [];
+                                mapYL[keyYL].push(item);
+
+                                const rawDateKQ = String(item.NGAY_KQ || '');
+                                const dateKQHour = rawDateKQ.length >= 10 ? rawDateKQ.substring(0, 10) : rawDateKQ;
+                                // Criteria 2: Khoa + Giuong + DV + Ngay KQ
+                                const keyKQ = `${maKhoa}_${maGiuong}_${maDichVu}_${dateKQHour}`;
+                                if (!mapKQ[keyKQ]) mapKQ[keyKQ] = [];
+                                mapKQ[keyKQ].push(item);
                             });
 
-                            // 3. Find duplicates (groups with >= 2 items)
-                            const duplicates = Object.values(groups).filter(g => g.length >= 2).flat();
+                            const dupsYL = Object.values(mapYL).filter(g => g.length >= 2).flat();
+                            const dupsKQ = Object.values(mapKQ).filter(g => g.length >= 2).flat();
+
+                            // Merge and remove duplicates by __key
+                            const uniqueMap = new Map();
+                            dupsYL.forEach(i => uniqueMap.set(i.__key, i));
+                            dupsKQ.forEach(i => uniqueMap.set(i.__key, i));
+
+                            const duplicates = Array.from(uniqueMap.values());
 
                             // 4. Update view
                             setFilteredData(duplicates);
                             if (duplicates.length > 0) {
-                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường.\nTiêu chí: Cùng Giờ (dd/MM/yyyy HH:00), Cùng Giường, Cùng Mã Dịch Vụ, Cùng Mã Khoa.`);
+                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường.\nXét theo 2 nhóm tiêu chí (OR):\n1. Mã Khoa + Mã Giường + Mã DV + Ngày YL (Giờ)\nHOẶC\n2. Mã Khoa + Mã Giường + Mã DV + Ngày KQ (Giờ)`);
                             } else {
-                                alert("Không tìm thấy bản ghi nào trùng giường (xét theo nhóm 13, 14, 15...).");
+                                alert("Không tìm thấy bản ghi nào trùng giường theo 2 nhóm tiêu chí trên.");
                             }
                         }}
                     >

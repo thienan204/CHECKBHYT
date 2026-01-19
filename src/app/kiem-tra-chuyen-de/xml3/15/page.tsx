@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Card, Tag, Button, Tooltip, Breadcrumb } from 'antd';
+import { Table, Input, Card, Tag, Button, Tooltip, Breadcrumb, message } from 'antd';
 import { loadRecordsFromDB } from '@/lib/db';
 import { getXmlDataList, ExtendedHosoRecord } from '@/lib/xml';
 import { SearchOutlined, ReloadOutlined, AuditOutlined } from '@ant-design/icons';
@@ -87,6 +87,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                                 // Unique key for table
                                 __key: `${record.id}_${item.MA_DICH_VU}_${Math.random()}`,
                                 // Parent Info
+                                // Note: MA_KHOA comes from 'item' (XML3), allowing tracking of dept transfers
                                 MA_LK: record.summary?.MA_LK,
                                 MA_BN: record.summary?.MA_BN,
                                 HO_TEN: record.summary?.HO_TEN,
@@ -108,6 +109,24 @@ export default function KiemTraChuyenDeXml3Group15Page() {
         }
     };
 
+    const handleCellClick = (e: React.MouseEvent, val: any) => {
+        e.stopPropagation();
+        const textToCopy = renderValue(val);
+        if (!textToCopy) return;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            message.success(`Đã copy: ${textToCopy}`);
+        }).catch(() => { });
+    };
+
+    const sharedOnCell = (dataIndex: string) => (record: any) => ({
+        onClick: (e: React.MouseEvent) => handleCellClick(e, record[dataIndex]),
+        style: { cursor: 'pointer' },
+        title: 'Click để copy giá trị này'
+    });
+
+    // Special handling for calculated/rendered columns if needed, but dataIndex is usually sufficient for raw value.
+    // For 'Ten Khoa', dataIndex is MA_KHOA, but we want name.
+
     const columns: ColumnsType<any> = [
         {
             title: 'STT',
@@ -123,6 +142,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             key: 'MA_LK',
             width: 120,
             fixed: 'left',
+            onCell: sharedOnCell('MA_LK'),
             render: (text) => <span className="font-bold text-blue-600">{renderValue(text)}</span>,
             sorter: (a, b) => String(a.MA_LK).localeCompare(String(b.MA_LK)),
         },
@@ -132,6 +152,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             key: 'HO_TEN',
             width: 150,
             fixed: 'left',
+            onCell: sharedOnCell('HO_TEN'),
             render: (text) => <span className="text-slate-700 font-medium">{renderValue(text)}</span>,
             sorter: (a, b) => String(a.HO_TEN).localeCompare(String(b.HO_TEN)),
         },
@@ -140,6 +161,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             dataIndex: 'MA_KHOA',
             key: 'MA_KHOA_COL',
             width: 100,
+            onCell: sharedOnCell('MA_KHOA'),
             render: (text) => <span className="font-bold text-blue-700">{renderValue(text)}</span>
         },
         {
@@ -147,6 +169,11 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             dataIndex: 'MA_KHOA',
             key: 'TEN_KHOA_COL',
             width: 200,
+            onCell: (record) => ({
+                onClick: (e) => handleCellClick(e, departments[record.MA_KHOA] || ''),
+                style: { cursor: 'pointer' },
+                title: 'Click để copy tên khoa'
+            }),
             render: (text) => <span className="text-slate-600">{departments[renderValue(text)] || ''}</span>
         },
         // Only essential columns for bed checking
@@ -155,6 +182,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             dataIndex: 'MA_GIUONG',
             key: 'MA_GIUONG',
             width: 120,
+            onCell: sharedOnCell('MA_GIUONG'),
             render: (text) => <Tag color="geekblue">{renderValue(text) || '(Trống)'}</Tag>
         },
         {
@@ -162,6 +190,11 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             dataIndex: 'NGAY_YL',
             key: 'NGAY_YL',
             width: 120,
+            onCell: (record) => ({
+                onClick: (e) => handleCellClick(e, formatDateTime(record.NGAY_YL)),
+                style: { cursor: 'pointer' },
+                title: 'Click để copy Ngày YL'
+            }),
             render: (text) => formatDateTime(text),
             defaultSortOrder: 'ascend',
             sorter: (a, b) => String(a.NGAY_YL).localeCompare(String(b.NGAY_YL)),
@@ -171,6 +204,11 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             dataIndex: 'NGAY_KQ',
             key: 'NGAY_KQ',
             width: 120,
+            onCell: (record) => ({
+                onClick: (e) => handleCellClick(e, formatDateTime(record.NGAY_KQ)),
+                style: { cursor: 'pointer' },
+                title: 'Click để copy Ngày KQ'
+            }),
             render: (text) => formatDateTime(text)
         },
         {
@@ -178,6 +216,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             dataIndex: 'MA_DICH_VU',
             key: 'MA_DICH_VU',
             width: 150,
+            onCell: sharedOnCell('MA_DICH_VU'),
             render: (text) => <span className="font-mono text-slate-700">{renderValue(text)}</span>,
         },
         {
@@ -185,6 +224,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             dataIndex: 'TEN_DICH_VU',
             key: 'TEN_DICH_VU',
             width: 250,
+            onCell: sharedOnCell('TEN_DICH_VU'),
             render: (text) => (
                 <Tooltip title={renderValue(text)}>
                     <div className="truncate">{renderValue(text)}</div>
@@ -196,8 +236,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
 
     const handleRowClick = (record: any) => {
-        const textToCopy = JSON.stringify(record, null, 2);
-        navigator.clipboard.writeText(textToCopy).catch(err => console.error('Copy failed', err));
+        // Row click now only selects row, doesn't copy JSON
         setSelectedRowKey(record.__key);
     };
 
@@ -239,32 +278,44 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                         type="primary"
                         danger
                         onClick={() => {
-                            // Only check duplicates within the loaded Group 15 data
-                            const groups: Record<string, any[]> = {};
+                            const mapYL: Record<string, any[]> = {};
+                            const mapKQ: Record<string, any[]> = {};
 
                             data.forEach(item => {
-                                const rawDate = String(item.NGAY_YL || '');
-                                // Check up to Hour (YYYYMMDDHH), ignore minutes
-                                const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
-
                                 const maGiuong = String(item.MA_GIUONG || '').trim();
                                 const maDichVu = String(item.MA_DICH_VU || '').trim();
                                 const maKhoa = String(item.MA_KHOA || '').trim();
 
-                                // Duplicate Key: DateHour + Bed + Service Code + Department Code
-                                const key = `${dateHour}_${maGiuong}_${maDichVu}_${maKhoa}`;
-                                if (!groups[key]) groups[key] = [];
-                                groups[key].push(item);
+                                const rawDate = String(item.NGAY_YL || '');
+                                const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+                                // Criteria 1: Khoa + Giuong + DV + Ngay YL
+                                const keyYL = `${maKhoa}_${maGiuong}_${maDichVu}_${dateHour}`;
+                                if (!mapYL[keyYL]) mapYL[keyYL] = [];
+                                mapYL[keyYL].push(item);
+
+                                const rawDateKQ = String(item.NGAY_KQ || '');
+                                const dateKQHour = rawDateKQ.length >= 10 ? rawDateKQ.substring(0, 10) : rawDateKQ;
+                                // Criteria 2: Khoa + Giuong + DV + Ngay KQ
+                                const keyKQ = `${maKhoa}_${maGiuong}_${maDichVu}_${dateKQHour}`;
+                                if (!mapKQ[keyKQ]) mapKQ[keyKQ] = [];
+                                mapKQ[keyKQ].push(item);
                             });
 
-                            // Find duplicates (groups with >= 2 items)
-                            const duplicates = Object.values(groups).filter(g => g.length >= 2).flat();
+                            const dupsYL = Object.values(mapYL).filter(g => g.length >= 2).flat();
+                            const dupsKQ = Object.values(mapKQ).filter(g => g.length >= 2).flat();
+
+                            // Merge and remove duplicates by __key
+                            const uniqueMap = new Map();
+                            dupsYL.forEach(i => uniqueMap.set(i.__key, i));
+                            dupsKQ.forEach(i => uniqueMap.set(i.__key, i));
+
+                            const duplicates = Array.from(uniqueMap.values());
 
                             setFilteredData(duplicates);
                             if (duplicates.length > 0) {
-                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường (Nhóm 15).\nTiêu chí: Cùng Giờ chỉ định (dd/MM/yyyy HH:00), Cùng Giường, Cùng Mã Dịch Vụ, Cùng Mã Khoa.`);
+                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường (Nhóm 15).\nXét theo 2 nhóm tiêu chí (OR):\n1. Mã Khoa + Mã Giường + Mã DV + Ngày YL (Giờ)\nHOẶC\n2. Mã Khoa + Mã Giường + Mã DV + Ngày KQ (Giờ)`);
                             } else {
-                                alert("Không tìm thấy bản ghi nào trùng giường trong Nhóm 15 (theo tiêu chí mới: Mã Khoa + Giờ chỉ định).");
+                                alert("Không tìm thấy bản ghi nào trùng giường theo 2 nhóm tiêu chí trên.");
                             }
                         }}
                     >
