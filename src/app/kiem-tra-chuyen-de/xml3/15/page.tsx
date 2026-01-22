@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Table, Input, Card, Tag, Button, Tooltip, Breadcrumb, message } from 'antd';
 import { loadRecordsFromDB } from '@/lib/db';
 import { getXmlDataList, ExtendedHosoRecord } from '@/lib/xml';
-import { SearchOutlined, ReloadOutlined, AuditOutlined } from '@ant-design/icons';
+import { SearchOutlined, ReloadOutlined, AuditOutlined, FileExcelOutlined } from '@ant-design/icons';
+import * as XLSX from 'xlsx';
 import type { ColumnsType } from 'antd/es/table';
 
 // Helper to format values
@@ -273,6 +274,35 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                         loading={loading}
                     >
                         Tải lại
+                    </Button>
+                    <Button
+                        icon={<FileExcelOutlined />}
+                        onClick={() => {
+                            if (filteredData.length === 0) {
+                                message.warning("Không có dữ liệu để xuất!");
+                                return;
+                            }
+                            const exportData = filteredData.map((item, index) => ({
+                                STT: index + 1,
+                                'Mã LK': renderValue(item.MA_LK),
+                                'Họ Tên': renderValue(item.HO_TEN),
+                                'Mã Khoa': renderValue(item.MA_KHOA),
+                                'Tên Khoa': departments[renderValue(item.MA_KHOA)] || '',
+                                'Mã Giường': renderValue(item.MA_GIUONG),
+                                'Ngày YL': formatDateTime(item.NGAY_YL),
+                                'Ngày KQ': formatDateTime(item.NGAY_KQ),
+                                'Mã Dịch Vụ': renderValue(item.MA_DICH_VU),
+                                'Tên Dịch Vụ': renderValue(item.TEN_DICH_VU),
+                            }));
+                            const wb = XLSX.utils.book_new();
+                            const ws = XLSX.utils.json_to_sheet(exportData);
+                            XLSX.utils.book_append_sheet(wb, ws, "TrungGiuongNhom15");
+                            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                            XLSX.writeFile(wb, `TrungGiuong_Nhom15_${timestamp}.xlsx`);
+                        }}
+                        className="bg-green-600 hover:bg-green-500 text-white border-none"
+                    >
+                        Xuất Excel
                     </Button>
                     <Button
                         type="primary"

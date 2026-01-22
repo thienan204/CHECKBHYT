@@ -162,6 +162,13 @@ export default function ReportPage() {
                     }
                 });
 
+                // Sort by MA_BN then MA_DV as requested
+                rows.sort((a, b) => {
+                    const bnCompare = (a.ma_bn || '').localeCompare(b.ma_bn || '');
+                    if (bnCompare !== 0) return bnCompare;
+                    return (a.ma_dv || '').localeCompare(b.ma_dv || '');
+                });
+
                 setFullDataSource(rows);
             } catch (error) {
                 console.error("Error loading data:", error);
