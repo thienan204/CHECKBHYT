@@ -283,5 +283,24 @@
     "errorMessage": "Cân nặng không được để trống",
     "createdAt": "2026-01-19T00:25:36.099Z",
     "updatedAt": "2026-01-19T00:25:36.099Z"
+  },
+  {
+    "id": "cmkzo1yfl0001wsk5ts01nk8d",
+    "active": true,
+    "type": "Xuất toán",
+    "xmlType": "XML3",
+    "field": "MA_MAY",
+    "name": "DB Rule 2 - Xuat Toan",
+    "description": null,
+    "code": "EXCEL_CHECK_XT",
+    "mathExpression": null,
+    "checkNotNull": false,
+    "conditionField": null,
+    "conditionValue": null,
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": null,
+    "errorMessage": null,
+    "createdAt": "2026-01-29T16:26:15.056Z",
+    "updatedAt": "2026-01-29T16:26:15.056Z"
   }
 ]

@@ -1,0 +1,92 @@
+'use server';
+
+import prisma from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
+
+export async function getDuplicateRules() {
+    try {
+        const rules = await prisma.duplicateRule.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+        return { success: true, data: rules };
+    } catch (error) {
+        console.error("Error fetching rules:", error);
+        return { success: false, error: "Failed to fetch rules" };
+    }
+}
+
+export async function createDuplicateRule(data: {
+    name: string;
+    machineCols: string[];
+    serviceCol?: string;
+    startCol: string;
+    endCol: string;
+    ignoreMaMayMinusOne: boolean;
+    active?: boolean;
+    serviceValues?: string[];
+}) {
+    try {
+        const newRule = await prisma.duplicateRule.create({
+            data: {
+                name: data.name,
+                machineCols: data.machineCols,
+                serviceCol: data.serviceCol,
+                startCol: data.startCol,
+                endCol: data.endCol,
+                ignoreMaMayMinusOne: data.ignoreMaMayMinusOne,
+                active: data.active !== undefined ? data.active : true,
+                serviceValues: data.serviceValues || [],
+            }
+        });
+        revalidatePath('/doc-file-excel');
+        return { success: true, data: newRule };
+    } catch (error) {
+        console.error("Error creating rule:", error);
+        return { success: false, error: "Failed to create rule" };
+    }
+}
+
+export async function updateDuplicateRule(id: string, data: {
+    name: string;
+    machineCols: string[];
+    serviceCol?: string;
+    startCol: string;
+    endCol: string;
+    ignoreMaMayMinusOne: boolean;
+    active?: boolean;
+    serviceValues?: string[];
+}) {
+    try {
+        const updatedRule = await prisma.duplicateRule.update({
+            where: { id },
+            data: {
+                name: data.name,
+                machineCols: data.machineCols,
+                serviceCol: data.serviceCol,
+                startCol: data.startCol,
+                endCol: data.endCol,
+                ignoreMaMayMinusOne: data.ignoreMaMayMinusOne,
+                active: data.active,
+                serviceValues: data.serviceValues || [],
+            }
+        });
+        revalidatePath('/doc-file-excel');
+        return { success: true, data: updatedRule };
+    } catch (error) {
+        console.error("Error updating rule:", error);
+        return { success: false, error: "Failed to update rule" };
+    }
+}
+
+export async function deleteDuplicateRule(id: string) {
+    try {
+        await prisma.duplicateRule.delete({
+            where: { id }
+        });
+        revalidatePath('/doc-file-excel');
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting rule:", error);
+        return { success: false, error: "Failed to delete rule" };
+    }
+}

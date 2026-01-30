@@ -54,6 +54,7 @@ interface ReportRow {
     ten_khoa: string;
     chi_tiet_loi: string;
     isError: boolean;
+    ma_doituong_kcb: string;
 }
 
 export default function ReportPage() {
@@ -111,7 +112,8 @@ export default function ReportPage() {
                             ma_khoa: renderValue(record.summary?.MA_KHOA),
                             ten_khoa: departments[renderValue(record.summary?.MA_KHOA)] || '',
                             chi_tiet_loi: '',
-                            isError: false
+                            isError: false,
+                            ma_doituong_kcb: renderValue(record.summary?.MA_DOITUONG_KCB)
                         });
                     } else {
                         errors.forEach((err, errIdx) => {
@@ -156,7 +158,8 @@ export default function ReportPage() {
                                 ma_khoa: maKhoa,
                                 ten_khoa: departments[maKhoa] || '',
                                 chi_tiet_loi: `[${err.xmlType}] ${err.message || err.ruleName}`,
-                                isError: true
+                                isError: true,
+                                ma_doituong_kcb: renderValue(record.summary?.MA_DOITUONG_KCB)
                             });
                         });
                     }
@@ -221,6 +224,7 @@ export default function ReportPage() {
             { header: 'Tên DV/Thuốc', key: 'ten_dv', width: 40 },
             { header: 'Mã LK', key: 'ma_lk', width: 14 },
             { header: 'Mã thẻ', key: 'ma_the', width: 20 },
+            { header: 'Mã đối tượng KCB', key: 'ma_doituong_kcb', width: 15 },
         ];
         worksheet.getRow(1).font = { bold: true };
 
@@ -326,6 +330,7 @@ export default function ReportPage() {
         },
         { title: 'Mã LK', dataIndex: 'ma_lk', key: 'ma_lk', width: 120, onCell: createOnCell('ma_lk') },
         { title: 'Mã thẻ', dataIndex: 'ma_the', key: 'ma_the', width: 150, onCell: createOnCell('ma_the') },
+        { title: 'Mã đối tượng', dataIndex: 'ma_doituong_kcb', key: 'ma_doituong_kcb', width: 120, onCell: createOnCell('ma_doituong_kcb') },
     ];
 
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);

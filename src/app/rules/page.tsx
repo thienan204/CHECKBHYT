@@ -23,7 +23,7 @@ export default function RulesPage() {
                 <div className="px-8 py-6 flex items-center justify-between">
 
                     <h1 className="text-2xl font-black text-slate-800 italic">
-                        Cấu hình <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600">Quy tắc Validation</span>
+                        Cấu hình <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600">Quy tắc Validation (XML)</span>
                     </h1>
                     <div className="flex items-center justify-end w-32">
                         <button

@@ -7,6 +7,18 @@ import { getXmlDataList, ExtendedHosoRecord } from '@/lib/xml';
 import { SearchOutlined, ReloadOutlined, AuditOutlined, FileExcelOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import type { ColumnsType } from 'antd/es/table';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+
+// Palette for group colors
+const COLOR_PALETTE = [
+    { argb: 'FFFFCCCC', css: '#ffcccc' }, // Red
+    { argb: 'FFCCE5FF', css: '#cce5ff' }, // Blue
+    { argb: 'FFCCFFCC', css: '#ccffcc' }, // Green
+    { argb: 'FFFFFFCC', css: '#ffffcc' }, // Yellow
+    { argb: 'FFE5CCFF', css: '#e5ccff' }, // Purple
+    { argb: 'FFFFE5CC', css: '#ffe5cc' }, // Orange
+];
 
 // Helper to format values
 const renderValue = (val: any) => {
@@ -187,6 +199,24 @@ export default function KiemTraChuyenDeXml3Group15Page() {
             render: (text) => <Tag color="geekblue">{renderValue(text) || '(Trống)'}</Tag>
         },
         {
+            title: 'Tỷ lệ BH',
+            dataIndex: 'TYLE_TT_BH',
+            key: 'TYLE_TT_BH',
+            width: 100,
+            align: 'center',
+            onCell: sharedOnCell('TYLE_TT_BH'),
+            render: (text) => <Tag color="orange">{renderValue(text)}</Tag>
+        },
+        {
+            title: 'Tỷ lệ DV',
+            dataIndex: 'TYLE_TT_DV',
+            key: 'TYLE_TT_DV',
+            width: 100,
+            align: 'center',
+            onCell: sharedOnCell('TYLE_TT_DV'),
+            render: (text) => <Tag color="cyan">{renderValue(text)}</Tag>
+        },
+        {
             title: 'Ngày YL',
             dataIndex: 'NGAY_YL',
             key: 'NGAY_YL',
@@ -241,8 +271,190 @@ export default function KiemTraChuyenDeXml3Group15Page() {
         setSelectedRowKey(record.__key);
     };
 
+    const handleCheckDuplicate = () => {
+        const mapYL: Record<string, any[]> = {};
+        const mapKQ: Record<string, any[]> = {};
+
+        // 1. Group by keys
+        data.forEach(item => {
+            const maGiuong = String(item.MA_GIUONG || '').trim();
+            const maDichVu = String(item.MA_DICH_VU || '').trim();
+            const maKhoa = String(item.MA_KHOA || '').trim();
+
+            const rawDate = String(item.NGAY_YL || '');
+            const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
+            const keyYL = `${maKhoa}_${maGiuong}_${maDichVu}_${dateHour}`;
+            if (!mapYL[keyYL]) mapYL[keyYL] = [];
+            mapYL[keyYL].push(item);
+
+            const rawDateKQ = String(item.NGAY_KQ || '');
+            const dateKQHour = rawDateKQ.length >= 10 ? rawDateKQ.substring(0, 10) : rawDateKQ;
+            const keyKQ = `${maKhoa}_${maGiuong}_${maDichVu}_${dateKQHour}`;
+            if (!mapKQ[keyKQ]) mapKQ[keyKQ] = [];
+            mapKQ[keyKQ].push(item);
+        });
+
+        // 2. Build Adjacency Graph
+        // Nodes: item.__key
+        // Edges: if in same group
+        const adj: Record<string, string[]> = {};
+        const allItemsMap: Record<string, any> = {};
+
+        const addEdge = (u: string, v: string) => {
+            if (!adj[u]) adj[u] = [];
+            if (!adj[v]) adj[v] = [];
+            adj[u].push(v);
+            adj[v].push(u);
+        };
+
+        // Process YL Groups
+        Object.values(mapYL).forEach(group => {
+            if (group.length < 2) return;
+            for (let i = 0; i < group.length; i++) {
+                allItemsMap[group[i].__key] = group[i];
+                if (!adj[group[i].__key]) adj[group[i].__key] = []; // Ensure node exists
+                for (let j = i + 1; j < group.length; j++) {
+                    addEdge(group[i].__key, group[j].__key);
+                }
+            }
+        });
+
+        // Process KQ Groups
+        Object.values(mapKQ).forEach(group => {
+            if (group.length < 2) return;
+            for (let i = 0; i < group.length; i++) {
+                allItemsMap[group[i].__key] = group[i];
+                if (!adj[group[i].__key]) adj[group[i].__key] = [];
+                for (let j = i + 1; j < group.length; j++) {
+                    addEdge(group[i].__key, group[j].__key);
+                }
+            }
+        });
+
+        // 3. Find Connected Components
+        const visited = new Set<string>();
+        const duplicates: any[] = [];
+        let groupIndex = 0;
+
+        Object.keys(adj).forEach(key => {
+            if (visited.has(key)) return;
+
+            const component: string[] = [];
+            const queue = [key];
+            visited.add(key);
+
+            while (queue.length > 0) {
+                const u = queue.shift()!;
+                component.push(u);
+
+                const neighbors = adj[u] || [];
+                for (const v of neighbors) {
+                    if (!visited.has(v)) {
+                        visited.add(v);
+                        queue.push(v);
+                    }
+                }
+            }
+
+            if (component.length > 0) {
+                component.forEach(k => {
+                    const item = allItemsMap[k];
+                    duplicates.push({ ...item, __groupIndex: groupIndex });
+                });
+                groupIndex++;
+            }
+        });
+
+        duplicates.sort((a, b) => {
+            if (a.__groupIndex !== b.__groupIndex) {
+                return (a.__groupIndex || 0) - (b.__groupIndex || 0);
+            }
+            return String(a.MA_LK).localeCompare(String(b.MA_LK));
+        });
+
+        setFilteredData(duplicates);
+
+        if (duplicates.length > 0) {
+            message.warning(`Tìm thấy ${duplicates.length} bản ghi trùng (theo nhóm)!`);
+        } else {
+            message.info("Không tìm thấy bản ghi nào trùng giường.");
+        }
+    };
+
+    const handleExportExcel = async () => {
+        if (filteredData.length === 0) {
+            message.warning("Không có dữ liệu để xuất!");
+            return;
+        }
+
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet("TrungGiuongNhom15");
+
+        ws.columns = [
+            { header: 'STT', key: 'STT', width: 5 },
+            { header: 'Mã LK', key: 'MA_LK', width: 15 },
+            { header: 'Họ Tên', key: 'HO_TEN', width: 25 },
+            { header: 'Mã Khoa', key: 'MA_KHOA', width: 10 },
+            { header: 'Tên Khoa', key: 'TEN_KHOA', width: 20 },
+            { header: 'Mã Giường', key: 'MA_GIUONG', width: 15 },
+            { header: 'Tỷ lệ BH', key: 'TYLE_TT_BH', width: 10 },
+            { header: 'Tỷ lệ DV', key: 'TYLE_TT_DV', width: 10 },
+            { header: 'Ngày YL', key: 'NGAY_YL', width: 18 },
+            { header: 'Ngày KQ', key: 'NGAY_KQ', width: 18 },
+            { header: 'Mã DV', key: 'MA_DICH_VU', width: 15 },
+            { header: 'Tên DV', key: 'TEN_DICH_VU', width: 30 },
+        ];
+
+        filteredData.forEach((item, index) => {
+            const row = ws.addRow({
+                STT: index + 1,
+                MA_LK: renderValue(item.MA_LK),
+                HO_TEN: renderValue(item.HO_TEN),
+                MA_KHOA: renderValue(item.MA_KHOA),
+                TEN_KHOA: departments[renderValue(item.MA_KHOA)] || '',
+                MA_GIUONG: renderValue(item.MA_GIUONG),
+                TYLE_TT_BH: renderValue(item.TYLE_TT_BH),
+                TYLE_TT_DV: renderValue(item.TYLE_TT_DV),
+                NGAY_YL: formatDateTime(item.NGAY_YL),
+                NGAY_KQ: formatDateTime(item.NGAY_KQ),
+                MA_DICH_VU: renderValue(item.MA_DICH_VU),
+                TEN_DICH_VU: renderValue(item.TEN_DICH_VU),
+            });
+
+            if (item.__groupIndex !== undefined) {
+                const colorObj = COLOR_PALETTE[item.__groupIndex % COLOR_PALETTE.length];
+                row.eachCell({ includeEmpty: true }, (cell) => {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: colorObj.argb }
+                    };
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                        left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                        bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+                        right: { style: 'thin', color: { argb: 'FFD9D9D9' } }
+                    };
+                });
+            }
+        });
+
+        // Header style
+        ws.getRow(1).eachCell((cell) => {
+            cell.font = { bold: true };
+            cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFF0F0F0' }
+            };
+        });
+
+        const buf = await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf]), `TrungGiuong_Nhom15_${new Date().toISOString().substring(0, 10)}.xlsx`);
+    };
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-6 max-w-[1600px] mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <Breadcrumb
@@ -277,29 +489,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                     </Button>
                     <Button
                         icon={<FileExcelOutlined />}
-                        onClick={() => {
-                            if (filteredData.length === 0) {
-                                message.warning("Không có dữ liệu để xuất!");
-                                return;
-                            }
-                            const exportData = filteredData.map((item, index) => ({
-                                STT: index + 1,
-                                'Mã LK': renderValue(item.MA_LK),
-                                'Họ Tên': renderValue(item.HO_TEN),
-                                'Mã Khoa': renderValue(item.MA_KHOA),
-                                'Tên Khoa': departments[renderValue(item.MA_KHOA)] || '',
-                                'Mã Giường': renderValue(item.MA_GIUONG),
-                                'Ngày YL': formatDateTime(item.NGAY_YL),
-                                'Ngày KQ': formatDateTime(item.NGAY_KQ),
-                                'Mã Dịch Vụ': renderValue(item.MA_DICH_VU),
-                                'Tên Dịch Vụ': renderValue(item.TEN_DICH_VU),
-                            }));
-                            const wb = XLSX.utils.book_new();
-                            const ws = XLSX.utils.json_to_sheet(exportData);
-                            XLSX.utils.book_append_sheet(wb, ws, "TrungGiuongNhom15");
-                            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                            XLSX.writeFile(wb, `TrungGiuong_Nhom15_${timestamp}.xlsx`);
-                        }}
+                        onClick={handleExportExcel}
                         className="bg-green-600 hover:bg-green-500 text-white border-none"
                     >
                         Xuất Excel
@@ -307,47 +497,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                     <Button
                         type="primary"
                         danger
-                        onClick={() => {
-                            const mapYL: Record<string, any[]> = {};
-                            const mapKQ: Record<string, any[]> = {};
-
-                            data.forEach(item => {
-                                const maGiuong = String(item.MA_GIUONG || '').trim();
-                                const maDichVu = String(item.MA_DICH_VU || '').trim();
-                                const maKhoa = String(item.MA_KHOA || '').trim();
-
-                                const rawDate = String(item.NGAY_YL || '');
-                                const dateHour = rawDate.length >= 10 ? rawDate.substring(0, 10) : rawDate;
-                                // Criteria 1: Khoa + Giuong + DV + Ngay YL
-                                const keyYL = `${maKhoa}_${maGiuong}_${maDichVu}_${dateHour}`;
-                                if (!mapYL[keyYL]) mapYL[keyYL] = [];
-                                mapYL[keyYL].push(item);
-
-                                const rawDateKQ = String(item.NGAY_KQ || '');
-                                const dateKQHour = rawDateKQ.length >= 10 ? rawDateKQ.substring(0, 10) : rawDateKQ;
-                                // Criteria 2: Khoa + Giuong + DV + Ngay KQ
-                                const keyKQ = `${maKhoa}_${maGiuong}_${maDichVu}_${dateKQHour}`;
-                                if (!mapKQ[keyKQ]) mapKQ[keyKQ] = [];
-                                mapKQ[keyKQ].push(item);
-                            });
-
-                            const dupsYL = Object.values(mapYL).filter(g => g.length >= 2).flat();
-                            const dupsKQ = Object.values(mapKQ).filter(g => g.length >= 2).flat();
-
-                            // Merge and remove duplicates by __key
-                            const uniqueMap = new Map();
-                            dupsYL.forEach(i => uniqueMap.set(i.__key, i));
-                            dupsKQ.forEach(i => uniqueMap.set(i.__key, i));
-
-                            const duplicates = Array.from(uniqueMap.values());
-
-                            setFilteredData(duplicates);
-                            if (duplicates.length > 0) {
-                                alert(`Tìm thấy ${duplicates.length} bản ghi trùng giường (Nhóm 15).\nXét theo 2 nhóm tiêu chí (OR):\n1. Mã Khoa + Mã Giường + Mã DV + Ngày YL (Giờ)\nHOẶC\n2. Mã Khoa + Mã Giường + Mã DV + Ngày KQ (Giờ)`);
-                            } else {
-                                alert("Không tìm thấy bản ghi nào trùng giường theo 2 nhóm tiêu chí trên.");
-                            }
-                        }}
+                        onClick={handleCheckDuplicate}
                     >
                         Quét Trùng Lặp
                     </Button>
@@ -369,12 +519,21 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                     }}
                     size="middle"
                     bordered
-                    onRow={(record) => ({
-                        onClick: () => handleRowClick(record),
-                        style: { cursor: 'pointer' },
-                        title: 'Click chuột trái để copy dữ liệu dòng'
-                    })}
-                    rowClassName={(record) => record.__key === selectedRowKey ? 'bg-blue-100 font-medium' : ''}
+                    onRow={(record) => {
+                        let style: React.CSSProperties = { cursor: 'pointer' };
+                        if (record.__key === selectedRowKey) {
+                            style.backgroundColor = '#e6f7ff';
+                        } else if (record.__groupIndex !== undefined) {
+                            const colorObj = COLOR_PALETTE[record.__groupIndex % COLOR_PALETTE.length];
+                            style.backgroundColor = colorObj.css;
+                        }
+                        return {
+                            onClick: () => handleRowClick(record),
+                            style: style,
+                            title: 'Click chuột trái để copy dữ liệu dòng'
+                        };
+                    }}
+                    rowClassName={(record) => ''}
                 />
             </Card>
         </div>

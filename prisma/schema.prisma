@@ -69,3 +69,17 @@ model Department {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model DuplicateRule {
+  id                  String   @id @default(cuid())
+  name                String
+  machineCols         String[]
+  serviceCol          String?
+  startCol            String
+  endCol              String
+  ignoreMaMayMinusOne Boolean  @default(false)
+  active              Boolean  @default(true)
+  serviceValues       String[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}

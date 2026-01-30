@@ -152,6 +152,7 @@ export default function XmlReader() {
     const [showDetailErrorsOnly, setShowDetailErrorsOnly] = useState(false);
     const [colFilters, setColFilters] = useState<Record<string, string>>({});
     const [detailFilters, setDetailFilters] = useState<Record<string, string>>({});
+    const [headerDepartmentFilter, setHeaderDepartmentFilter] = useState<string | null>(null);
 
     // Load DB
     useEffect(() => {
@@ -404,7 +405,7 @@ export default function XmlReader() {
             key: 'MA_KHOA',
             width: 100,
             render: (_, record) => {
-                const code = record.summary?.MA_KHOA;
+                const code = renderValue(record.summary?.MA_KHOA);
                 return <div className="font-medium text-blue-700">{code}</div>;
             }
         },
@@ -413,9 +414,9 @@ export default function XmlReader() {
             key: 'TEN_KHOA',
             width: 200,
             render: (_, record) => {
-                const code = record.summary?.MA_KHOA;
-                const name = departments[code || ''];
-                return <div className="text-slate-600 truncate">{name}</div>;
+                const code = renderValue(record.summary?.MA_KHOA);
+                const name = code.split(';').map((c: string) => departments[c] || c).join('; ');
+                return <div className="text-slate-600 truncate" title={name}>{name}</div>;
             }
         },
         {
@@ -435,6 +436,13 @@ export default function XmlReader() {
             dataIndex: ['summary', 'NGAY_RA'],
             key: 'NGAY_RA',
             render: (text) => formatDateTime(text)
+        },
+        {
+            title: 'Mã ĐT',
+            dataIndex: ['summary', 'MA_DOITUONG_KCB'],
+            key: 'MA_DOITUONG_KCB',
+            width: 80,
+            render: (text) => <div className="text-center font-medium bg-slate-100 rounded px-1">{text}</div>
         },
         {
             title: 'File Nguồn',
@@ -463,6 +471,15 @@ export default function XmlReader() {
         if (colFilters.MA_KHOA) {
             const k = colFilters.MA_KHOA.toLowerCase();
             result = result.filter(r => String(r.summary?.MA_KHOA || '').toLowerCase().includes(k));
+        }
+
+
+
+        if (headerDepartmentFilter) {
+            result = result.filter(r => {
+                const codes = String(r.summary?.MA_KHOA || '').split(';');
+                return codes.includes(headerDepartmentFilter);
+            });
         }
 
         if (searchText) {
@@ -501,6 +518,8 @@ export default function XmlReader() {
             { header: 'Ngày Vào Nội Trú', key: 'ngay_vao_noi_tru', width: 16 },
             { header: 'Mã DV/Thuốc', key: 'ma_dv', width: 15 },
             { header: 'Tên DV/Thuốc', key: 'ten_dv', width: 40 },
+
+            { header: 'Mã đối tượng KCB', key: 'ma_doituong_kcb', width: 15 },
             { header: 'Chi tiết lỗi', key: 'error', width: 60 },
         ];
         worksheet.getRow(1).font = { bold: true };
@@ -519,7 +538,9 @@ export default function XmlReader() {
                     ma_the: renderValue(record.summary?.MA_THE_BHYT),
                     ngay_vao: formatDateTime(record.summary?.NGAY_VAO),
                     ngay_ra: formatDateTime(record.summary?.NGAY_RA),
-                    ngay_vao_noi_tru: ngayVaoNoiTru
+
+                    ngay_vao_noi_tru: ngayVaoNoiTru,
+                    ma_doituong_kcb: renderValue(record.summary?.MA_DOITUONG_KCB)
                 });
             } else {
                 errors.forEach(err => {
@@ -550,7 +571,7 @@ export default function XmlReader() {
                         ma_lk: renderValue(record.summary?.MA_LK),
                         ma_bn: renderValue(record.summary?.MA_BN),
                         ma_khoa: maKhoa,
-                        ten_khoa: departments[maKhoa] || '',
+                        ten_khoa: maKhoa.split(';').map((c: string) => departments[c] || c).join('; '),
                         ho_ten: renderValue(record.summary?.HO_TEN),
                         ma_the: renderValue(record.summary?.MA_THE_BHYT),
                         ngay_vao: formatDateTime(record.summary?.NGAY_VAO),
@@ -559,6 +580,7 @@ export default function XmlReader() {
                         ngay_th_yl: ngayTHYL,
                         ngay_kq: ngayKQ,
                         ngay_vao_noi_tru: ngayVaoNoiTru,
+                        ma_doituong_kcb: renderValue(record.summary?.MA_DOITUONG_KCB),
                         ma_dv: renderValue(code),
                         ten_dv: renderValue(name),
                         error: `[${err.xmlType}] ${err.message || err.ruleName}`
@@ -959,6 +981,22 @@ export default function XmlReader() {
                                         </span>
                                     </div>
                                     <Space>
+                                        <Select
+                                            placeholder="Lọc theo Khoa"
+                                            allowClear
+                                            showSearch
+                                            style={{ width: 250 }}
+                                            optionFilterProp="label"
+                                            filterOption={(input, option: any) =>
+                                                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                                            }
+                                            options={Object.entries(departments).map(([code, name]) => ({
+                                                value: code,
+                                                label: `${code} - ${name}`
+                                            }))}
+                                            value={headerDepartmentFilter}
+                                            onChange={setHeaderDepartmentFilter}
+                                        />
                                         <Select
                                             value={mainFilter}
                                             onChange={setMainFilter}
