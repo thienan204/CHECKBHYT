@@ -146,20 +146,23 @@ export default function XmlReader() {
     const [selectedRecord, setSelectedRecord] = useState<ExtendedHosoRecord | null>(null);
     const [activeTab, setActiveTab] = useState<string>('XML1');
     const [processingProgress, setProcessingProgress] = useState<{ current: number, total: number } | null>(null);
-    const { rules, saveRules, isLoaded: isRulesLoaded } = useRules();
+    const { rules, saveRules, isLoaded: isRulesLoaded, reloadRules } = useRules();
     const [mainFilter, setMainFilter] = useState<'ALL' | 'ERROR' | 'VALID'>('ERROR');
     const [searchText, setSearchText] = useState('');
     const [showDetailErrorsOnly, setShowDetailErrorsOnly] = useState(false);
     const [colFilters, setColFilters] = useState<Record<string, string>>({});
     const [detailFilters, setDetailFilters] = useState<Record<string, string>>({});
     const [headerDepartmentFilter, setHeaderDepartmentFilter] = useState<string | null>(null);
+    const [initialDBLoadDone, setInitialDBLoadDone] = useState(false);
 
     // Load DB
     useEffect(() => {
+        let ignore = false;
+
         const fetchDepts = async () => {
             try {
                 const res = await fetch('/api/departments');
-                if (res.ok) {
+                if (res.ok && !ignore) {
                     const data = await res.json();
                     const map: Record<string, string> = {};
                     data.forEach((d: any) => map[d.ma_khoa] = d.ten_khoa);
@@ -172,14 +175,26 @@ export default function XmlReader() {
         fetchDepts();
 
         loadRecordsFromDB().then(saved => {
-            if (saved.length > 0) setRecords(saved);
+            if (ignore) return;
+            if (saved.length > 0) {
+                // Clear old validation results to prevent stale errors
+                const clean = saved.map(r => ({ ...r, validationResults: [] }));
+                setRecords(clean);
+            }
+            setInitialDBLoadDone(true);
         });
+
+        return () => {
+            ignore = true;
+        };
     }, []);
 
 
     // Re-validate when rules change
     useEffect(() => {
         if (!isRulesLoaded) return;
+        if (!initialDBLoadDone) return;
+
         setRecords(prev => {
             if (prev.length === 0) return prev;
             const validator = new ValidationEngine(rules);
@@ -193,7 +208,7 @@ export default function XmlReader() {
             }
             return newRecords;
         });
-    }, [rules, isRulesLoaded]); // Remove selectedRecord to avoid loop, handled inside
+    }, [rules, isRulesLoaded, initialDBLoadDone]); // Remove selectedRecord to avoid loop, handled inside
 
     // Handle File Upload
     const handleFileUpload = async (fileList: File[]) => {
@@ -1025,10 +1040,11 @@ export default function XmlReader() {
 
                                         <Button
                                             icon={<ReloadOutlined />}
-                                            onClick={() => {
-                                                const validator = new ValidationEngine(rules);
+                                            onClick={async () => {
+                                                const latestRules = await reloadRules();
+                                                const validator = new ValidationEngine(latestRules);
                                                 setRecords(prev => prev.map(r => ({ ...r, validationResults: validator.validate(r) })));
-                                                message.success('Đã áp dụng lại toàn bộ quy tắc cho dữ liệu hiện tại.');
+                                                message.success('Đã tải lại quy tắc mới nhất và áp dụng cho dữ liệu hiện tại.');
                                             }}
                                         >
                                             Chạy lại kiểm tra

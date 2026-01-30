@@ -27,58 +27,62 @@ export function useRules() {
         }
     };
 
-    // Load from API on mount
-    useEffect(() => {
-        const fetchRules = async () => {
-            try {
-                const res = await fetch('/api/rules');
-                if (res.ok) {
-                    const dbRules = await res.json();
+    const fetchRules = async () => {
+        try {
+            const res = await fetch('/api/rules', { cache: 'no-store' });
+            if (res.ok) {
+                const dbRules = await res.json();
 
-                    // MIGRATION LOCIG: 
-                    // Check if we have legacy rules in LocalStorage
-                    const localString = localStorage.getItem('validationRules');
-                    let localRules: ValidationRule[] = [];
+                console.log('useRules: Fetched DB Rules', dbRules.length, 'Active IDs:', dbRules.filter((r: any) => r.active).map((r: any) => r.id).join(', '));
 
-                    if (localString) {
-                        try {
-                            const parsed = JSON.parse(localString);
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                                localRules = parsed;
-                            }
-                        } catch (e) {
-                            console.error('Error parsing local rules', e);
+                // MIGRATION LOCIG: 
+                // Check if we have legacy rules in LocalStorage
+                const localString = localStorage.getItem('validationRules');
+                let localRules: ValidationRule[] = [];
+
+                if (localString) {
+                    try {
+                        const parsed = JSON.parse(localString);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            localRules = parsed;
                         }
-                    }
-
-                    // Policy: If DB is empty and we have local rules, migrate them automatically
-                    if (Array.isArray(dbRules) && dbRules.length === 0 && localRules.length > 0) {
-                        console.log('Migrating rules from LocalStorage to Database...');
-                        await saveRules(localRules);
-                        // setRules is called inside saveRules
-                    } else if (Array.isArray(dbRules) && dbRules.length > 0) {
-                        setRules(dbRules);
-                    } else if (localRules.length > 0) {
-                        // Fallback: If DB fetch ok but empty, and we wasn't able to save for some reason, show local?
-                        // Ideally we already called saveRules above.
-                        // This block handles explicit "use local if DB empty" display logic if save failed?
-                        // Let's just trust state.
-                        setRules(localRules);
-                    } else {
-                        // Both empty, load defaults
-                        console.log('No rules found in DB/Local, loading defaults...');
-                        await saveRules(DEFAULT_RULES);
+                    } catch (e) {
+                        console.error('Error parsing local rules', e);
                     }
                 }
-            } catch (error) {
-                console.error('Failed to load rules:', error);
-            } finally {
-                setIsLoaded(true);
-            }
-        };
 
+                // Policy: If DB is empty and we have local rules, migrate them automatically
+                if (Array.isArray(dbRules) && dbRules.length === 0 && localRules.length > 0) {
+                    console.log('Migrating rules from LocalStorage to Database...');
+                    await saveRules(localRules);
+                    // setRules is called inside saveRules
+                    return localRules;
+                } else if (Array.isArray(dbRules) && dbRules.length > 0) {
+                    setRules(dbRules);
+                    return dbRules;
+                } else if (localRules.length > 0) {
+                    setRules(localRules);
+                    return localRules;
+                } else {
+                    // Both empty, load defaults
+                    console.log('No rules found in DB/Local, loading defaults...');
+                    await saveRules(DEFAULT_RULES);
+                    return DEFAULT_RULES;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load rules:', error);
+            return [];
+        } finally {
+            setIsLoaded(true);
+        }
+        return [];
+    };
+
+    // Load from API on mount
+    useEffect(() => {
         fetchRules();
     }, []);
 
-    return { rules, saveRules, isLoaded };
+    return { rules, saveRules, isLoaded, reloadRules: fetchRules };
 }

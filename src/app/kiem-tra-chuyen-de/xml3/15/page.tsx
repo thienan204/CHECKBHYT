@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Input, Card, Tag, Button, Tooltip, Breadcrumb, message } from 'antd';
+import { Table, Input, Card, Tag, Button, Tooltip, Breadcrumb, message, Select } from 'antd';
 import { loadRecordsFromDB } from '@/lib/db';
 import { getXmlDataList, ExtendedHosoRecord } from '@/lib/xml';
 import { SearchOutlined, ReloadOutlined, AuditOutlined, FileExcelOutlined } from '@ant-design/icons';
@@ -47,6 +47,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
     const [searchText, setSearchText] = useState('');
     const [filteredData, setFilteredData] = useState<any[]>([]);
     const [departments, setDepartments] = useState<Record<string, string>>({});
+    const [tyleDVFilter, setTyleDVFilter] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchDepts = async () => {
@@ -77,9 +78,15 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                 String(item.MA_DICH_VU || '').toLowerCase().includes(lower) ||
                 String(item.TEN_DICH_VU || '').toLowerCase().includes(lower)
             );
-            setFilteredData(filtered);
+
+            if (tyleDVFilter) {
+                const finalFiltered = filtered.filter(item => String(item.TYLE_TT_DV) === tyleDVFilter);
+                setFilteredData(finalFiltered);
+            } else {
+                setFilteredData(filtered);
+            }
         }
-    }, [searchText, data]);
+    }, [searchText, data, tyleDVFilter]);
 
     const loadData = async () => {
         setLoading(true);
@@ -275,8 +282,18 @@ export default function KiemTraChuyenDeXml3Group15Page() {
         const mapYL: Record<string, any[]> = {};
         const mapKQ: Record<string, any[]> = {};
 
+        // 0. Filter input data if filter is active
+        let inputData = data;
+        if (tyleDVFilter) {
+            inputData = inputData.filter(item => String(item.TYLE_TT_DV) === tyleDVFilter);
+        }
+        // Also apply search text if desired, but user asked specifically for TYLE_TT_DV.
+        // Let's assume WYSIWYG (What You See Is What You Get) -> if searchText is active, maybe we should respect it?
+        // But duplicates search is complex. Let's stick to the requested filter for now or combine "filteredData" roughly?
+        // Actually, using the logic "filter theo TYLE_TT_DV" specifically requested.
+
         // 1. Group by keys
-        data.forEach(item => {
+        inputData.forEach(item => {
             const maGiuong = String(item.MA_GIUONG || '').trim();
             const maDichVu = String(item.MA_DICH_VU || '').trim();
             const maKhoa = String(item.MA_KHOA || '').trim();
@@ -479,6 +496,14 @@ export default function KiemTraChuyenDeXml3Group15Page() {
                         allowClear
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
+                    />
+                    <Select
+                        placeholder="Tỷ lệ DV"
+                        style={{ width: 120 }}
+                        allowClear
+                        value={tyleDVFilter}
+                        onChange={setTyleDVFilter}
+                        options={[...new Set(data.map(item => String(item.TYLE_TT_DV || '')))].filter(Boolean).sort((a, b) => Number(b) - Number(a)).map(val => ({ label: `${val}%`, value: val }))}
                     />
                     <Button
                         icon={<ReloadOutlined />}
