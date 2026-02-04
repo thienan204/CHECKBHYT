@@ -361,6 +361,40 @@ export class ValidationEngine {
             // Using raw expression without auto-fix
             let expr = expression;
 
+            // Helper: Parse XML Date String (YYYYMMDDHHmm or YYYYMMDD)
+            const parseDate = (str: any): Date | null => {
+                if (!str) return null;
+                const s = String(str).trim();
+                if (s.length === 12) {
+                    // YYYYMMDDHHmm
+                    const year = parseInt(s.substring(0, 4));
+                    const month = parseInt(s.substring(4, 6)) - 1;
+                    const day = parseInt(s.substring(6, 8));
+                    const hour = parseInt(s.substring(8, 10));
+                    const minute = parseInt(s.substring(10, 12));
+                    return new Date(year, month, day, hour, minute);
+                }
+                if (s.length === 8) {
+                    // YYYYMMDD
+                    const year = parseInt(s.substring(0, 4));
+                    const month = parseInt(s.substring(4, 6)) - 1;
+                    const day = parseInt(s.substring(6, 8));
+                    return new Date(year, month, day);
+                }
+                // Try standard Date parse
+                const d = new Date(s);
+                return isNaN(d.getTime()) ? null : d;
+            };
+
+            // Helper: Calculate difference in hours (d1 - d2)
+            const diffHours = (d1: any, d2: any): number => {
+                const date1 = parseDate(d1);
+                const date2 = parseDate(d2);
+                if (!date1 || !date2) return 999999; // Return huge number if invalid dates to avoid false positives in < checks
+                const diffMs = date1.getTime() - date2.getTime();
+                return diffMs / (1000 * 60 * 60);
+            };
+
             // Only expose specific safe keys and the context objects
             // We expose all keys in context for maximum flexibility
             // Inject Helpers
@@ -368,7 +402,9 @@ export class ValidationEngine {
                 Math: Math,
                 Number: Number,
                 parseFloat: parseFloat,
-                parseInt: parseInt
+                parseInt: parseInt,
+                parseDate: parseDate,
+                diffHours: diffHours
             };
 
             const keys = [...Object.keys(context), ...Object.keys(helpers)];
