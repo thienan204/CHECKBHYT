@@ -83,3 +83,22 @@ model DuplicateRule {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
+
+model SpecializedRule {
+  id          String   @id @default(cuid())
+  name        String   // Display Name (Menu Label)
+  slug        String   @unique // URL path segment (e.g., 'kiem-tra-thuoc')
+  description String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0) // For menu sorting
+  
+  // Rule Classification
+  ruleType    String   // 'SQL', 'DUPLICATE_BED', 'MACHINE_CHECK', 'GROUP_15', etc.
+
+  // Logic Configuration
+  logicConfig Json?    // Flexible storage for rule parameters
+  sqlQuery    String?  // Optional: Direct SQL for advanced users
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

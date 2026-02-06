@@ -952,7 +952,7 @@ export default function XmlReader() {
     };
 
     return (
-        <div className="w-full max-w-[1920px] mx-auto p-4 space-y-6">
+        <div className="w-full max-w-[1920px] mx-auto px-[30px] py-6 space-y-6">
             {processingProgress && (
                 <div className="fixed inset-0 bg-white/80 z-50 flex items-center justify-center backdrop-blur-sm">
                     <div className="text-center">

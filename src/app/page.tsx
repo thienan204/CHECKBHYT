@@ -20,8 +20,8 @@ export default function Home() {
 
 
 
-      <div className="w-full px-[20px] py-8">
-        <div className="text-center mb-6 space-y-4">
+      <div className="w-full py-8">
+        <div className="text-center mb-6 space-y-4 px-[30px]">
 
           <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight italic py-2">
             Công cụ <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600 pr-2">Kiểm tra lỗi</span>
