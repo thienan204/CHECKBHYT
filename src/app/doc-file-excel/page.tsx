@@ -24,6 +24,7 @@ interface DuplicateRule {
     startCol: string;      // Header name
     endCol: string;        // Header name
     ignoreMaMayMinusOne: boolean;
+    ignoreNullValues?: boolean;
     active?: boolean;
     serviceValues?: string[]; // Specific values to filter
 }
@@ -116,6 +117,7 @@ export default function ExcelReaderPage() {
             startCol: values.startCol,
             endCol: values.endCol,
             ignoreMaMayMinusOne: values.ignoreMaMayMinusOne || false,
+            ignoreNullValues: values.ignoreNullValues || false,
             active: values.active !== undefined ? values.active : true,
             serviceValues: values.serviceValues
         });
@@ -142,6 +144,7 @@ export default function ExcelReaderPage() {
             startCol: values.startCol,
             endCol: values.endCol,
             ignoreMaMayMinusOne: values.ignoreMaMayMinusOne || false,
+            ignoreNullValues: values.ignoreNullValues || false,
             active: values.active,
             serviceValues: values.serviceValues
         });
@@ -378,6 +381,7 @@ export default function ExcelReaderPage() {
         startIndex: number,
         endIndex: number,
         ignoreMinusOne: boolean,
+        ignoreNullValues: boolean,
         filterServiceValues?: string[]
     ) => {
         setLoading(true);
@@ -405,9 +409,16 @@ export default function ExcelReaderPage() {
         items.forEach(item => {
             const valMachineKey = item._machineKey;
 
-            // Check ignore condition
+            // Check ignore condition (Minus One)
             if (ignoreMinusOne) {
                 if (item._machineValues.some((v: any) => String(v) === '-1')) {
+                    return;
+                }
+            }
+
+            // Check ignore condition (Null Values)
+            if (ignoreNullValues) {
+                if (item._machineValues.some((v: any) => v === null || v === undefined || String(v).trim() === '' || String(v).toLowerCase() === 'null')) {
                     return;
                 }
             }
@@ -524,6 +535,7 @@ export default function ExcelReaderPage() {
             startIndex,
             endIndex,
             rule.ignoreMaMayMinusOne,
+            rule.ignoreNullValues || false,
             rule.serviceValues
         );
     };
@@ -568,7 +580,7 @@ export default function ExcelReaderPage() {
     };
 
     return (
-        <div className="space-y-6 p-6 pt-28 max-w-[1600px] mx-auto">
+        <div className="space-y-6 p-6 max-w-[1600px] mx-auto">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 tracking-tight">Đọc dữ liệu Excel</h1>
@@ -869,6 +881,10 @@ export default function ExcelReaderPage() {
                         valuePropName="checked"
                     >
                         <Checkbox>Bỏ qua nếu giá trị Cột Định Danh = -1</Checkbox>
+                    </Form.Item>
+
+                    <Form.Item name="ignoreNullValues" valuePropName="checked">
+                        <Checkbox>Bỏ qua nếu giá trị Cột Định Danh là NULL hoặc Rỗng</Checkbox>
                     </Form.Item>
 
                     <div className="flex justify-end gap-2 mt-6">

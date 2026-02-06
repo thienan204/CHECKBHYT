@@ -78,6 +78,7 @@ model DuplicateRule {
   startCol            String
   endCol              String
   ignoreMaMayMinusOne Boolean  @default(false)
+  ignoreNullValues    Boolean  @default(false)
   active              Boolean  @default(true)
   serviceValues       String[]
   createdAt           DateTime @default(now())

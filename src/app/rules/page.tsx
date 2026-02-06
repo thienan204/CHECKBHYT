@@ -25,18 +25,7 @@ export default function RulesPage() {
                     <h1 className="text-2xl font-black text-slate-800 italic">
                         Cấu hình <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-blue-600">Quy tắc Validation (XML)</span>
                     </h1>
-                    <div className="flex items-center justify-end w-32">
-                        <button
-                            onClick={async () => {
-                                await fetch('/api/auth/logout', { method: 'POST' });
-                                window.location.href = '/';
-                            }}
-                            className="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-100 transition-colors flex items-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                            Đăng xuất
-                        </button>
-                    </div>
+
                 </div>
 
                 <div className="flex-1 px-8 pb-8 flex flex-col">

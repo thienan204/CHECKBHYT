@@ -22,6 +22,7 @@ export async function createDuplicateRule(data: {
     startCol: string;
     endCol: string;
     ignoreMaMayMinusOne: boolean;
+    ignoreNullValues?: boolean;
     active?: boolean;
     serviceValues?: string[];
 }) {
@@ -34,6 +35,7 @@ export async function createDuplicateRule(data: {
                 startCol: data.startCol,
                 endCol: data.endCol,
                 ignoreMaMayMinusOne: data.ignoreMaMayMinusOne,
+                ignoreNullValues: data.ignoreNullValues || false,
                 active: data.active !== undefined ? data.active : true,
                 serviceValues: data.serviceValues || [],
             }
@@ -53,6 +55,7 @@ export async function updateDuplicateRule(id: string, data: {
     startCol: string;
     endCol: string;
     ignoreMaMayMinusOne: boolean;
+    ignoreNullValues?: boolean;
     active?: boolean;
     serviceValues?: string[];
 }) {
@@ -66,6 +69,7 @@ export async function updateDuplicateRule(id: string, data: {
                 startCol: data.startCol,
                 endCol: data.endCol,
                 ignoreMaMayMinusOne: data.ignoreMaMayMinusOne,
+                ignoreNullValues: data.ignoreNullValues || false,
                 active: data.active,
                 serviceValues: data.serviceValues || [],
             }

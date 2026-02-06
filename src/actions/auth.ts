@@ -30,3 +30,8 @@ export async function getCurrentUser(): Promise<UserPayload | null> {
         return null; // Invalid or expired token
     }
 }
+
+export async function logout() {
+    const cookieStore = await cookies();
+    cookieStore.delete('auth_token');
+}
