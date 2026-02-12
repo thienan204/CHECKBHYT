@@ -23,6 +23,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     const [bedServices, setBedServices] = useState<any[]>([]);
     const [isDuplicateBedMode, setIsDuplicateBedMode] = useState(false);
     const [filterBed, setFilterBed] = useState<string>('');
+    const [filterKhoa, setFilterKhoa] = useState<string>('');
+    const [filterMaGiuong, setFilterMaGiuong] = useState<string>('');
     const [deptMap, setDeptMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
@@ -166,9 +168,12 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                                 TYLE_DV: item.TYLE_TT_DV || '',
                                 NGAY_YL: startTime,
                                 NGAY_KQ: endTime,
+                                NGAY_VAO: record.summary?.NGAY_VAO || '',
+                                NGAY_RA: record.summary?.NGAY_RA || '',
                                 NGAY_TH_YL: item.NGAY_TH_YL || '',
                                 MA_DICH_VU: item.MA_DICH_VU,
                                 TEN_DICH_VU: item.TEN_DICH_VU,
+                                SOLUONG: item.SO_LUONG || 0,
 
                                 // Clean Data for sorting/overlap
                                 _start: parseDate(startTime),
@@ -193,7 +198,6 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         // Simulate delay for effect
         setTimeout(() => {
             const overlaps = new Set<string>();
-            const conflictMap = new Map<string, string>(); // key -> color class
 
             // Group by Bed + Department ?? Or just Bed? Bed code usually unique per department??
             // Let's group by Bed Code + Dept Code
@@ -206,60 +210,67 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 groups[key].push(item);
             });
 
-            // Colors for alternating groups (Distinct colors)
-            const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50'];
-            let colorIdx = 0;
-
             Object.entries(groups).forEach(([key, items]) => {
                 items.sort((a, b) => a._start.getTime() - b._start.getTime());
-                let groupHasOverlap = false;
 
-                // First pass: Check for ANY overlap in this group
+                // Check for ANY overlap in this group
                 for (let i = 0; i < items.length - 1; i++) {
                     const curr = items[i];
                     const next = items[i + 1];
+                    // Check for overlap between current and next item
+                    // Overlap exists if (StartA < EndB) and (EndA > StartB)
                     const overlapMinutes = (Math.min(curr._end.getTime(), next._end.getTime()) - Math.max(curr._start.getTime(), next._start.getTime())) / 60000;
                     const tolerance = rule.logicConfig?.toleranceMinutes || 0;
 
                     if (overlapMinutes > tolerance) {
-                        groupHasOverlap = true;
                         overlaps.add(curr.key);
                         overlaps.add(next.key);
                     }
-                }
-
-                // If group has overlap, assign a unique color to the WHOLE group (or just the overlapping items)
-                if (groupHasOverlap) {
-                    const color = colors[colorIdx % colors.length];
-                    colorIdx++;
-
-                    // Assign this color to ALL overlapping items in this group
-                    items.forEach(item => {
-                        if (overlaps.has(item.key)) {
-                            conflictMap.set(item.key, color);
-                        }
-                    });
                 }
             });
 
             // Filter only overlaps? Or just highlighting?
             // User requested "Quét Trùng Lặp". Usually means filter to show ONLY errors.
             if (overlaps.size > 0) {
-                // Enrich data with color
-                const coloredData = bedServices.map(item => ({
-                    ...item,
-                    rowColor: conflictMap.get(item.key) || ''
-                }));
+                // Filter only items involved in overlaps
+                let filtered = bedServices.filter(item => overlaps.has(item.key));
 
-                // Filter and Sort by color/group
-                const filtered = coloredData.filter(item => overlaps.has(item.key));
+                // Sort by Department -> Bed -> Time
                 filtered.sort((a, b) => {
-                    if (a.rowColor === b.rowColor) return a._start.getTime() - b._start.getTime();
-                    return a.rowColor.localeCompare(b.rowColor);
+                    // 1. Sort by Department (MA_KHOA)
+                    if (a._ma_khoa !== b._ma_khoa) {
+                        return (a._ma_khoa || '').localeCompare(b._ma_khoa || '');
+                    }
+                    // 2. Sort by Bed (MA_GIUONG)
+                    if (a._ma_giuong !== b._ma_giuong) {
+                        return (a._ma_giuong || '').localeCompare(b._ma_giuong || '');
+                    }
+                    // 3. Sort by Start Time
+                    return a._start.getTime() - b._start.getTime();
                 });
 
-                setBedServices(filtered);
-                message.warning(`Phát hiện ${filtered.length} dịch vụ trùng lặp!`);
+                // Assign colors based on groups (Dept + Bed)
+                const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50'];
+                let colorIdx = 0;
+                let lastGroupKey = '';
+
+                const coloredData = filtered.map((item, index) => {
+                    const currentGroupKey = `${item._ma_khoa}_${item._ma_giuong}`;
+
+                    // If this is the first item, or group key changed from previous item
+                    if (index === 0 || currentGroupKey !== lastGroupKey) {
+                        if (index > 0) colorIdx++; // Verify we don't increment for the very first group
+                        lastGroupKey = currentGroupKey;
+                    }
+
+                    return {
+                        ...item,
+                        rowColor: colors[colorIdx % colors.length]
+                    };
+                });
+
+                setBedServices(coloredData);
+                message.warning(`Phát hiện ${coloredData.length} dịch vụ trùng lặp!`);
             } else {
                 setBedServices([]);
                 message.success('Không phát hiện trùng lặp nào!');
@@ -280,8 +291,11 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             { header: 'Mã Khoa', key: 'MA_KHOA', width: 10 },
             { header: 'Tên Khoa', key: 'TEN_KHOA', width: 20 },
             { header: 'Mã Giường', key: 'MA_GIUONG', width: 15 },
+            { header: 'Số Lượng', key: 'SOLUONG', width: 10 },
             { header: 'Tỷ lệ BH', key: 'TYLE_BH', width: 10 },
             { header: 'Tỷ lệ DV', key: 'TYLE_DV', width: 10 },
+            { header: 'Ngày Vào', key: 'NGAY_VAO', width: 20 },
+            { header: 'Ngày Ra', key: 'NGAY_RA', width: 20 },
             { header: 'Ngày YL', key: 'NGAY_YL', width: 20 },
             { header: 'Ngày TH YL', key: 'NGAY_TH_YL', width: 20 },
             { header: 'Ngày KQ', key: 'NGAY_KQ', width: 20 },
@@ -307,8 +321,11 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 MA_KHOA: item.MA_KHOA,
                 TEN_KHOA: item.TEN_KHOA,
                 MA_GIUONG: item.MA_GIUONG,
+                SOLUONG: item.SOLUONG,
                 TYLE_BH: item.TYLE_BH,
                 TYLE_DV: item.TYLE_DV,
+                NGAY_VAO: formatDateTime(item.NGAY_VAO),
+                NGAY_RA: formatDateTime(item.NGAY_RA),
                 NGAY_YL: formatDateTime(item.NGAY_YL),
                 NGAY_TH_YL: item.NGAY_TH_YL ? formatDateTime(item.NGAY_TH_YL) : '',
                 NGAY_KQ: formatDateTime(item.NGAY_KQ),
@@ -332,7 +349,13 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
 
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `bao_cao_trung_lap_${new Date().getTime()}.xlsx`);
+
+        // Generate filename from rule name
+        const ruleName = rule.name || 'bao_cao_trung_lap';
+        // Remove illegal characters for filenames
+        const safeName = ruleName.replace(/[/\\?%*:|"<>]/g, '-');
+
+        saveAs(blob, `${safeName}_${new Date().getTime()}.xlsx`);
     };
 
     // --- Logic Handlers (Old) ---
@@ -431,12 +454,24 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         { title: 'Tên Khoa', dataIndex: 'TEN_KHOA', key: 'TEN_KHOA', width: 200, className: 'text-slate-500' },
         { title: rule.logicConfig?.filter?.MA_NHOM == 15 ? 'Mã Giường' : 'Mã Máy', dataIndex: 'MA_GIUONG', key: 'MA_GIUONG', width: 100, className: 'font-bold text-red-500' },
         {
+            title: 'SL', dataIndex: 'SOLUONG', key: 'SOLUONG', width: 60, align: 'center' as const,
+            render: (v: any) => <span className="font-semibold">{v}</span>
+        },
+        {
             title: 'Tỷ lệ BH', dataIndex: 'TYLE_BH', key: 'TYLE_BH', width: 80, align: 'center' as const,
             render: (v: any) => v ? <Tag color="orange">{v}</Tag> : '-'
         },
         {
             title: 'Tỷ lệ DV', dataIndex: 'TYLE_DV', key: 'TYLE_DV', width: 80, align: 'center' as const,
             render: (v: any) => v ? <Tag color="cyan">{v}</Tag> : '-'
+        },
+        {
+            title: 'Ngày Vào', dataIndex: 'NGAY_VAO', key: 'NGAY_VAO', width: 150,
+            render: (text: string) => formatDateTime(text)
+        },
+        {
+            title: 'Ngày Ra', dataIndex: 'NGAY_RA', key: 'NGAY_RA', width: 150,
+            render: (text: string) => formatDateTime(text)
         },
         {
             title: 'Ngày YL', dataIndex: 'NGAY_YL', key: 'NGAY_YL', width: 150,
@@ -502,6 +537,16 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                                 setFilterBed(val);
                             }}
                         />
+                        <Input
+                            placeholder="Mã/Tên Khoa"
+                            className="w-48"
+                            onChange={(e) => setFilterKhoa(e.target.value)}
+                        />
+                        <Input
+                            placeholder="Mã Giường"
+                            className="w-48"
+                            onChange={(e) => setFilterMaGiuong(e.target.value)}
+                        />
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
@@ -519,11 +564,20 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 </div>
 
                 <Table
-                    dataSource={bedServices.filter(item =>
-                        !filterBed ||
-                        (item.HO_TEN && item.HO_TEN.toLowerCase().includes(filterBed)) ||
-                        (item.MA_LK && item.MA_LK.toString().includes(filterBed))
-                    )}
+                    dataSource={bedServices.filter(item => {
+                        const searchMatch = !filterBed ||
+                            (item.HO_TEN && item.HO_TEN.toLowerCase().includes(filterBed)) ||
+                            (item.MA_LK && item.MA_LK.toString().includes(filterBed));
+
+                        const khoaMatch = !filterKhoa ||
+                            (item.MA_KHOA && item.MA_KHOA.toLowerCase().includes(filterKhoa.toLowerCase())) ||
+                            (item.TEN_KHOA && item.TEN_KHOA.toLowerCase().includes(filterKhoa.toLowerCase()));
+
+                        const giuongMatch = !filterMaGiuong ||
+                            (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase()));
+
+                        return searchMatch && khoaMatch && giuongMatch;
+                    })}
                     columns={bedColumns}
                     size="middle"
                     bordered
