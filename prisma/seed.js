@@ -64,8 +64,8 @@ async function main() {
 
     // Seed Admin User
     console.log('Seeding admin user...');
-    const bcrypt = require('bcryptjs');
-    const adminPassword = await bcrypt.hash('123456', 10);
+    // Hardcoded hash for '123456' to avoid dependency on bcryptjs in standalone Docker build
+    const adminPassword = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
     await prisma.user.upsert({
         where: { username: 'admin' },
