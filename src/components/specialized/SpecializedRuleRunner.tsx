@@ -527,7 +527,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 {/* Header Section */}
                 {/* Header Section */}
                 <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+                    <div className="flex flex-row items-center gap-3">
                         <Input
                             prefix={<SearchOutlined className="text-slate-400" />}
                             placeholder="Tìm kiếm..."
