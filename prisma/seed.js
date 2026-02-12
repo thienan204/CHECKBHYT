@@ -64,8 +64,8 @@ async function main() {
 
     // Seed Admin User
     console.log('Seeding admin user...');
-    // Hardcoded hash for '123456' (generated via bcryptjs@3.0.3)
-    const adminPassword = '$2b$10$Aeyu90R06ALZ7B2oxTAHMeDlZ4z1ikMFxzCJwH5ujWLSgMbtFqCo';
+    // Hardcoded hash for '123456' (Verified from container logs)
+    const adminPassword = '$2b$10$GQrZRadrEBYWJ0H19FaqVutdl4rExSCPPE8mSjKdiH3Rc1O/6B87K';
 
     await prisma.user.upsert({
         where: { username: 'admin' },

@@ -23,12 +23,8 @@ export async function POST(request: Request) {
         }
 
         const isValid = await bcrypt.compare(password, user.password);
-        console.log('Login attempt for:', username, 'Match result:', isValid);
-        const debugHash = await bcrypt.hash(password, 10);
-        console.log('DEBUG HASH GENERATED IN RUNTIME:', debugHash);
 
         if (!isValid) {
-            console.log('Login failed: Password mismatch');
             return NextResponse.json({ error: 'Tài khoản hoặc mật khẩu không đúng' }, { status: 401 });
         }
 
