@@ -290,7 +290,7 @@ export default function ReportPage() {
             dataIndex: 'ten_khoa',
             key: 'ten_khoa',
             width: 200,
-            render: (_, record: ReportRow) => <span className="text-slate-600">{departments[record.ma_khoa] || ''}</span>
+            render: (_: any, record: ReportRow) => <span className="text-slate-600">{departments[record.ma_khoa] || ''}</span>
         },
         { title: 'Họ tên', dataIndex: 'ho_ten', key: 'ho_ten', width: 180, onCell: createOnCell('ho_ten') },
         { title: 'Ngày vào', dataIndex: 'ngay_vao', key: 'ngay_vao', width: 140, onCell: createOnCell('ngay_vao') },
