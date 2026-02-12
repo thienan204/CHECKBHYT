@@ -69,7 +69,9 @@ async function main() {
 
     await prisma.user.upsert({
         where: { username: 'admin' },
-        update: {}, // Don't overwrite if exists
+        update: {
+            password: adminPassword // Ensure password is updated if user exists
+        },
         create: {
             username: 'admin',
             password: adminPassword,
