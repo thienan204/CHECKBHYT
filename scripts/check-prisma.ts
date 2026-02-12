@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import 'dotenv/config';
 
+// @ts-ignore
 const prisma = new PrismaClient({
     datasources: {
         db: {
