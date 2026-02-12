@@ -64,8 +64,8 @@ async function main() {
 
     // Seed Admin User
     console.log('Seeding admin user...');
-    // Hardcoded hash for '123456' to avoid dependency on bcryptjs in standalone Docker build
-    const adminPassword = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+    // Hardcoded hash for '123456' (generated via bcryptjs@3.0.3)
+    const adminPassword = '$2b$10$Aeyu90R06ALZ7B2oxTAHMeDlZ4z1ikMFxzCJwH5ujWLSgMbtFqCo';
 
     await prisma.user.upsert({
         where: { username: 'admin' },
