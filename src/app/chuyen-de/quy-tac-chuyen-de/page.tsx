@@ -225,7 +225,7 @@ export default function ConfigPage() {
         setLoading(true)
         const res = await getSpecializedRules()
         if (res.success) {
-            setRules(res.data)
+            setRules(res.data || [])
         } else {
             message.error(res.error)
         }
