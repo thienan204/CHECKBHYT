@@ -23,10 +23,6 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 
 
-
-# Force remove prisma.config.ts if exists
-RUN rm -f prisma.config.ts
-
 RUN npx prisma generate
 RUN npm run build
 
