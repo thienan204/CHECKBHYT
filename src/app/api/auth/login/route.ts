@@ -18,12 +18,15 @@ export async function POST(request: Request) {
         });
 
         if (!user) {
+            console.log('Login failed: User not found for username:', username);
             return NextResponse.json({ error: 'Tài khoản hoặc mật khẩu không đúng' }, { status: 401 });
         }
 
         const isValid = await bcrypt.compare(password, user.password);
+        console.log('Login attempt for:', username, 'Match result:', isValid);
 
         if (!isValid) {
+            console.log('Login failed: Password mismatch');
             return NextResponse.json({ error: 'Tài khoản hoặc mật khẩu không đúng' }, { status: 401 });
         }
 
