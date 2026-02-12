@@ -1,11 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
-const { Pool } = require('pg');
-const { PrismaPg } = require('@prisma/adapter-pg');
+const fs = require('fs');
+const path = require('path');
 
-const connectionString = process.env.DATABASE_URL || "postgresql://root:root@localhost:5432/readFileXML?schema=public";
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 const DEFAULT_RULES = [
     {
@@ -36,15 +33,33 @@ const DEFAULT_RULES = [
 ];
 
 async function main() {
-    console.log('Seeding default rules...');
-    for (const rule of DEFAULT_RULES) {
-        // Upsert to avoid duplicates if re-run
-        await prisma.validationRule.upsert({
-            where: { id: rule.id },
-            update: rule,
-            create: rule,
-        });
-        console.log(`Upserted rule: ${rule.name}`);
+    console.log('Seeding data...');
+
+    // 1. Seed Rules from Backup
+    const backupRulesPath = path.join(__dirname, 'seeds/rules.json');
+    if (fs.existsSync(backupRulesPath)) {
+        console.log('Found backup rules. Seeding from prisma/seeds/rules.json...');
+        const backupRules = JSON.parse(fs.readFileSync(backupRulesPath, 'utf8'));
+
+        for (const rule of backupRules) {
+            // Prisma will handle ISO date strings, but we can be explicit if needed
+            await prisma.validationRule.upsert({
+                where: { id: rule.id },
+                update: rule,
+                create: rule,
+            });
+        }
+        console.log(`Restored ${backupRules.length} rules from backup.`);
+    } else {
+        console.log('No backup found. Seeding default rules...');
+        for (const rule of DEFAULT_RULES) {
+            await prisma.validationRule.upsert({
+                where: { id: rule.id },
+                update: rule,
+                create: rule,
+            });
+            console.log(`Upserted default rule: ${rule.name}`);
+        }
     }
 
     // Seed Admin User
