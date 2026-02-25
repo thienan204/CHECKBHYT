@@ -59,7 +59,7 @@ const XML_FIELDS: Record<string, string[]> = {
         'DON_VI_TINH', 'PHAM_VI', 'SO_LUONG', 'DON_GIA', 'DON_GIA_BH', 'TT_THAU', 'TY_LE_TT', 'TYLE_TT_BH', 'THANH_TIEN',
         'THANH_TIEN_BH', 'THANH_TIEN_BV', 'T_TRANTT',
         'MUC_HUONG', 'T_NGUONKHAC', 'T_BNTT', 'T_BHTT', 'T_BNCCT', 'T_NGOAIDS', 'MA_KHOA', 'MA_GIUONG',
-        'MA_BAC_SI', 'MA_BENH', 'NGAY_YL', 'NGAY_TH_YL', 'NGAY_KQ', 'MA_PTTT', 'MA_MAY'
+        'MA_BAC_SI', 'MA_BENH', 'NGAY_YL', 'NGAY_TH_YL', 'NGAY_KQ', 'MA_PTTT', 'MA_MAY', 'NGUOI_THUC_HIEN'
     ],
     'XML4': [
         'MA_LK', 'STT', 'MA_DICH_VU', 'MA_CHI_SO', 'TEN_CHI_SO', 'GIA_TRI', 'DON_VI_DO',
