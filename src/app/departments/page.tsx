@@ -24,7 +24,7 @@ export default function DepartmentPage() {
     const fetchDepartments = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/departments', {
+            const res = await fetch(`/api/departments?t=${new Date().getTime()}`, {
                 cache: 'no-store',
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
