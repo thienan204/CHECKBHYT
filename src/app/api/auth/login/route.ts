@@ -45,11 +45,13 @@ export async function POST(request: Request) {
         // Set HttpOnly Cookie
         const response = NextResponse.json({ success: true, user: { name: user.name, role: user.role } });
 
+        const isHttps = process.env.NEXTAUTH_URL?.startsWith('https') || false;
+
         response.cookies.set({
             name: 'auth_token',
             value: token,
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production' && isHttps,
             sameSite: 'lax',
             path: '/',
             maxAge: 60 * 60 * 24 // 24 hours
