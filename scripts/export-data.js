@@ -27,6 +27,11 @@ async function main() {
         orderBy: { createdAt: 'asc' }
     });
 
+    // Export Departments
+    const departments = await prisma.department.findMany({
+        orderBy: { ma_khoa: 'asc' }
+    });
+
     // Write to files
     const seedsDir = path.join(__dirname, '../prisma/seeds');
     if (!fs.existsSync(seedsDir)) {
@@ -56,6 +61,12 @@ async function main() {
         JSON.stringify(duplicateRules, null, 2)
     );
     console.log(`Exported ${duplicateRules.length} duplicate rules to prisma/seeds/duplicate_rules.json`);
+
+    fs.writeFileSync(
+        path.join(seedsDir, 'departments.json'),
+        JSON.stringify(departments, null, 2)
+    );
+    console.log(`Exported ${departments.length} departments to prisma/seeds/departments.json`);
 }
 
 main()

@@ -94,6 +94,22 @@ async function main() {
         console.log(`Restored ${duplicateRules.length} duplicate rules from backup.`);
     }
 
+    // 4. Seed Departments from Backup
+    const departmentsPath = path.join(__dirname, 'seeds/departments.json');
+    if (fs.existsSync(departmentsPath)) {
+        console.log('Found departments. Seeding from prisma/seeds/departments.json...');
+        const departments = JSON.parse(fs.readFileSync(departmentsPath, 'utf8'));
+
+        for (const dept of departments) {
+            await prisma.department.upsert({
+                where: { ma_khoa: dept.ma_khoa },
+                update: dept,
+                create: dept,
+            });
+        }
+        console.log(`Restored ${departments.length} departments from backup.`);
+    }
+
     // Seed Admin User
     console.log('Seeding admin user...');
     // Hardcoded hash for '123456' (Verified from container logs)
