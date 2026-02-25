@@ -17,6 +17,16 @@ async function main() {
         orderBy: { createdAt: 'asc' }
     });
 
+    // Export Specialized Rules
+    const specializedRules = await prisma.specializedRule.findMany({
+        orderBy: { order: 'asc' }
+    });
+
+    // Export Duplicate Rules
+    const duplicateRules = await prisma.duplicateRule.findMany({
+        orderBy: { createdAt: 'asc' }
+    });
+
     // Write to files
     const seedsDir = path.join(__dirname, '../prisma/seeds');
     if (!fs.existsSync(seedsDir)) {
@@ -34,6 +44,18 @@ async function main() {
         JSON.stringify(drafts, null, 2)
     );
     console.log(`Exported ${drafts.length} drafts to prisma/seeds/drafts.json`);
+
+    fs.writeFileSync(
+        path.join(seedsDir, 'specialized_rules.json'),
+        JSON.stringify(specializedRules, null, 2)
+    );
+    console.log(`Exported ${specializedRules.length} specialized rules to prisma/seeds/specialized_rules.json`);
+
+    fs.writeFileSync(
+        path.join(seedsDir, 'duplicate_rules.json'),
+        JSON.stringify(duplicateRules, null, 2)
+    );
+    console.log(`Exported ${duplicateRules.length} duplicate rules to prisma/seeds/duplicate_rules.json`);
 }
 
 main()

@@ -1,0 +1,91 @@
+[
+  {
+    "id": "cml7t7c6c0000ook5q6yqi80x",
+    "name": "Trùng mã giường",
+    "slug": "kiem-tra-trung-ma-giuong",
+    "description": "Kiểm tra các trường hợp trùng giường bệnh nhân trong cùng khoảng thời gian",
+    "isActive": true,
+    "order": 1,
+    "ruleType": "Kiểm tra trùng nhau",
+    "logicConfig": {
+      "type": "DUPLICATE_BED",
+      "fields": {
+        "bed": [
+          "MA_GIUONG",
+          "MA_KHOA"
+        ],
+        "room": "MA_PHONG",
+        "endTime": "NGAY_KQ",
+        "startTime": "NGAY_TH_YL",
+        "department": "MA_KHOA"
+      },
+      "filter": {
+        "MA_NHOM": 15,
+        "TYLE_TT_DV": 100
+      },
+      "toleranceMinutes": 0
+    },
+    "sqlQuery": null,
+    "createdAt": "2026-02-04T09:12:33.636Z",
+    "updatedAt": "2026-02-09T01:27:39.298Z"
+  },
+  {
+    "id": "cml88004h0000ksk5fz4t5o6k",
+    "name": "Trùng mã máy thủ thuật",
+    "slug": "kiem-tra-trung-ma-may-thu-thuat",
+    "description": null,
+    "isActive": true,
+    "order": 2,
+    "ruleType": "Kiểm tra trùng mã máy ",
+    "logicConfig": {
+      "type": "DUPLICATE_BED",
+      "fields": {
+        "bed": [
+          "MA_MAY"
+        ],
+        "room": "MA_PHONG",
+        "endTime": "NGAY_KQ",
+        "startTime": "NGAY_TH_YL",
+        "department": "MA_KHOA"
+      },
+      "filter": {
+        "MA_NHOM": 18,
+        "MA_DICH_VU_EXCLUDE": [
+          "17.0018.0221"
+        ]
+      },
+      "toleranceMinutes": 0
+    },
+    "sqlQuery": null,
+    "createdAt": "2026-02-04T16:06:45.665Z",
+    "updatedAt": "2026-02-09T01:28:02.531Z"
+  },
+  {
+    "id": "cml9lk5vs0002ksk5s76nh18t",
+    "name": "Trùng mã máy TDCN",
+    "slug": "kiem-tra-trung-ma-may-tdcn",
+    "description": null,
+    "isActive": true,
+    "order": 3,
+    "ruleType": "Kiểm tra trung mãy máy TDCN",
+    "logicConfig": {
+      "type": "DUPLICATE_BED",
+      "fields": {
+        "bed": [
+          "MA_MAY"
+        ],
+        "room": "MA_PHONG",
+        "endTime": "NGAY_KQ",
+        "startTime": "NGAY_TH_YL",
+        "department": "MA_KHOA"
+      },
+      "filter": {
+        "MA_NHOM": 3
+      },
+      "toleranceMinutes": 0
+    },
+    "sqlQuery": null,
+    "createdAt": "2026-02-05T15:14:07.432Z",
+    "updatedAt": "2026-02-09T01:28:26.523Z"
+  }
+]

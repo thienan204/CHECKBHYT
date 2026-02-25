@@ -62,6 +62,22 @@ async function main() {
         }
     }
 
+    // 2. Seed Specialized Rules from Backup
+    const specializedRulesPath = path.join(__dirname, 'seeds/specialized_rules.json');
+    if (fs.existsSync(specializedRulesPath)) {
+        console.log('Found specialized rules. Seeding from prisma/seeds/specialized_rules.json...');
+        const specializedRules = JSON.parse(fs.readFileSync(specializedRulesPath, 'utf8'));
+
+        for (const rule of specializedRules) {
+            await prisma.specializedRule.upsert({
+                where: { id: rule.id },
+                update: rule,
+                create: rule,
+            });
+        }
+        console.log(`Restored ${specializedRules.length} specialized rules from backup.`);
+    }
+
     // Seed Admin User
     console.log('Seeding admin user...');
     // Hardcoded hash for '123456' (Verified from container logs)

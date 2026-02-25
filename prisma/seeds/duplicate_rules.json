@@ -1,0 +1,37 @@
+[
+  {
+    "id": "cml06pc000000sck5rhz2buok",
+    "name": "Kiểm tra trùng mã máy Phẫu thuật thủ thuật",
+    "machineCols": [
+      "MAMAY"
+    ],
+    "serviceCol": "DICHVUKHAMBENHID",
+    "startCol": "NGAYPTTT",
+    "endCol": "NGAYKTTT",
+    "ignoreMaMayMinusOne": true,
+    "ignoreNullValues": false,
+    "active": true,
+    "serviceValues": [
+      "41623581"
+    ],
+    "createdAt": "2026-01-30T01:08:18.815Z",
+    "updatedAt": "2026-02-25T02:44:22.437Z"
+  },
+  {
+    "id": "cml8w74i10001ksk5ylppsdit",
+    "name": "Kiểm tra trùng mã giường",
+    "machineCols": [
+      "Mã Giường",
+      "Mã Khoa"
+    ],
+    "serviceCol": null,
+    "startCol": "Ngày YL",
+    "endCol": "Ngày KQ",
+    "ignoreMaMayMinusOne": false,
+    "ignoreNullValues": false,
+    "active": true,
+    "serviceValues": [],
+    "createdAt": "2026-02-05T03:24:08.713Z",
+    "updatedAt": "2026-02-05T03:24:08.713Z"
+  }
+]
