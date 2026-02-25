@@ -78,6 +78,22 @@ async function main() {
         console.log(`Restored ${specializedRules.length} specialized rules from backup.`);
     }
 
+    // 3. Seed Duplicate Rules from Backup
+    const duplicateRulesPath = path.join(__dirname, 'seeds/duplicate_rules.json');
+    if (fs.existsSync(duplicateRulesPath)) {
+        console.log('Found duplicate rules. Seeding from prisma/seeds/duplicate_rules.json...');
+        const duplicateRules = JSON.parse(fs.readFileSync(duplicateRulesPath, 'utf8'));
+
+        for (const rule of duplicateRules) {
+            await prisma.duplicateRule.upsert({
+                where: { id: rule.id },
+                update: rule,
+                create: rule,
+            });
+        }
+        console.log(`Restored ${duplicateRules.length} duplicate rules from backup.`);
+    }
+
     // Seed Admin User
     console.log('Seeding admin user...');
     // Hardcoded hash for '123456' (Verified from container logs)
