@@ -19,7 +19,7 @@ docker compose up -d
 echo ""
 echo "🗄️ Bước 4: Chạy cấu hình Database (Prisma Migrate)..."
 # Chạy lệnh migrate deploy bên trong container app
-docker compose exec app npx prisma@5.22.0 migrate deploy
+docker compose exec app npx -y prisma@5.22.0 migrate deploy
 
 echo ""
 echo "==================================================="
