@@ -9,6 +9,8 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { loadRecordsFromDB } from '@/lib/db';
 import { ExtendedHosoRecord, getXmlDataList } from '@/lib/xml';
+import { copyToClipboard } from '@/utils/clipboard';
+import { getBasePath } from '@/utils/config';
 
 // --- Helper Functions ---
 const renderValue = (val: any) => {
@@ -70,7 +72,7 @@ export default function ReportPage() {
     useEffect(() => {
         const fetchDepts = async () => {
             try {
-                const res = await fetch('/api/departments');
+                const res = await fetch(`${getBasePath()}/api/departments`);
                 if (res.ok) {
                     const data = await res.json();
                     const map: Record<string, string> = {};
@@ -250,7 +252,7 @@ export default function ReportPage() {
                     className="cursor-pointer hover:text-blue-600 hover:underline transition-colors block truncate"
                     onClick={(e) => {
                         e.stopPropagation(); // Prevent row click
-                        navigator.clipboard.writeText(text);
+                        copyToClipboard(text);
                         message.success('Đã copy: ' + text);
                     }}
                 >
@@ -265,7 +267,7 @@ export default function ReportPage() {
             onClick: (e: React.MouseEvent) => {
                 const text = String(record[dataIndex] || '');
                 if (text) {
-                    navigator.clipboard.writeText(text);
+                    copyToClipboard(text);
                     message.success('Đã copy: ' + text);
                 }
                 setSelectedRowKey(record.key);

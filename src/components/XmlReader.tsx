@@ -8,6 +8,8 @@ import { addRecordsToDB, loadRecordsFromDB, clearDB } from '@/lib/db';
 
 import { DEFAULT_RULES, ValidationEngine, ValidationRule, ValidationResult } from '@/lib/validation';
 import { useRules } from "@/hooks/useRules";
+import { copyToClipboard } from '@/utils/clipboard';
+import { getBasePath } from '@/utils/config';
 
 import { useRouter } from 'next/navigation';
 import {
@@ -122,7 +124,7 @@ const getDynamicColumns = (
                 return (
                     <Tooltip title={val} placement="topLeft">
                         <span onClick={() => {
-                            navigator.clipboard.writeText(val);
+                            copyToClipboard(val);
                             message.info('Copied!');
                         }} className="cursor-copy text-xs text-slate-700 font-medium">{val}</span>
                     </Tooltip>
@@ -161,7 +163,7 @@ export default function XmlReader() {
 
         const fetchDepts = async () => {
             try {
-                const res = await fetch('/api/departments');
+                const res = await fetch(`${getBasePath()}/api/departments`);
                 if (res.ok && !ignore) {
                     const data = await res.json();
                     const map: Record<string, string> = {};
@@ -898,7 +900,7 @@ export default function XmlReader() {
                                             className="m-0 rounded-full px-2 text-xs cursor-pointer hover:opacity-80 active:scale-95 transition-all"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                navigator.clipboard.writeText(selectedRecord.summary?.MA_LK || '');
+                                                copyToClipboard(selectedRecord.summary?.MA_LK || '');
                                                 message.success('Đã copy Mã LK!');
                                             }}
                                         >
@@ -912,7 +914,7 @@ export default function XmlReader() {
                                                 className="m-0 rounded-full px-2 text-xs cursor-pointer hover:opacity-80 active:scale-95 transition-all"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    navigator.clipboard.writeText(selectedRecord.summary?.MA_BN || '');
+                                                    copyToClipboard(selectedRecord.summary?.MA_BN || '');
                                                     message.success('Đã copy Mã BN!');
                                                 }}
                                             >

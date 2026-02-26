@@ -10,6 +10,8 @@ import type { ColumnsType } from 'antd/es/table';
 import { useParams } from 'next/navigation';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { copyToClipboard } from '@/utils/clipboard';
+import { getBasePath } from '@/utils/config';
 
 // Helper to format values
 const renderValue = (val: any) => {
@@ -87,7 +89,7 @@ export default function KiemTraMaMayGroupPage() {
         // Fetch departments first
         const fetchDepts = async () => {
             try {
-                const res = await fetch('/api/departments');
+                const res = await fetch(`${getBasePath()}/api/departments`);
                 if (res.ok) {
                     const depts = await res.json();
                     const map: Record<string, string> = {};
@@ -291,7 +293,7 @@ export default function KiemTraMaMayGroupPage() {
 
     const handleRowClick = (record: any) => {
         const textToCopy = JSON.stringify(record, null, 2);
-        navigator.clipboard.writeText(textToCopy).then(() => {
+        copyToClipboard(textToCopy).then(() => {
             message.success('Đã sao chép nội dung dòng!');
         }).catch(err => {
             console.error('Failed to copy: ', err);

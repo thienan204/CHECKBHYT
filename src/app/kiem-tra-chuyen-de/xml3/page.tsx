@@ -5,6 +5,7 @@ import { Table, Input, Card, Tag, Button, Tooltip, message } from 'antd';
 import { loadRecordsFromDB } from '@/lib/db';
 import { getXmlDataList, ExtendedHosoRecord } from '@/lib/xml';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { copyToClipboard } from '@/utils/clipboard';
 import type { ColumnsType } from 'antd/es/table';
 
 // Helper to format values
@@ -277,7 +278,7 @@ export default function KiemTraChuyenDeXml3Page() {
     const handleRowClick = (record: any) => {
         // Copy record to clipboard
         const textToCopy = JSON.stringify(record, null, 2);
-        navigator.clipboard.writeText(textToCopy).then(() => {
+        copyToClipboard(textToCopy).then(() => {
             message.success('Đã sao chép nội dung dòng!');
         }).catch(err => {
             console.error('Failed to copy: ', err);

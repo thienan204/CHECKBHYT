@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx';
 import type { ColumnsType } from 'antd/es/table';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { copyToClipboard } from '@/utils/clipboard';
+import { getBasePath } from '@/utils/config';
 
 // Palette for group colors
 const COLOR_PALETTE = [
@@ -52,7 +54,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
     useEffect(() => {
         const fetchDepts = async () => {
             try {
-                const res = await fetch('/api/departments');
+                const res = await fetch(`${getBasePath()}/api/departments`);
                 if (res.ok) {
                     const data = await res.json();
                     const map: Record<string, string> = {};
@@ -133,7 +135,7 @@ export default function KiemTraChuyenDeXml3Group15Page() {
         e.stopPropagation();
         const textToCopy = renderValue(val);
         if (!textToCopy) return;
-        navigator.clipboard.writeText(textToCopy).then(() => {
+        copyToClipboard(textToCopy).then(() => {
             message.success(`Đã copy: ${textToCopy}`);
         }).catch(() => { });
     };

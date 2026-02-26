@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Input, Modal, Form, message, Upload, Breadcrumb, Card, Space, Drawer, Popconfirm } from 'antd';
 import { PlusOutlined, UploadOutlined, EditOutlined, DeleteOutlined, SaveOutlined, SearchOutlined, HomeOutlined, FileExcelOutlined } from '@ant-design/icons';
+import { getBasePath } from '@/utils/config';
 import * as XLSX from 'xlsx';
 import Link from 'next/link';
 
@@ -24,7 +25,7 @@ export default function DepartmentPage() {
     const fetchDepartments = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`/api/departments?t=${new Date().getTime()}`, {
+            const res = await fetch(`${getBasePath()}/api/departments?t=${new Date().getTime()}`, {
                 cache: 'no-store',
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -51,7 +52,7 @@ export default function DepartmentPage() {
 
     const handleSave = async (values: Department) => {
         try {
-            const res = await fetch('/api/departments', {
+            const res = await fetch(`${getBasePath()}/api/departments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(values),
@@ -106,7 +107,7 @@ export default function DepartmentPage() {
                     return;
                 }
 
-                const res = await fetch('/api/departments', {
+                const res = await fetch(`${getBasePath()}/api/departments`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(mappedData),

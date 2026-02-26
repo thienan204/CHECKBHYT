@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ValidationRule, DEFAULT_RULES } from '@/lib/validation';
+import { getBasePath } from '@/utils/config';
 
 const STORAGE_KEY = 'validationRules';
 
@@ -11,7 +12,7 @@ export function useRules() {
         // Optimistic update
         setRules(newRules);
         try {
-            const res = await fetch('/api/rules', {
+            const res = await fetch(`${getBasePath()}/api/rules`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newRules)
@@ -29,7 +30,7 @@ export function useRules() {
 
     const fetchRules = async () => {
         try {
-            const res = await fetch('/api/rules', { cache: 'no-store' });
+            const res = await fetch(`${getBasePath()}/api/rules`, { cache: 'no-store' });
             if (res.ok) {
                 const dbRules = await res.json();
 
