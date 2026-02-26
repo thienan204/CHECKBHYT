@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Upload, Table, Card, Select, message, Button, Empty, Spin, Modal, Form, Checkbox, Progress, Input, Space, Popconfirm, Row, Col, Divider, Tooltip, Switch, Tag, AutoComplete } from 'antd';
-import { InboxOutlined, FileExcelOutlined, ReloadOutlined, AuditOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, EditOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { InboxOutlined, FileExcelOutlined, ReloadOutlined, AuditOutlined, DownloadOutlined, SettingOutlined, PlusOutlined, DeleteOutlined, SaveOutlined, EditOutlined, PlayCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import type { UploadProps } from 'antd';
 import ExcelJS from 'exceljs';
@@ -74,6 +74,9 @@ export default function ExcelReaderPage() {
     const [loading, setLoading] = useState<boolean>(false);
     const [fileName, setFileName] = useState<string>('');
     const [uploadProgress, setUploadProgress] = useState<number>(0);
+
+    // Filter State
+    const [columnFilters, setColumnFilters] = useState<Record<number, string>>({});
 
     // Duplicate Check State
     const [headers, setHeaders] = useState<string[]>([]);
@@ -271,7 +274,7 @@ export default function ExcelReaderPage() {
         const rows = jsonData.slice(1);
 
         const columns = h.map((header, index) => ({
-            title: header || `Column ${index + 1}`,
+            _originalTitle: header || `Column ${index + 1}`,
             dataIndex: index,
             key: index,
             width: 150,
@@ -592,6 +595,26 @@ export default function ExcelReaderPage() {
         saveAs(new Blob([buf]), `DuLieuTrung_${new Date().toISOString().substring(0, 10)}.xlsx`);
     };
 
+    // Computed data with multi-column filtering
+    const filteredTableData = React.useMemo(() => {
+        let data = showOnlyDuplicates
+            ? tableData.filter(x => x.__groupIndex !== undefined)
+            : tableData;
+
+        Object.entries(columnFilters).forEach(([colIdxStr, filterVal]) => {
+            if (filterVal) {
+                const colIdx = parseInt(colIdxStr);
+                const lowerFilter = filterVal.toLowerCase();
+                data = data.filter(row => {
+                    const rowVal = row[colIdx];
+                    return rowVal !== null && rowVal !== undefined && String(rowVal).toLowerCase().includes(lowerFilter);
+                });
+            }
+        });
+
+        return data;
+    }, [tableData, showOnlyDuplicates, columnFilters]);
+
     return (
         <div className="space-y-6 p-6 max-w-[1600px] mx-auto">
             <div className="flex justify-between items-center">
@@ -718,11 +741,30 @@ export default function ExcelReaderPage() {
                             </div>
                         ) : tableColumns.length > 0 ? (
                             <Table
-                                columns={tableColumns}
-                                dataSource={showOnlyDuplicates
-                                    ? tableData.filter(x => x.__groupIndex !== undefined)
-                                    : tableData
-                                }
+                                columns={tableColumns.map((col: any) => ({
+                                    ...col,
+                                    title: (
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <div style={{ marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {col._originalTitle}
+                                            </div>
+                                            <Input
+                                                placeholder="Lọc..."
+                                                size="small"
+                                                allowClear
+                                                value={columnFilters[col.dataIndex] || ''}
+                                                onChange={(e) => {
+                                                    setColumnFilters(prev => ({
+                                                        ...prev,
+                                                        [col.dataIndex]: e.target.value
+                                                    }));
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    )
+                                }))}
+                                dataSource={filteredTableData}
                                 scroll={{ x: 'max-content', y: 600 }}
                                 pagination={{
                                     pageSize: 100,
