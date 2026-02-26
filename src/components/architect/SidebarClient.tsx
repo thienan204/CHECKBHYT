@@ -9,6 +9,7 @@ import {
     TableOutlined
 } from '@ant-design/icons';
 import { Button } from 'antd';
+import { getBasePath } from '@/utils/config';
 
 interface SidebarClientProps {
     rules: any[]; // Or SpecializedRule type
@@ -29,7 +30,7 @@ export default function SidebarClient({ rules, isOpen, user }: SidebarClientProp
                 <Link href="/" className="flex items-center gap-2 text-slate-800 font-bold text-xl tracking-tight no-underline hover:text-slate-800 h-full">
                     {/* <RocketOutlined className="text-blue-500 text-2xl" />
                     <span>ArchitectUI</span> */}
-                    <img src="/logo.png" alt="Logo" className="max-h-[40px] w-auto object-contain" />
+                    <img src={`${getBasePath()}/logo.png`} alt="Logo" className="max-h-[40px] w-auto object-contain" />
                 </Link>
                 <div className="ml-auto">
                     {/* Placeholder for internal toggle if needed, or just status icon */}
