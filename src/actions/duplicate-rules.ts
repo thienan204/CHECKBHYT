@@ -25,6 +25,7 @@ export async function createDuplicateRule(data: {
     ignoreNullValues?: boolean;
     active?: boolean;
     serviceValues?: string[];
+    excludedServiceValues?: string[];
 }) {
     try {
         const newRule = await prisma.duplicateRule.create({
@@ -38,6 +39,7 @@ export async function createDuplicateRule(data: {
                 ignoreNullValues: data.ignoreNullValues || false,
                 active: data.active !== undefined ? data.active : true,
                 serviceValues: data.serviceValues || [],
+                excludedServiceValues: data.excludedServiceValues || [],
             }
         });
         revalidatePath('/doc-file-excel');
@@ -58,6 +60,7 @@ export async function updateDuplicateRule(id: string, data: {
     ignoreNullValues?: boolean;
     active?: boolean;
     serviceValues?: string[];
+    excludedServiceValues?: string[];
 }) {
     try {
         const updatedRule = await prisma.duplicateRule.update({
@@ -72,6 +75,7 @@ export async function updateDuplicateRule(id: string, data: {
                 ignoreNullValues: data.ignoreNullValues || false,
                 active: data.active,
                 serviceValues: data.serviceValues || [],
+                excludedServiceValues: data.excludedServiceValues || [],
             }
         });
         revalidatePath('/doc-file-excel');

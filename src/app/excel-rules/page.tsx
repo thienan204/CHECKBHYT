@@ -18,6 +18,7 @@ interface DuplicateRule {
     ignoreMaMayMinusOne: boolean;
     active?: boolean;
     serviceValues?: string[];
+    excludedServiceValues?: string[];
 }
 
 export default function ExcelRulesPage() {
@@ -227,8 +228,13 @@ export default function ExcelRulesPage() {
                             </Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item label="Giá trị Dịch vụ (Tùy chọn)" name="serviceValues">
+                            <Form.Item label="Giá trị Dịch vụ (Bao gồm)" name="serviceValues">
                                 <Select mode="tags" placeholder="Nhập giá trị..." />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item label="Giá trị Dịch vụ (Loại trừ)" name="excludedServiceValues">
+                                <Select mode="tags" placeholder="Nhập giá trị cần loại trừ..." />
                             </Form.Item>
                         </Col>
                     </Row>

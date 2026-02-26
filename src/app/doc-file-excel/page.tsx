@@ -27,6 +27,7 @@ interface DuplicateRule {
     ignoreNullValues?: boolean;
     active?: boolean;
     serviceValues?: string[]; // Specific values to filter
+    excludedServiceValues?: string[]; // Specific values to exclude
 }
 
 
@@ -119,7 +120,8 @@ export default function ExcelReaderPage() {
             ignoreMaMayMinusOne: values.ignoreMaMayMinusOne || false,
             ignoreNullValues: values.ignoreNullValues || false,
             active: values.active !== undefined ? values.active : true,
-            serviceValues: values.serviceValues
+            serviceValues: values.serviceValues || [],
+            excludedServiceValues: values.excludedServiceValues || []
         });
 
         if (res.success) {
@@ -146,7 +148,8 @@ export default function ExcelReaderPage() {
             ignoreMaMayMinusOne: values.ignoreMaMayMinusOne || false,
             ignoreNullValues: values.ignoreNullValues || false,
             active: values.active,
-            serviceValues: values.serviceValues
+            serviceValues: values.serviceValues || [],
+            excludedServiceValues: values.excludedServiceValues || []
         });
 
         if (res.success) {
@@ -382,16 +385,25 @@ export default function ExcelReaderPage() {
         endIndex: number,
         ignoreMinusOne: boolean,
         ignoreNullValues: boolean,
-        filterServiceValues?: string[]
+        filterServiceValues?: string[],
+        excludedServiceValues?: string[]
     ) => {
         setLoading(true);
 
         const items = tableData.filter(row => {
-            // Filter by Service Value if selected
-            if (serviceIndex !== undefined && filterServiceValues && filterServiceValues.length > 0) {
+            if (serviceIndex !== undefined) {
                 const rowVal = String(row[serviceIndex] || '');
-                if (!filterServiceValues.includes(rowVal)) {
-                    return false;
+                // Filter by Service Value if selected (Must match one of them)
+                if (filterServiceValues && filterServiceValues.length > 0) {
+                    if (!filterServiceValues.includes(rowVal)) {
+                        return false;
+                    }
+                }
+                // Exclude Service Value if selected (Must NOT match any of them)
+                if (excludedServiceValues && excludedServiceValues.length > 0) {
+                    if (excludedServiceValues.includes(rowVal)) {
+                        return false;
+                    }
                 }
             }
             return true;
@@ -536,7 +548,8 @@ export default function ExcelReaderPage() {
             endIndex,
             rule.ignoreMaMayMinusOne,
             rule.ignoreNullValues || false,
-            rule.serviceValues
+            rule.serviceValues,
+            rule.excludedServiceValues
         );
     };
 
@@ -869,7 +882,19 @@ export default function ExcelReaderPage() {
                             >
                                 <Select
                                     mode="tags"
-                                    placeholder="Nhập giá trị dịch vụ..."
+                                    placeholder="Nhập giá trị dịch vụ bao gồm..."
+                                    style={{ width: '100%' }}
+                                />
+                            </Form.Item>
+
+                            <Form.Item
+                                label="Bỏ qua các Dịch vụ (Loại trừ)"
+                                name="excludedServiceValues"
+                                help="Nếu nhập, các dòng có giá trị dịch vụ thuộc danh sách này sẽ không bị kiểm tra trùng."
+                            >
+                                <Select
+                                    mode="tags"
+                                    placeholder="Nhập giá trị dịch vụ cần loại trừ..."
                                     style={{ width: '100%' }}
                                 />
                             </Form.Item>
