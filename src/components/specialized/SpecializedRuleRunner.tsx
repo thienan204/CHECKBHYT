@@ -267,6 +267,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
 
                     return {
                         ...item,
+                        groupId: currentGroupKey, // Unique identifier for this collision group
                         rowColor: colors[colorIdx % colors.length]
                     };
                 });
@@ -279,6 +280,62 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             }
             setLoading(false);
         }, 500);
+    };
+
+    const getFilteredData = () => {
+        const matchingGroupsByDate = new Set<string>();
+        if (filterNgayRa) {
+            bedServices.forEach(item => {
+                if (item.NGAY_RA && formatDateTime(item.NGAY_RA).includes(filterNgayRa)) {
+                    if (item.groupId) {
+                        matchingGroupsByDate.add(item.groupId);
+                    } else {
+                        matchingGroupsByDate.add(`ungrouped_${item.key}`);
+                    }
+                }
+            });
+        }
+
+        const filtered = bedServices.filter(item => {
+            const searchMatch = !filterBed ||
+                (item.HO_TEN && item.HO_TEN.toLowerCase().includes(filterBed)) ||
+                (item.MA_LK && item.MA_LK.toString().includes(filterBed));
+
+            const khoaMatch = !filterKhoa ||
+                (item.MA_KHOA && item.MA_KHOA.toLowerCase().includes(filterKhoa.toLowerCase())) ||
+                (item.TEN_KHOA && item.TEN_KHOA.toLowerCase().includes(filterKhoa.toLowerCase()));
+
+            const giuongMatch = !filterMaGiuong ||
+                (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase()));
+
+            let ngayRaMatch = true;
+            if (filterNgayRa) {
+                const matchesByGroup = item.groupId && matchingGroupsByDate.has(item.groupId);
+                const matchesByRow = item.NGAY_RA && formatDateTime(item.NGAY_RA).includes(filterNgayRa);
+                ngayRaMatch = matchesByGroup || matchesByRow;
+            }
+
+            return searchMatch && khoaMatch && giuongMatch && ngayRaMatch;
+        });
+
+        // Recalculate alternating colors based on the filtered results so that adjacent groups don't accidentally share a color
+        const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50'];
+        let colorIdx = 0;
+        let lastGroupKey = '';
+
+        return filtered.map((item, index) => {
+            const currentGroupKey = item.groupId || `ungrouped_${item.key}`;
+
+            if (index === 0 || currentGroupKey !== lastGroupKey) {
+                if (index > 0) colorIdx++;
+                lastGroupKey = currentGroupKey;
+            }
+
+            return {
+                ...item,
+                rowColor: colors[colorIdx % colors.length]
+            };
+        });
     };
 
     const handleExportExcel = async () => {
@@ -315,7 +372,9 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             'bg-orange-50': 'FFFFF7ED'
         };
 
-        bedServices.forEach((item, index) => {
+        const dataToExport = getFilteredData();
+
+        dataToExport.forEach((item, index) => {
             const row = sheet.addRow({
                 stt: index + 1,
                 MA_LK: item.MA_LK,
@@ -574,23 +633,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 </div>
 
                 <Table
-                    dataSource={bedServices.filter(item => {
-                        const searchMatch = !filterBed ||
-                            (item.HO_TEN && item.HO_TEN.toLowerCase().includes(filterBed)) ||
-                            (item.MA_LK && item.MA_LK.toString().includes(filterBed));
-
-                        const khoaMatch = !filterKhoa ||
-                            (item.MA_KHOA && item.MA_KHOA.toLowerCase().includes(filterKhoa.toLowerCase())) ||
-                            (item.TEN_KHOA && item.TEN_KHOA.toLowerCase().includes(filterKhoa.toLowerCase()));
-
-                        const giuongMatch = !filterMaGiuong ||
-                            (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase()));
-
-                        const ngayRaMatch = !filterNgayRa ||
-                            (item.NGAY_RA && formatDateTime(item.NGAY_RA).includes(filterNgayRa));
-
-                        return searchMatch && khoaMatch && giuongMatch && ngayRaMatch;
-                    })}
+                    dataSource={getFilteredData()}
                     columns={bedColumns}
                     size="middle"
                     bordered
