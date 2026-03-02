@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, Card, Button, Spin, Empty, Descriptions, Input, Space, message } from 'antd';
+import { Table, Tag, Card, Button, Spin, Empty, Descriptions, Input, Space, message, DatePicker } from 'antd';
 import { loadRecordsFromDB } from '@/lib/db';
 import { ExtendedHosoRecord, getXmlDataList } from '@/lib/xml';
 import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, SearchOutlined, FileExcelOutlined, ScanOutlined, FileTextOutlined } from '@ant-design/icons';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { getDepartments } from '@/actions/department';
+import dayjs from 'dayjs';
 
 interface SpecializedRuleRunnerProps {
     rule: any;
@@ -25,6 +26,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     const [filterBed, setFilterBed] = useState<string>('');
     const [filterKhoa, setFilterKhoa] = useState<string>('');
     const [filterMaGiuong, setFilterMaGiuong] = useState<string>('');
+    const [filterNgayRa, setFilterNgayRa] = useState<string>(dayjs().format('DD/MM/YYYY'));
     const [deptMap, setDeptMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
@@ -527,11 +529,11 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 {/* Header Section */}
                 {/* Header Section */}
                 <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex flex-row items-center gap-3">
+                    <div className="flex flex-row items-center gap-2">
                         <Input
                             prefix={<SearchOutlined className="text-slate-400" />}
                             placeholder="Tìm kiếm..."
-                            className="w-64"
+                            style={{ width: 180 }}
                             onChange={(e) => {
                                 const val = e.target.value.toLowerCase();
                                 setFilterBed(val);
@@ -539,13 +541,21 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                         />
                         <Input
                             placeholder="Mã/Tên Khoa"
-                            className="w-48"
+                            style={{ width: 140 }}
                             onChange={(e) => setFilterKhoa(e.target.value)}
                         />
                         <Input
                             placeholder="Mã Giường"
-                            className="w-48"
+                            style={{ width: 120 }}
                             onChange={(e) => setFilterMaGiuong(e.target.value)}
+                        />
+                        <DatePicker
+                            placeholder="Ngày ra"
+                            format="DD/MM/YYYY"
+                            defaultValue={dayjs()}
+                            style={{ width: 140 }}
+                            onChange={(date, dateString) => setFilterNgayRa(dateString as string)}
+                            allowClear
                         />
                     </div>
 
@@ -576,7 +586,10 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                         const giuongMatch = !filterMaGiuong ||
                             (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase()));
 
-                        return searchMatch && khoaMatch && giuongMatch;
+                        const ngayRaMatch = !filterNgayRa ||
+                            (item.NGAY_RA && formatDateTime(item.NGAY_RA).includes(filterNgayRa));
+
+                        return searchMatch && khoaMatch && giuongMatch && ngayRaMatch;
                     })}
                     columns={bedColumns}
                     size="middle"
