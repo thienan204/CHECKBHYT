@@ -462,6 +462,25 @@ export default function XmlReader() {
             render: (text) => <div className="text-center font-medium bg-slate-100 rounded px-1">{text}</div>
         },
         {
+            title: (
+                <div className="flex flex-col gap-1">
+                    <span>Mã Loại KCB</span>
+                    <Input
+                        placeholder="Tìm..."
+                        size="small"
+                        allowClear
+                        value={colFilters.MA_LOAI_KCB}
+                        onChange={(e) => setColFilters(prev => ({ ...prev, MA_LOAI_KCB: e.target.value }))}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            ),
+            dataIndex: ['summary', 'MA_LOAI_KCB'],
+            key: 'MA_LOAI_KCB',
+            width: 120,
+            render: (text) => <div className="text-center font-medium bg-blue-50 text-blue-700 rounded px-1">{text}</div>
+        },
+        {
             title: 'File Nguồn',
             dataIndex: 'sourceFile',
             key: 'sourceFile',
@@ -489,7 +508,10 @@ export default function XmlReader() {
             const k = colFilters.MA_KHOA.toLowerCase();
             result = result.filter(r => String(r.summary?.MA_KHOA || '').toLowerCase().includes(k));
         }
-
+        if (colFilters.MA_LOAI_KCB) {
+            const k = colFilters.MA_LOAI_KCB.toLowerCase();
+            result = result.filter(r => String(r.summary?.MA_LOAI_KCB || '').toLowerCase().includes(k));
+        }
 
 
         if (headerDepartmentFilter) {
