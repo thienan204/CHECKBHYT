@@ -26,7 +26,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     const [filterBed, setFilterBed] = useState<string>('');
     const [filterKhoa, setFilterKhoa] = useState<string>('');
     const [filterMaGiuong, setFilterMaGiuong] = useState<string>('');
-    const [filterNgayRa, setFilterNgayRa] = useState<string>(dayjs().format('DD/MM/YYYY'));
+    const [filterNgayRa, setFilterNgayRa] = useState<string>('');
     const [deptMap, setDeptMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
@@ -611,7 +611,6 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                         <DatePicker
                             placeholder="Ngày ra"
                             format="DD/MM/YYYY"
-                            defaultValue={dayjs()}
                             style={{ width: 140 }}
                             onChange={(date, dateString) => setFilterNgayRa(dateString as string)}
                             allowClear
