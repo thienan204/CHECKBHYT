@@ -766,12 +766,7 @@ export default function ExcelReaderPage() {
                                 }))}
                                 dataSource={filteredTableData}
                                 scroll={{ x: 'max-content', y: 600 }}
-                                pagination={{
-                                    pageSize: 100,
-                                    showSizeChanger: true,
-                                    pageSizeOptions: ['50', '100', '200', '500'],
-                                    showTotal: (total) => `Tổng ${total} hàng`
-                                }}
+                                pagination={false}
                                 bordered
                                 size="middle"
                                 onRow={(record) => {
