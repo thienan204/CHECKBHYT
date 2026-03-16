@@ -69,7 +69,10 @@ export async function POST(request: Request) {
                 conditionValue: rule.conditionValue,
                 conditionMaDichVu: rule.conditionMaDichVu,
                 conditionMaDichVuValue: rule.conditionMaDichVuValue,
-                errorMessage: rule.errorMessage
+                errorMessage: rule.errorMessage,
+                isGroupCount: rule.isGroupCount,
+                minCountVal: rule.minCountVal,
+                maxCountVal: rule.maxCountVal
             }));
 
             return await tx.validationRule.createMany({

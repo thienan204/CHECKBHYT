@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ValidationRule, DEFAULT_RULES, ValidationEngine } from '@/lib/validation';
 import { HosoRecord } from '@/lib/xml';
-import { Modal, Form, Input, Select, Switch, Button, Popconfirm, Table, Badge, Card, Row, Col, Space, Alert, Tag, Tooltip, message, AutoComplete, Checkbox } from 'antd';
+import { Modal, Form, Input, Select, Switch, Button, Popconfirm, Table, Badge, Card, Row, Col, Space, Alert, Tag, Tooltip, message, AutoComplete, Checkbox, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, ToolOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -56,7 +56,7 @@ const XML_FIELDS: Record<string, string[]> = {
     ],
     'XML3': [
         'MA_LK', 'STT', 'MA_DICH_VU', 'MA_VAT_TU', 'MA_NHOM', 'GOI_VTYT', 'TEN_VAT_TU', 'TEN_DICH_VU',
-        'DON_VI_TINH', 'PHAM_VI', 'SO_LUONG', 'DON_GIA', 'DON_GIA_BH', 'TT_THAU', 'TY_LE_TT', 'TYLE_TT_BH', 'THANH_TIEN',
+        'DON_VI_TINH', 'PHAM_VI', 'SO_LUONG', 'DON_GIA', 'DON_GIA_BH', 'TT_THAU', 'TY_LE_TT', 'TYLE_TT_BH', 'TYLE_TT_DV', 'THANH_TIEN',
         'THANH_TIEN_BH', 'THANH_TIEN_BV', 'T_TRANTT',
         'MUC_HUONG', 'T_NGUONKHAC', 'T_BNTT', 'T_BHTT', 'T_BNCCT', 'T_NGOAIDS', 'MA_KHOA', 'MA_GIUONG',
         'MA_BAC_SI', 'MA_BENH', 'NGAY_YL', 'NGAY_TH_YL', 'NGAY_KQ', 'MA_PTTT', 'MA_MAY', 'NGUOI_THUC_HIEN'
@@ -204,8 +204,10 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
             checkNotNull: false,
             conditionField: '',
             conditionValue: '',
-            conditionMaDichVu: '',
-            conditionMaDichVuValue: ''
+            conditionMaDichVuValue: '',
+            isGroupCount: false,
+            minCountVal: null,
+            maxCountVal: null
         };
         setEditingRule(newRule);
         setIsEditModalOpen(true);
@@ -546,12 +548,53 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                         name="checkNotNull"
                                         valuePropName="checked"
                                         extra={<span className="text-gray-400 text-xs">Nếu tích chọn, hệ thống sẽ báo lỗi khi trường dữ liệu đã chọn bị rỗng hoặc null.</span>}
-                                        style={{ marginBottom: 12 }}
+                                        style={{ marginBottom: 16 }}
                                     >
                                         <Checkbox className="text-red-600 font-medium">
                                             Bắt buộc có dữ liệu (Không được để trống)
                                         </Checkbox>
                                     </Form.Item>
+
+                                    {/* GROUP COUNT CẤU HÌNH */}
+                                    <div className="p-3 bg-white rounded border border-orange-200">
+                                        <Form.Item
+                                            name="isGroupCount"
+                                            valuePropName="checked"
+                                            style={{ marginBottom: 8 }}
+                                        >
+                                            <Checkbox className="text-orange-600 font-medium">
+                                                Kiểm tra số dòng dữ liệu (Đếm số lượng bản ghi thỏa mãn)
+                                            </Checkbox>
+                                        </Form.Item>
+
+                                        <Form.Item shouldUpdate={(prev, curr) => prev.isGroupCount !== curr.isGroupCount} style={{ marginBottom: 0 }}>
+                                            {({ getFieldValue }) =>
+                                                getFieldValue('isGroupCount') ? (
+                                                    <Row gutter={8} className="mt-2">
+                                                        <Col span={12}>
+                                                            <Form.Item
+                                                                name="minCountVal"
+                                                                label="Số lượng tối thiểu (Báo lỗi nếu <)"
+                                                                style={{ marginBottom: 0 }}
+                                                            >
+                                                                <InputNumber min={0} className="w-full" placeholder="Ví dụ: 1" />
+                                                            </Form.Item>
+                                                        </Col>
+                                                        <Col span={12}>
+                                                            <Form.Item
+                                                                name="maxCountVal"
+                                                                label="Số lượng tối đa (Báo lỗi nếu >)"
+                                                                style={{ marginBottom: 0 }}
+                                                            >
+                                                                <InputNumber min={0} className="w-full" placeholder="Ví dụ: 1" />
+                                                            </Form.Item>
+                                                        </Col>
+                                                    </Row>
+                                                ) : null
+                                            }
+                                        </Form.Item>
+                                    </div>
+
                                 </Card>
                             </Col>
                         </Row>
@@ -740,12 +783,52 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                     name="checkNotNull"
                                     valuePropName="checked"
                                     extra={<span className="text-gray-400 text-xs">Nếu tích chọn, hệ thống sẽ báo lỗi khi trường dữ liệu đã chọn bị rỗng hoặc null.</span>}
-                                    style={{ marginBottom: 12 }}
+                                    style={{ marginBottom: 16 }}
                                 >
                                     <Checkbox className="text-red-600 font-medium">
                                         Bắt buộc có dữ liệu (Không được để trống)
                                     </Checkbox>
                                 </Form.Item>
+
+                                {/* GROUP COUNT CẤU HÌNH (MOBILE/MODAL) */}
+                                <div className="p-3 bg-white rounded border border-orange-200">
+                                    <Form.Item
+                                        name="isGroupCount"
+                                        valuePropName="checked"
+                                        style={{ marginBottom: 8 }}
+                                    >
+                                        <Checkbox className="text-orange-600 font-medium">
+                                            Kiểm tra số dòng dữ liệu (Đếm số lượng bản ghi thỏa mãn)
+                                        </Checkbox>
+                                    </Form.Item>
+
+                                    <Form.Item shouldUpdate={(prev, curr) => prev.isGroupCount !== curr.isGroupCount} style={{ marginBottom: 0 }}>
+                                        {({ getFieldValue }) =>
+                                            getFieldValue('isGroupCount') ? (
+                                                <Row gutter={8} className="mt-2">
+                                                    <Col span={12}>
+                                                        <Form.Item
+                                                            name="minCountVal"
+                                                            label="Số lượng tối thiểu (Báo lỗi nếu <)"
+                                                            style={{ marginBottom: 0 }}
+                                                        >
+                                                            <InputNumber min={0} className="w-full" placeholder="Ví dụ: 1" />
+                                                        </Form.Item>
+                                                    </Col>
+                                                    <Col span={12}>
+                                                        <Form.Item
+                                                            name="maxCountVal"
+                                                            label="Số lượng tối đa (Báo lỗi nếu >)"
+                                                            style={{ marginBottom: 0 }}
+                                                        >
+                                                            <InputNumber min={0} className="w-full" placeholder="Ví dụ: 1" />
+                                                        </Form.Item>
+                                                    </Col>
+                                                </Row>
+                                            ) : null
+                                        }
+                                    </Form.Item>
+                                </div>
                             </Card>
                         </Col>
                     </Row>

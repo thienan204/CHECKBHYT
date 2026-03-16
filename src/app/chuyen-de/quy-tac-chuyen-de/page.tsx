@@ -204,18 +204,132 @@ const DuplicateBedConfigInput = ({ value, onChange }: { value?: string, onChange
     );
 };
 
+// Custom Input Component for Duplicate Doctor Logic
+const DuplicateDoctorConfigInput = ({ value, onChange }: { value?: string, onChange?: (val: string) => void }) => {
+    const getInitialState = () => {
+        try {
+            if (value) {
+                const parsed = JSON.parse(value);
+                return {
+                    doctor: parsed.fields?.doctor || 'MA_BAC_SI',
+                    time: parsed.fields?.time || 'NGAY_YL',
+                    maNhom: parsed.filter?.MA_NHOM ? parsed.filter.MA_NHOM.join(', ') : '',
+                    tolerance: parsed.toleranceMinutes !== undefined ? parsed.toleranceMinutes : 0
+                };
+            }
+        } catch (e) { }
+        return {
+            doctor: 'MA_BAC_SI',
+            time: 'NGAY_YL',
+            maNhom: '',
+            tolerance: 0
+        };
+    };
+
+    const [state, setState] = useState(getInitialState());
+
+    useEffect(() => {
+        setState(getInitialState());
+    }, [value]);
+
+    const triggerChange = (newState: any) => {
+        setState(newState);
+        if (onChange) {
+            const filter: any = {};
+            if (newState.maNhom && typeof newState.maNhom === 'string' && newState.maNhom.trim() !== '') {
+                // Split by comma, trim spaces, filter empty strings, and convert to Number
+                filter.MA_NHOM = newState.maNhom
+                    .split(',')
+                    .map((m: string) => m.trim())
+                    .filter((m: string) => m !== '')
+                    .map((m: string) => Number(m));
+            }
+
+            const json = {
+                type: "DUPLICATE_DOCTOR",
+                fields: {
+                    doctor: newState.doctor,
+                    time: newState.time
+                },
+                filter: filter,
+                toleranceMinutes: Number(newState.tolerance)
+            };
+            onChange(JSON.stringify(json, null, 2));
+        }
+    };
+
+    const handleChange = (key: string, val: any) => {
+        const newState = { ...state, [key]: val };
+        triggerChange(newState);
+    };
+
+    return (
+        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Trường Mã Bác Sĩ (Trên XML)</label>
+                    <Select
+                        value={state.doctor}
+                        onChange={(v) => handleChange('doctor', v)}
+                        className="w-full"
+                        options={[
+                            { label: 'MA_BAC_SI', value: 'MA_BAC_SI' },
+                            { label: 'MA_BS', value: 'MA_BS' },
+                        ]}
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Trường Thời gian Y Lệnh</label>
+                    <Select
+                        value={state.time}
+                        onChange={(v) => handleChange('time', v)}
+                        className="w-full"
+                        options={[
+                            { label: 'NGAY_YL', value: 'NGAY_YL' },
+                            { label: 'NGAY_TH_YL', value: 'NGAY_TH_YL' },
+                            { label: 'NGAY_KQ', value: 'NGAY_KQ' },
+                        ]}
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Mã Nhóm Dịch Vụ - MA_NHOM</label>
+                <Input
+                    value={state.maNhom}
+                    onChange={(e) => handleChange('maNhom', e.target.value)}
+                    className="w-full"
+                    placeholder="Ví dụ: 1, 2, 3"
+                />
+                <div className="text-xs text-slate-400 mt-1">Các nhóm cách nhau bằng dấu phẩy (,). Để trống để quét tất cả.</div>
+            </div>
+
+            <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1">Sai số cho phép (Phút)</label>
+                <InputNumber
+                    value={state.tolerance}
+                    onChange={(v) => handleChange('tolerance', v)}
+                    className="w-full"
+                />
+                <div className="text-xs text-slate-400 mt-1">Độ lệch thời gian cho phép báo trùng (Mặc định 0 = Cùng thời điểm tuyệt đối).</div>
+            </div>
+        </div>
+    );
+};
+
 export default function ConfigPage() {
     const [rules, setRules] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingRule, setEditingRule] = useState<any>(null)
-    const [editorMode, setEditorMode] = useState<'JSON' | 'DUPLICATE_BED' | 'MACHINE_CHECK'>('JSON');
+    const [editorMode, setEditorMode] = useState<'JSON' | 'DUPLICATE_BED' | 'MACHINE_CHECK' | 'DUPLICATE_DOCTOR'>('JSON');
     const [form] = Form.useForm()
 
     const detectEditorMode = (jsonString: string) => {
         try {
             const parsed = JSON.parse(jsonString);
             if (parsed.type === 'DUPLICATE_BED') return 'DUPLICATE_BED';
+            if (parsed.type === 'DUPLICATE_DOCTOR') return 'DUPLICATE_DOCTOR';
             if (parsed.type === 'MACHINE_CHECK') return 'MACHINE_CHECK';
         } catch (e) { }
         return 'JSON';
@@ -267,8 +381,8 @@ export default function ConfigPage() {
         setIsModalOpen(true)
     }
 
-    const handleModeChange = (mode: 'JSON' | 'DUPLICATE_BED' | 'MACHINE_CHECK') => {
-        setEditorMode(mode);
+    const handleModeChange = (mode: 'JSON' | 'DUPLICATE_BED' | 'MACHINE_CHECK' | 'DUPLICATE_DOCTOR') => {
+        setEditorMode(mode as any);
         const templates = {
             'DUPLICATE_BED': {
                 type: "DUPLICATE_BED",
@@ -282,6 +396,15 @@ export default function ConfigPage() {
                 filter: { MA_NHOM: 15 },
                 toleranceMinutes: 15
             },
+            'DUPLICATE_DOCTOR': {
+                type: "DUPLICATE_DOCTOR",
+                fields: {
+                    doctor: "MA_BAC_SI",
+                    time: "NGAY_YL"
+                },
+                filter: { MA_NHOM: [1, 2, 3] }, // Mặc định mẫu
+                toleranceMinutes: 0
+            },
             'MACHINE_CHECK': {
                 type: "MACHINE_CHECK",
                 fields: { machineCode: "MA_MAY" },
@@ -289,8 +412,8 @@ export default function ConfigPage() {
             }
         };
 
-        if (mode !== 'JSON' && templates[mode]) {
-            form.setFieldValue('logicConfig', JSON.stringify(templates[mode], null, 2));
+        if (mode !== 'JSON' && templates[mode as keyof typeof templates]) {
+            form.setFieldValue('logicConfig', JSON.stringify(templates[mode as keyof typeof templates], null, 2));
         }
     };
 
@@ -361,6 +484,7 @@ export default function ConfigPage() {
             render: (type: string) => {
                 let color = 'default'
                 if (type === 'DUPLICATE_BED') color = 'orange'
+                if (type === 'DUPLICATE_DOCTOR') color = 'purple'
                 if (type === 'MACHINE_CHECK') color = 'blue'
                 return <Tag color={color}>{type}</Tag>
             }
@@ -471,6 +595,7 @@ export default function ConfigPage() {
                                 options={[
                                     { value: 'MACHINE_CHECK', label: 'MACHINE_CHECK (Kiểm tra máy)' },
                                     { value: 'DUPLICATE_BED', label: 'DUPLICATE_BED (Trùng giường)' },
+                                    { value: 'DUPLICATE_DOCTOR', label: 'DUPLICATE_DOCTOR (Trùng bác sĩ)' },
                                     { value: 'GROUP_15', label: 'GROUP_15 (Nhóm 15)' },
                                     { value: 'SQL', label: 'SQL (Truy vấn tùy chỉnh)' }
                                 ]}
@@ -516,9 +641,21 @@ export default function ConfigPage() {
                             size="small"
                         >
                             <Select.Option value="JSON">📝 JSON (Nâng cao)</Select.Option>
-                            <Select.Option value="DUPLICATE_BED">📋 Form (Giao diện)</Select.Option>
+                            <Select.Option value="DUPLICATE_BED">📋 Form (Trùng giường)</Select.Option>
+                            <Select.Option value="DUPLICATE_DOCTOR">📋 Form (Trùng bác sĩ)</Select.Option>
                         </Select>
                     </div>
+
+                    {editorMode === 'MACHINE_CHECK' && (
+                        <div className="p-4 mb-4 bg-yellow-50 text-yellow-700 rounded border border-yellow-200">
+                            Form Kiểm tra máy đang phát triển. Vui lòng dùng định dạng JSON bên dưới.
+                        </div>
+                    )}
+                    {editorMode === 'DUPLICATE_DOCTOR' && (
+                        <div className="p-4 mb-4 bg-purple-50 text-purple-700 rounded border border-purple-200">
+                            Quy tắc tìm các chỉ định Dịch vụ/Thuốc của cùng Mã BS xuất hiện cùng 1 thời điểm. Hỗ trợ dữ liệu NGAY_YL định dạng đến Giây (14 ký tự).
+                        </div>
+                    )}
 
                     <Form.Item
                         name="logicConfig"
@@ -527,15 +664,8 @@ export default function ConfigPage() {
                     >
                         {editorMode === 'DUPLICATE_BED' ? (
                             <DuplicateBedConfigInput />
-                        ) : editorMode === 'MACHINE_CHECK' ? (
-                            <div className="p-4 bg-yellow-50 text-yellow-700 rounded border border-yellow-200">
-                                Form Kiểm tra máy đang phát triển. Vui lòng dùng JSON.
-                                <TextArea
-                                    rows={8}
-                                    className="font-mono text-sm mt-2"
-                                    spellCheck={false}
-                                />
-                            </div>
+                        ) : editorMode === 'DUPLICATE_DOCTOR' ? (
+                            <DuplicateDoctorConfigInput />
                         ) : (
                             <TextArea
                                 rows={8}

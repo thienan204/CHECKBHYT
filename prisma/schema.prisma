@@ -30,6 +30,9 @@ model ValidationRule {
   conditionMaDichVu String?
   conditionMaDichVuValue String?
   errorMessage    String?
+  isGroupCount    Boolean  @default(false)
+  minCountVal     Int?
+  maxCountVal     Int?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -60,6 +63,9 @@ model DraftRule {
   conditionMaDichVu String?
   conditionMaDichVuValue String?
   errorMessage    String?
+  isGroupCount    Boolean  @default(false)
+  minCountVal     Int?
+  maxCountVal     Int?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -67,6 +73,19 @@ model DraftRule {
 model Department {
   ma_khoa         String   @id
   ten_khoa        String
+  staff           Staff[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Staff {
+  id              String   @id @default(cuid())
+  ho_ten          String
+  ma_bac_si       String   @unique
+  trinh_do        String?
+  chuc_danh       String?
+  ma_khoa         String
+  department      Department @relation(fields: [ma_khoa], references: [ma_khoa])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

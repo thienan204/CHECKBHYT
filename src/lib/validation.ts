@@ -18,6 +18,9 @@ export interface ValidationRule {
     conditionMaDichVu?: string; // Optional: Field name for service code
     conditionMaDichVuValue?: string; // Optional: Comma-separated values for service code
     errorMessage?: string; // Optional: Custom error message to display
+    isGroupCount?: boolean; // Add Group Count Flag
+    minCountVal?: number | null; // Min occurrences (e.g. > 1 -> min = 2, or maxCount)
+    maxCountVal?: number | null; // Max occurrences allowed
 }
 
 export interface ValidationResult {
@@ -118,83 +121,154 @@ export class ValidationEngine {
                     // const list = this.getListData(rawData, listPath);
 
                     if (list && Array.isArray(list)) {
-                        list.forEach((item, index) => {
-                            // Check Generic Condition if specified
-                            if (rule.conditionField && rule.conditionValue) {
-                                // Helper to safe get value from item or context
-                                // We can reuse the getVal logic but it's inside evaluateRuleCode. 
-                                // Simple access for now: check item then root
-                                let conditionVal = item[rule.conditionField];
-                                if (conditionVal === undefined) {
-                                    // Check if it's a nested path or in root context? 
-                                    // For simplicity in list items, we usually check fields on the item itself (e.g. MA_NHOM)
-                                    // But let's support robust checking if needed.
+                        if (rule.isGroupCount) {
+                            let matchCount = 0;
+                            const debugMatchedRows: number[] = [];
+
+                            list.forEach((item, index) => {
+                                // Check Generic Condition if specified
+                                if (rule.conditionField && rule.conditionValue) {
+                                    let conditionVal = item[rule.conditionField];
+                                    const allowedValues = rule.conditionValue.split(',').map((s: string) => s.trim());
+                                    const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
+                                    if (!valStr || !allowedValues.includes(valStr)) return;
                                 }
 
-                                // Support comma-separated list of allowed values
-                                const allowedValues = rule.conditionValue.split(',').map((s: string) => s.trim());
-
-                                // Check if value exists and matches one of the allowed values
-                                // We convert to string and trim to handle cases like " 1" or type mismatches
-                                const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
-
-                                if (!valStr || !allowedValues.includes(valStr)) {
-                                    return;
+                                if (rule.conditionMaDichVuValue) {
+                                    const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                                    let conditionVal = item[fieldToCheck];
+                                    const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                                    const valStr = this.getDataValue(conditionVal);
+                                    if (!valStr || !allowedValues.includes(valStr)) return;
                                 }
-                            }
 
-                            // DEBUG INFO
-                            let debugMsg = '';
+                                const itemContext = {
+                                    ...rootContext,
+                                    [rule.xmlType]: item,
+                                    'XML': item
+                                };
+                                const extendedContext = { ...itemContext, ...item };
 
-                            if (rule.conditionMaDichVuValue) {
-                                const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
-                                let conditionVal = item[fieldToCheck];
-
-                                const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
-                                const valStr = this.getDataValue(conditionVal);
-
-                                if (!valStr || !allowedValues.includes(valStr)) {
-                                    return;
+                                let isMatch = true;
+                                if (rule.code && rule.code.trim()) {
+                                    // For Group Count, code evaluation = true means it MATCHES the condition to be counted
+                                    isMatch = this.evaluateRuleCode(rule.code, extendedContext);
                                 }
-                            } else if (rule.conditionMaDichVu || rule.name.includes('MA_MAY')) {
-                                // Logic if condition is MISSING but we suspect it should be there
-                                const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
-                                const valStr = this.getDataValue(item[fieldToCheck]);
-                                debugMsg = `[DEBUG: RuleCondValue='${rule.conditionMaDichVuValue}', RowVal='${valStr}']`;
-                            }
-                            // End check
 
-                            const itemContext = {
-                                ...rootContext,
-                                [rule.xmlType]: item, // Overwrite the raw list with the specific item for this key
-                                'XML': item // Generic alias for the current item
-                            };
+                                if (isMatch && rule.mathExpression && rule.mathExpression.trim()) {
+                                    try {
+                                        isMatch = this.evaluateMath(rule.mathExpression, extendedContext);
+                                    } catch (e) {
+                                        isMatch = false;
+                                    }
+                                }
 
-                            const extendedContext = { ...itemContext, ...item }; // Merge item props to top level for convenience
+                                if (isMatch) {
+                                    matchCount++;
+                                    debugMatchedRows.push(index + 1);
+                                }
+                            });
 
                             let isError = false;
-
-                            if (rule.code && rule.code.trim()) {
-                                isError = this.evaluateRuleCode(rule.code, extendedContext);
+                            if (rule.minCountVal !== undefined && rule.minCountVal !== null) {
+                                if (matchCount < rule.minCountVal) isError = true;
                             }
-
-                            if (!isError && rule.mathExpression && rule.mathExpression.trim()) {
-                                try {
-                                    isError = this.evaluateMath(rule.mathExpression, extendedContext);
-                                } catch (e) {
-                                    isError = false;
-                                }
-                            }
-
-                            if (!isError && rule.checkNotNull && rule.field) {
-                                const val = extendedContext[rule.field];
-                                if (val === undefined || val === null || String(val).trim() === '') isError = true;
+                            if (rule.maxCountVal !== undefined && rule.maxCountVal !== null) {
+                                if (matchCount > rule.maxCountVal) isError = true;
                             }
 
                             if (isError) {
-                                results.push(this.createResult(rule, index, debugMsg));
+                                // Thay vì tạo 1 result gộp, ta tạo result cho TỪNG dòng đã match
+                                // Để UI có thể map và hiển thị lên bảng (cần index list)
+                                debugMatchedRows.forEach(rowIndex => {
+                                    const debugMsg = `(Cảnh báo số lượng vi phạm hạn mức cấu hình: ${matchCount})`;
+                                    results.push(this.createResult(rule, rowIndex - 1, debugMsg)); // rowIndex was 1-indexed, convert back to 0-indexed
+                                });
+                                // Nếu đếm ra 0 bản ghi nhưng MinCount = 1 (Tức là thiếu) -> Push 1 bản ghi lỗi trắng
+                                if (debugMatchedRows.length === 0) {
+                                    const debugMsg = `(Hồ sơ không có đủ dữ liệu theo yêu cầu, Số lượng: 0, Yêu cầu tối thiểu: ${rule.minCountVal})`;
+                                    results.push(this.createResult(rule, undefined, debugMsg));
+                                }
                             }
-                        });
+                        } else {
+                            list.forEach((item, index) => {
+                                // Check Generic Condition if specified
+                                if (rule.conditionField && rule.conditionValue) {
+                                    // Helper to safe get value from item or context
+                                    // We can reuse the getVal logic but it's inside evaluateRuleCode. 
+                                    // Simple access for now: check item then root
+                                    let conditionVal = item[rule.conditionField];
+                                    if (conditionVal === undefined) {
+                                        // Check if it's a nested path or in root context? 
+                                        // For simplicity in list items, we usually check fields on the item itself (e.g. MA_NHOM)
+                                        // But let's support robust checking if needed.
+                                    }
+
+                                    // Support comma-separated list of allowed values
+                                    const allowedValues = rule.conditionValue.split(',').map((s: string) => s.trim());
+
+                                    // Check if value exists and matches one of the allowed values
+                                    // We convert to string and trim to handle cases like " 1" or type mismatches
+                                    const valStr = conditionVal !== null && conditionVal !== undefined ? String(conditionVal).trim() : '';
+
+                                    if (!valStr || !allowedValues.includes(valStr)) {
+                                        return;
+                                    }
+                                }
+
+                                // DEBUG INFO
+                                let debugMsg = '';
+
+                                if (rule.conditionMaDichVuValue) {
+                                    const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                                    let conditionVal = item[fieldToCheck];
+
+                                    const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                                    const valStr = this.getDataValue(conditionVal);
+
+                                    if (!valStr || !allowedValues.includes(valStr)) {
+                                        return;
+                                    }
+                                } else if (rule.conditionMaDichVu || rule.name.includes('MA_MAY')) {
+                                    // Logic if condition is MISSING but we suspect it should be there
+                                    const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                                    const valStr = this.getDataValue(item[fieldToCheck]);
+                                    debugMsg = `[DEBUG: RuleCondValue='${rule.conditionMaDichVuValue}', RowVal='${valStr}']`;
+                                }
+                                // End check
+
+                                const itemContext = {
+                                    ...rootContext,
+                                    [rule.xmlType]: item, // Overwrite the raw list with the specific item for this key
+                                    'XML': item // Generic alias for the current item
+                                };
+
+                                const extendedContext = { ...itemContext, ...item }; // Merge item props to top level for convenience
+
+                                let isError = false;
+
+                                if (rule.code && rule.code.trim()) {
+                                    isError = this.evaluateRuleCode(rule.code, extendedContext);
+                                }
+
+                                if (!isError && rule.mathExpression && rule.mathExpression.trim()) {
+                                    try {
+                                        isError = this.evaluateMath(rule.mathExpression, extendedContext);
+                                    } catch (e) {
+                                        isError = false;
+                                    }
+                                }
+
+                                if (!isError && rule.checkNotNull && rule.field) {
+                                    const val = extendedContext[rule.field];
+                                    if (val === undefined || val === null || String(val).trim() === '') isError = true;
+                                }
+
+                                if (isError) {
+                                    results.push(this.createResult(rule, index, debugMsg));
+                                }
+                            });
+                        }
                     }
                 }
 
@@ -303,49 +377,104 @@ export class ValidationEngine {
                 return { isMatch: false };
             }
 
-            for (const item of list) {
-                if (rule.conditionField && rule.conditionValue) {
-                    let conditionVal = item[rule.conditionField];
-                    // USE HELPER HERE + Split by regex
-                    const allowedValues = rule.conditionValue.split(/[;,\n]+/).map((s: string) => s.trim());
-                    const valStr = this.getDataValue(conditionVal);
-
-                    if (!valStr || !allowedValues.includes(valStr)) {
-                        continue;
+            if (rule.isGroupCount) {
+                let matchCount = 0;
+                for (const item of list) {
+                    if (rule.conditionField && rule.conditionValue) {
+                        let conditionVal = item[rule.conditionField];
+                        const allowedValues = rule.conditionValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                        const valStr = this.getDataValue(conditionVal);
+                        if (!valStr || !allowedValues.includes(valStr)) continue;
                     }
+
+                    if (rule.conditionMaDichVuValue) {
+                        const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                        let conditionVal = item[fieldToCheck];
+                        const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                        const valStr = this.getDataValue(conditionVal);
+                        if (!valStr || !allowedValues.includes(valStr)) continue;
+                    }
+
+                    const itemContext = {
+                        ...rootContext,
+                        [rule.xmlType]: item,
+                        'XML': item,
+                        ...item
+                    };
+
+                    let isMatch = true;
+                    if (rule.code && rule.code.trim()) {
+                        isMatch = this.evaluateRuleCode(rule.code, itemContext);
+                    }
+                    if (isMatch && rule.mathExpression && rule.mathExpression.trim()) {
+                        try {
+                            isMatch = this.evaluateMath(rule.mathExpression, itemContext);
+                        } catch (e) {
+                            isMatch = false;
+                        }
+                    }
+
+                    if (isMatch) matchCount++;
                 }
 
-                if (rule.conditionMaDichVuValue) {
-                    const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
-                    let conditionVal = item[fieldToCheck];
-
-                    const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
-                    // USE HELPER HERE
-                    const valStr = this.getDataValue(conditionVal);
-
-                    // ONE-TIME DEBUG LOG
-                    // if (rule.conditionMaDichVuValue.includes('23.0058.1487') && !allowedValues.includes(valStr)) {
-                    //    console.log(`[DEBUG MISMATCH] Rule ${rule.id} expects ${rule.conditionMaDichVuValue}. Got '${valStr}' from ${fieldToCheck}. Allowed: ${JSON.stringify(allowedValues)}`);
-                    // }
-
-                    if (!valStr || !allowedValues.includes(valStr)) {
-                        continue;
-                    }
+                let isError = false;
+                if (rule.minCountVal !== undefined && rule.minCountVal !== null) {
+                    if (matchCount < rule.minCountVal) isError = true;
+                }
+                if (rule.maxCountVal !== undefined && rule.maxCountVal !== null) {
+                    if (matchCount > rule.maxCountVal) isError = true;
                 }
 
-                const itemContext = {
-                    ...rootContext,
-                    [rule.xmlType]: item,
-                    'XML': item,
-                    ...item
-                };
+                if (isError) {
+                    return { isMatch: true, error: `Số lượng bản ghi thỏa mãn: ${matchCount}` };
+                } else {
+                    return { isMatch: false };
+                }
+            } else {
+                for (const item of list) {
+                    if (rule.conditionField && rule.conditionValue) {
+                        let conditionVal = item[rule.conditionField];
+                        // USE HELPER HERE + Split by regex
+                        const allowedValues = rule.conditionValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                        const valStr = this.getDataValue(conditionVal);
 
-                try {
-                    if (checkLogic(itemContext)) {
-                        return { isMatch: true };
+                        if (!valStr || !allowedValues.includes(valStr)) {
+                            continue;
+                        }
                     }
-                } catch (e: any) {
-                    return { isMatch: false, error: `Row error: ${e.message || String(e)}` };
+
+                    if (rule.conditionMaDichVuValue) {
+                        const fieldToCheck = rule.conditionMaDichVu || 'MA_DICH_VU';
+                        let conditionVal = item[fieldToCheck];
+
+                        const allowedValues = rule.conditionMaDichVuValue.split(/[;,\n]+/).map((s: string) => s.trim());
+                        // USE HELPER HERE
+                        const valStr = this.getDataValue(conditionVal);
+
+                        // ONE-TIME DEBUG LOG
+                        // if (rule.conditionMaDichVuValue.includes('23.0058.1487') && !allowedValues.includes(valStr)) {
+                        //    console.log(`[DEBUG MISMATCH] Rule ${rule.id} expects ${rule.conditionMaDichVuValue}. Got '${valStr}' from ${fieldToCheck}. Allowed: ${JSON.stringify(allowedValues)}`);
+                        // }
+
+                        if (!valStr || !allowedValues.includes(valStr)) {
+                            continue;
+                        }
+                    }
+
+                    const itemContext = {
+                        ...rootContext,
+                        [rule.xmlType]: item,
+                        'XML': item,
+                        ...item
+                    };
+
+                    try {
+                        if (checkLogic(itemContext)) {
+                            return { isMatch: true };
+                        }
+                    } catch (e: any) {
+                        return { isMatch: false, error: `Row error: ${e.message || String(e)}` };
+                    }
                 }
             }
 

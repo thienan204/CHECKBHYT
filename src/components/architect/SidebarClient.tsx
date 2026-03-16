@@ -101,10 +101,15 @@ export default function SidebarClient({ rules, isOpen, user }: SidebarClientProp
                             Quy tắc Excel
                         </Link>
 
-                        {/* Department Link */}
                         <Link href="/departments" className="text-slate-600 hover:bg-slate-50 hover:text-purple-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
                             <AppstoreOutlined className="text-lg opacity-70" />
                             Q.Lý Khoa
+                        </Link>
+
+                        {/* Staff Link */}
+                        <Link href="/staff" className="text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                            <RocketOutlined className="text-lg opacity-70" />
+                            Q.Lý Nhân Viên
                         </Link>
                     </div>
                 )}

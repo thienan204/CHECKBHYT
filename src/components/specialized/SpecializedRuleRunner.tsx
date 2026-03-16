@@ -8,6 +8,7 @@ import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined, SearchOutline
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { getDepartments } from '@/actions/department';
+import { getBasePath } from '@/utils/config';
 import dayjs from 'dayjs';
 
 interface SpecializedRuleRunnerProps {
@@ -26,8 +27,14 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     const [filterBed, setFilterBed] = useState<string>('');
     const [filterKhoa, setFilterKhoa] = useState<string>('');
     const [filterMaGiuong, setFilterMaGiuong] = useState<string>('');
-    const [filterNgayRa, setFilterNgayRa] = useState<string>('');
+    const [filterNgayRaRange, setFilterNgayRaRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
+
+    // Duplicate Doctor specific state
+    const [doctorOrders, setDoctorOrders] = useState<any[]>([]);
+    const [isDuplicateDoctorMode, setIsDuplicateDoctorMode] = useState(false);
+
     const [deptMap, setDeptMap] = useState<Record<string, string>>({});
+    const [staffMap, setStaffMap] = useState<Record<string, { ho_ten: string, trinh_do: string }>>({});
 
     useEffect(() => {
         getDepartments().then(depts => {
@@ -35,6 +42,23 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             depts.forEach(d => map[d.ma_khoa] = d.ten_khoa);
             setDeptMap(map);
         });
+
+        // Lấy danh sách nhân viên để map Tên và Trình độ cho Bác sĩ
+        fetch(`${getBasePath()}/api/staff?t=${new Date().getTime()}`)
+            .then(res => res.json())
+            .then(staffs => {
+                const map: Record<string, { ho_ten: string, trinh_do: string }> = {};
+                if (Array.isArray(staffs)) {
+                    staffs.forEach((s: any) => {
+                        map[s.ma_bac_si] = {
+                            ho_ten: s.ho_ten || '',
+                            trinh_do: s.trinh_do || ''
+                        };
+                    });
+                }
+                setStaffMap(map);
+            })
+            .catch(err => console.error("Lỗi lấy danh sách nhân viên:", err));
     }, []);
 
     const fetchData = async () => {
@@ -49,11 +73,20 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 rule.slug?.includes('trung-giuong') ||
                 rule.slug?.includes('trung-ma-giuong');
 
-            if (isDuplicateBed) {
+            const isDuplicateDoctor = rule.logicConfig?.type === 'DUPLICATE_DOCTOR' ||
+                rule.ruleType === 'DUPLICATE_DOCTOR';
+
+            if (isDuplicateDoctor) {
+                setIsDuplicateDoctorMode(true);
+                setIsDuplicateBedMode(false);
+                // prepareDoctorOrders will be triggered by useEffect
+            } else if (isDuplicateBed) {
                 setIsDuplicateBedMode(true);
+                setIsDuplicateDoctorMode(false);
                 // prepareBedServices will be triggered by useEffect
             } else {
                 setIsDuplicateBedMode(false);
+                setIsDuplicateDoctorMode(false);
                 executeRule(data);
             }
 
@@ -72,8 +105,10 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     useEffect(() => {
         if (isDuplicateBedMode && records.length > 0) {
             prepareBedServices(records);
+        } else if (isDuplicateDoctorMode && records.length > 0) {
+            prepareDoctorOrders(records);
         }
-    }, [records, isDuplicateBedMode, rule, deptMap]);
+    }, [records, isDuplicateBedMode, isDuplicateDoctorMode, rule, deptMap]);
 
     const executeRule = (data: ExtendedHosoRecord[]) => {
         if (!rule || !rule.logicConfig) return;
@@ -139,19 +174,16 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                         }
 
                         if (match) {
-                            // Dynamic Fields Mapping
-                            let bedCode = '';
+                            let keyValue = '';
                             if (fields?.bed) {
-                                if (Array.isArray(fields.bed)) {
-                                    // Filter out MA_KHOA from display if strictly present (redundant column)
-                                    const bedDisplayFields = fields.bed.filter((f: string) => f !== 'MA_KHOA');
-                                    const fieldsToMap = bedDisplayFields.length > 0 ? bedDisplayFields : fields.bed;
-                                    bedCode = fieldsToMap.map((f: string) => item[f]).filter(Boolean).join(' + ');
+                                if (Array.isArray(fields.bed) && fields.bed.length > 0) {
+                                    // Normally the first one is the main grouping key (like MA_BS or MA_GIUONG)
+                                    keyValue = fields.bed.map((b: string) => item[b] || '').join('-');
                                 } else {
-                                    bedCode = item[fields.bed];
+                                    keyValue = item[fields.bed];
                                 }
                             } else {
-                                bedCode = item.MA_GIUONG;
+                                keyValue = item.MA_GIUONG; // Fallback
                             }
 
                             const startTime = fields?.startTime ? item[fields.startTime] : item.NGAY_YL;
@@ -165,11 +197,12 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                                 HO_TEN: record.summary?.HO_TEN,
                                 MA_KHOA: deptCode,
                                 TEN_KHOA: deptMap[deptCode] || '', // Lookup department name
-                                MA_GIUONG: bedCode || '',
+                                MA_GIUONG: item.MA_GIUONG || '', // Keep original MA_GIUONG for columns
+                                KEY_VALUE: keyValue || '',       // The dynamic value (e.g., Doctor code, Machine code)
                                 TYLE_BH: item.TYLE_TT_BH || '',
                                 TYLE_DV: item.TYLE_TT_DV || '',
-                                NGAY_YL: startTime,
-                                NGAY_KQ: endTime,
+                                NGAY_YL: item.NGAY_YL || '',
+                                NGAY_KQ: item.NGAY_KQ || '',
                                 NGAY_VAO: record.summary?.NGAY_VAO || '',
                                 NGAY_RA: record.summary?.NGAY_RA || '',
                                 NGAY_TH_YL: item.NGAY_TH_YL || '',
@@ -180,7 +213,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                                 // Clean Data for sorting/overlap
                                 _start: parseDate(startTime),
                                 _end: parseDate(endTime),
-                                _ma_giuong: bedCode,
+                                _ma_giuong: item.MA_GIUONG,     // Original
+                                _key_value: keyValue,           // Dynamic Grouping Key
                                 _ma_khoa: deptCode,
 
                                 original: item,
@@ -201,13 +235,13 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         setTimeout(() => {
             const overlaps = new Set<string>();
 
-            // Group by Bed + Department ?? Or just Bed? Bed code usually unique per department??
-            // Let's group by Bed Code + Dept Code
+            // Group by Dynamic Key (fallback to MA_GIUONG)
             const groups: Record<string, typeof bedServices> = {};
 
             bedServices.forEach(item => {
-                if (!item._ma_giuong) return;
-                const key = `${item._ma_khoa}_${item._ma_giuong}`;
+                const groupKeyStr = item._key_value || item._ma_giuong;
+                if (!groupKeyStr) return;
+                const key = `${item._ma_khoa}_${groupKeyStr}`;
                 if (!groups[key]) groups[key] = [];
                 groups[key].push(item);
             });
@@ -224,7 +258,10 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                     const overlapMinutes = (Math.min(curr._end.getTime(), next._end.getTime()) - Math.max(curr._start.getTime(), next._start.getTime())) / 60000;
                     const tolerance = rule.logicConfig?.toleranceMinutes || 0;
 
-                    if (overlapMinutes > tolerance) {
+                    // Support exact match checking (e.g. identical NGAY_YL -> difference is 0)
+                    const isExactMatch = curr._start.getTime() === next._start.getTime() && curr._start.getTime() === curr._end.getTime() && next._start.getTime() === next._end.getTime();
+
+                    if (overlapMinutes > tolerance || isExactMatch) {
                         overlaps.add(curr.key);
                         overlaps.add(next.key);
                     }
@@ -243,9 +280,11 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                     if (a._ma_khoa !== b._ma_khoa) {
                         return (a._ma_khoa || '').localeCompare(b._ma_khoa || '');
                     }
-                    // 2. Sort by Bed (MA_GIUONG)
-                    if (a._ma_giuong !== b._ma_giuong) {
-                        return (a._ma_giuong || '').localeCompare(b._ma_giuong || '');
+                    // 2. Sort by Dynamic Key (fallback to Bed)
+                    const aKey = a._key_value || a._ma_giuong || '';
+                    const bKey = b._key_value || b._ma_giuong || '';
+                    if (aKey !== bKey) {
+                        return aKey.localeCompare(bKey);
                     }
                     // 3. Sort by Start Time
                     return a._start.getTime() - b._start.getTime();
@@ -257,7 +296,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 let lastGroupKey = '';
 
                 const coloredData = filtered.map((item, index) => {
-                    const currentGroupKey = `${item._ma_khoa}_${item._ma_giuong}`;
+                    const groupKeyStr = item._key_value || item._ma_giuong || '';
+                    const currentGroupKey = `${item._ma_khoa}_${groupKeyStr}`;
 
                     // If this is the first item, or group key changed from previous item
                     if (index === 0 || currentGroupKey !== lastGroupKey) {
@@ -284,13 +324,27 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
 
     const getFilteredData = () => {
         const matchingGroupsByDate = new Set<string>();
-        if (filterNgayRa) {
+        // Check if user has selected any date range
+        const hasDateRange = filterNgayRaRange && filterNgayRaRange.length === 2 && (filterNgayRaRange[0] || filterNgayRaRange[1]);
+
+        if (hasDateRange) {
+            const startRange = filterNgayRaRange[0] ? filterNgayRaRange[0].startOf('day').toDate() : null;
+            const endRange = filterNgayRaRange[1] ? filterNgayRaRange[1].endOf('day').toDate() : null;
+
             bedServices.forEach(item => {
-                if (item.NGAY_RA && formatDateTime(item.NGAY_RA).includes(filterNgayRa)) {
-                    if (item.groupId) {
-                        matchingGroupsByDate.add(item.groupId);
-                    } else {
-                        matchingGroupsByDate.add(`ungrouped_${item.key}`);
+                if (item.NGAY_RA) {
+                    const rowDate = parseDate(item.NGAY_RA);
+
+                    let inRange = true;
+                    if (startRange && rowDate < startRange) inRange = false;
+                    if (endRange && rowDate > endRange) inRange = false;
+
+                    if (inRange) {
+                        if (item.groupId) {
+                            matchingGroupsByDate.add(item.groupId);
+                        } else {
+                            matchingGroupsByDate.add(`ungrouped_${item.key}`);
+                        }
                     }
                 }
             });
@@ -309,9 +363,20 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase()));
 
             let ngayRaMatch = true;
-            if (filterNgayRa) {
+            if (hasDateRange) {
                 const matchesByGroup = item.groupId && matchingGroupsByDate.has(item.groupId);
-                const matchesByRow = item.NGAY_RA && formatDateTime(item.NGAY_RA).includes(filterNgayRa);
+                let matchesByRow = false;
+
+                if (item.NGAY_RA) {
+                    const rowDate = parseDate(item.NGAY_RA);
+                    const startRange = filterNgayRaRange[0] ? filterNgayRaRange[0].startOf('day').toDate() : null;
+                    const endRange = filterNgayRaRange[1] ? filterNgayRaRange[1].endOf('day').toDate() : null;
+
+                    matchesByRow = true;
+                    if (startRange && rowDate < startRange) matchesByRow = false;
+                    if (endRange && rowDate > endRange) matchesByRow = false;
+                }
+
                 ngayRaMatch = matchesByGroup || matchesByRow;
             }
 
@@ -349,7 +414,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             { header: 'Họ Tên', key: 'HO_TEN', width: 25 },
             { header: 'Mã Khoa', key: 'MA_KHOA', width: 10 },
             { header: 'Tên Khoa', key: 'TEN_KHOA', width: 20 },
-            { header: 'Mã Giường', key: 'MA_GIUONG', width: 15 },
+            { header: rule.logicConfig?.filter?.MA_NHOM == 15 || rule.slug?.includes('giuong') ? 'Mã Giường' : 'Mã Máy', key: 'KEY_VALUE', width: 15 },
             { header: 'Số Lượng', key: 'SOLUONG', width: 10 },
             { header: 'Tỷ lệ BH', key: 'TYLE_BH', width: 10 },
             { header: 'Tỷ lệ DV', key: 'TYLE_DV', width: 10 },
@@ -381,7 +446,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 HO_TEN: item.HO_TEN,
                 MA_KHOA: item.MA_KHOA,
                 TEN_KHOA: item.TEN_KHOA,
-                MA_GIUONG: item.MA_GIUONG,
+                KEY_VALUE: item.KEY_VALUE ? String(item.KEY_VALUE).split('-')[0] : '', // Chỉnh sửa: Chỉ lấy phần đầu (MA_GIUONG)
                 SOLUONG: item.SOLUONG,
                 TYLE_BH: item.TYLE_BH,
                 TYLE_DV: item.TYLE_DV,
@@ -419,7 +484,204 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         saveAs(blob, `${safeName}_${new Date().getTime()}.xlsx`);
     };
 
+    const handleExportExcelDoctor = async () => {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet('Báo cáo trùng Bác Sĩ');
+
+        // Headers
+        const columns = [
+            { header: 'STT', key: 'stt', width: 5 },
+            { header: 'Mã LK', key: 'MA_LK', width: 15 },
+            { header: 'Mã BN', key: 'MA_BN', width: 15 },
+            { header: 'Họ Tên', key: 'HO_TEN', width: 25 },
+            { header: 'Mã Bác sĩ', key: 'MA_BS', width: 15 },
+            { header: 'Họ Tên BS', key: 'TEN_BAC_SI', width: 25 },
+            { header: 'Trình độ', key: 'TRINH_DO', width: 15 },
+            { header: 'Ngày Y Lệnh', key: 'THOI_GIAN_YL', width: 20 },
+            { header: 'Loại', key: 'TYPE', width: 10 },
+            { header: 'Mã', key: 'MA_LOAI', width: 15 },
+            { header: 'Tên Dịch Vụ / Thuốc', key: 'TEN_LOAI', width: 35 },
+            { header: 'Mã Khoa', key: 'MA_KHOA', width: 10 },
+            { header: 'Tên Khoa', key: 'TEN_KHOA', width: 20 },
+        ];
+        sheet.columns = columns;
+
+        // Data & Colors
+        const colorMap: Record<string, string> = {
+            'bg-red-50': 'FFFEF2F2',
+            'bg-blue-50': 'FFEFF6FF',
+            'bg-green-50': 'FFF0FDF4',
+            'bg-purple-50': 'FFFAF5FF',
+            'bg-orange-50': 'FFFFF7ED',
+            'bg-pink-50': 'FFFDF2F8'
+        };
+
+        doctorOrders.forEach((item, index) => {
+            const row = sheet.addRow({
+                stt: index + 1,
+                MA_LK: item.MA_LK,
+                MA_BN: item.MA_BN,
+                HO_TEN: item.HO_TEN,
+                MA_BS: item.MA_BS,
+                TEN_BAC_SI: item.TEN_BAC_SI,
+                TRINH_DO: item.TRINH_DO,
+                THOI_GIAN_YL: formatDateTime(item.THOI_GIAN_YL),
+                TYPE: item.TYPE,
+                MA_LOAI: item.MA_LOAI,
+                TEN_LOAI: item.TEN_LOAI,
+                MA_KHOA: item.MA_KHOA,
+                TEN_KHOA: item.TEN_KHOA
+            });
+
+            if (item.rowColor && colorMap[item.rowColor]) {
+                row.eachCell((cell) => {
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: colorMap[item.rowColor] }
+                    };
+                });
+            }
+        });
+
+        // Style header
+        sheet.getRow(1).font = { bold: true };
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        const ruleName = rule.name || 'bao_cao_trung_bac_si';
+        const safeName = ruleName.replace(/[/\\?%*:|"<>]/g, '-');
+        saveAs(blob, `${safeName}_${new Date().getTime()}.xlsx`);
+    };
+
     // --- Logic Handlers (Old) ---
+
+    // ======================================
+    // DUPLICATE DOCTOR LOGIC
+    // ======================================
+    const prepareDoctorOrders = (data: ExtendedHosoRecord[]) => {
+        if (!rule || !rule.logicConfig) return;
+        const config = rule.logicConfig;
+        const fieldMaBs = config.fields?.doctor || 'MA_BS';
+        const fieldNgayYl = config.fields?.time || 'NGAY_YL';
+
+        const list: any[] = [];
+        let index = 1;
+
+        data.forEach(record => {
+            record.groups.forEach(group => {
+                // We care about XML2 (Thuốc) and XML3 (Dịch Vụ)
+                if (group.type === 'XML2' || group.type === 'XML3') {
+                    const items = getXmlDataList(group);
+                    items.forEach((item: any) => {
+                        const maBs = item[fieldMaBs] || item.MA_BAC_SI || item.MA_BS;
+                        const ngayYl = item[fieldNgayYl] || item.NGAY_YL;
+
+                        // Only consider items that have both Doctor Code and Order Date
+                        if (maBs && ngayYl) {
+                            // Filter by MA_NHOM if configured
+                            const configuredMaNhom = config.filter?.MA_NHOM;
+                            if (configuredMaNhom && Array.isArray(configuredMaNhom) && configuredMaNhom.length > 0) {
+                                if (!configuredMaNhom.includes(Number(item.MA_NHOM))) {
+                                    return; // Bỏ qua nếu mã nhóm không thuộc danh sách yêu cầu
+                                }
+                            }
+
+                            const deptCode = item.MA_KHOA || record.summary?.MA_KHOA || '';
+                            const isThuoc = group.type === 'XML2';
+
+                            list.push({
+                                key: `${record.id}_${item.MA_DICH_VU || item.MA_THUOC}_${index}`,
+                                stt: index++,
+                                MA_LK: record.summary?.MA_LK,
+                                MA_BN: record.summary?.MA_BN || '',
+                                HO_TEN: record.summary?.HO_TEN,
+                                MA_KHOA: deptCode,
+                                TEN_KHOA: deptMap[deptCode] || '',
+                                MA_BS: maBs,
+                                TEN_BAC_SI: staffMap[maBs]?.ho_ten || '',
+                                TRINH_DO: staffMap[maBs]?.trinh_do || '',
+                                THOI_GIAN_YL: ngayYl, // Nguyên gốc thời gian, có thể đến giây (14 ký tự)
+                                TYPE: isThuoc ? 'Thuốc' : 'Dịch Vụ',
+                                MA_LOAI: isThuoc ? item.MA_THUOC : item.MA_DICH_VU,
+                                TEN_LOAI: isThuoc ? item.TEN_THUOC : item.TEN_DICH_VU,
+                                NGAY_VAO: record.summary?.NGAY_VAO || '',
+                                NGAY_RA: record.summary?.NGAY_RA || '',
+
+                                // Grouping properties
+                                _ma_bs: maBs,
+                                _ngay_yl: ngayYl,
+                                _ma_lk: record.summary?.MA_LK,
+                                _ma_bn: record.summary?.MA_BN || '',
+
+                                original: item,
+                                recordId: record.id
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        setDoctorOrders(list);
+    };
+
+    const scanDoctorDuplicates = () => {
+        setLoading(true);
+        setTimeout(() => {
+            const overlaps = new Set<string>();
+            const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50', 'bg-pink-50'];
+
+            // Group by: [MA_BS] + [THOI_GIAN_YL]
+            // We only flag duplicates occurring ON DIFFERENT PATIENTS, at the EXACT SAME SECOND, by the SAME DOCTOR.
+            const groups: Record<string, typeof doctorOrders> = {};
+
+            doctorOrders.forEach(item => {
+                const groupKey = `${item._ma_bs}_${item._ngay_yl}`;
+                if (!groups[groupKey]) groups[groupKey] = [];
+                groups[groupKey].push(item);
+            });
+
+            // Filter groups that have MORE THAN 1 DISTINCT PATIENT (Collision detected!)
+            let filteredList: any[] = [];
+            let colorIdx = 0;
+
+            Object.entries(groups).forEach(([groupKey, items]) => {
+                const distinctPatients = new Set(items.map(item => item._ma_bn));
+                if (distinctPatients.size > 1) { // Same doctor same time but DIFFERENT patients
+                    // Assign a collision color
+                    const assignedColor = colors[colorIdx % colors.length];
+                    colorIdx++;
+
+                    items.forEach(item => {
+                        filteredList.push({
+                            ...item,
+                            groupId: groupKey,
+                            rowColor: assignedColor
+                        });
+                        overlaps.add(item.key);
+                    });
+                }
+            });
+
+            // Sort by Doctor -> Time
+            filteredList.sort((a, b) => {
+                if (a._ma_bs !== b._ma_bs) return (a._ma_bs || '').localeCompare(b._ma_bs || '');
+                if (a._ngay_yl !== b._ngay_yl) return (a._ngay_yl || '').localeCompare(b._ngay_yl || '');
+                return a.stt - b.stt;
+            });
+
+            if (overlaps.size > 0) {
+                setDoctorOrders(filteredList);
+                message.warning(`Phát hiện ${filteredList.length} chỉ định dịch vụ/thuốc trùng thời điểm!`);
+            } else {
+                setDoctorOrders([]);
+                message.success('Không phát hiện Trùng Mã Bác Sĩ / Thời gian nào!');
+            }
+            setLoading(false);
+        }, 500);
+    };
 
     // 2. Machine Check
     const checkMachine = (data: ExtendedHosoRecord[], config: any) => {
@@ -485,20 +747,26 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     };
 
     const parseDate = (str: string) => {
-        // YYYYMMDD or YYYYMMDDHHmm
+        // YYYYMMDD or YYYYMMDDHHmm or YYYYMMDDHHmmss
         if (!str) return new Date();
         const y = parseInt(str.substring(0, 4));
         const m = parseInt(str.substring(4, 6)) - 1;
         const d = parseInt(str.substring(6, 8));
         const h = str.length >= 10 ? parseInt(str.substring(8, 10)) : 0;
         const min = str.length >= 12 ? parseInt(str.substring(10, 12)) : 0;
-        return new Date(y, m, d, h, min);
+        const sec = str.length >= 14 ? parseInt(str.substring(12, 14)) : 0;
+        return new Date(y, m, d, h, min, sec);
     };
 
     const formatDateTime = (dateStr: string) => {
         if (!dateStr) return '';
+        // Length 14 (YYYYMMDDHHmmss) -> DD/MM/YYYY HH:mm:ss
+        if (dateStr.length >= 14) {
+            return `${dateStr.substring(6, 8)}/${dateStr.substring(4, 6)}/${dateStr.substring(0, 4)} ${dateStr.substring(8, 10)}:${dateStr.substring(10, 12)}:${dateStr.substring(12, 14)}`;
+        }
+        // Length 12 (YYYYMMDDHHmm) -> DD/MM/YYYY HH:mm:ss
         if (dateStr.length >= 12) {
-            return `${dateStr.substring(6, 8)}/${dateStr.substring(4, 6)}/${dateStr.substring(0, 4)} ${dateStr.substring(8, 10)}:${dateStr.substring(10, 12)}`;
+            return `${dateStr.substring(6, 8)}/${dateStr.substring(4, 6)}/${dateStr.substring(0, 4)} ${dateStr.substring(8, 10)}:${dateStr.substring(10, 12)}:00`;
         }
         return dateStr;
     };
@@ -513,7 +781,14 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         { title: 'Họ Tên', dataIndex: 'HO_TEN', key: 'HO_TEN', width: 200, className: 'uppercase font-medium' },
         { title: 'Mã Khoa', dataIndex: 'MA_KHOA', key: 'MA_KHOA', width: 100, className: 'font-bold text-blue-700' },
         { title: 'Tên Khoa', dataIndex: 'TEN_KHOA', key: 'TEN_KHOA', width: 200, className: 'text-slate-500' },
-        { title: rule.logicConfig?.filter?.MA_NHOM == 15 ? 'Mã Giường' : 'Mã Máy', dataIndex: 'MA_GIUONG', key: 'MA_GIUONG', width: 100, className: 'font-bold text-red-500' },
+        {
+            title: rule.logicConfig?.filter?.MA_NHOM == 15 || rule.slug?.includes('giuong') ? 'Mã Giường' : 'Mã Máy',
+            dataIndex: 'KEY_VALUE',
+            key: 'KEY_VALUE',
+            width: 100,
+            className: 'font-bold text-red-500',
+            render: (text: string) => text ? String(text).split('-')[0] : '' // Chỉnh sửa hiển thị UI: Chỉ lấy phần đầu (MA_GIUONG)
+        },
         {
             title: 'SL', dataIndex: 'SOLUONG', key: 'SOLUONG', width: 60, align: 'center' as const,
             render: (v: any) => <span className="font-semibold">{v}</span>
@@ -565,6 +840,31 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         }
     ];
 
+    const doctorColumns = [
+        { title: 'STT', key: 'stt', width: 60, align: 'center' as const, render: (_: any, __: any, index: number) => index + 1 },
+        {
+            title: 'Mã LK', dataIndex: 'MA_LK', key: 'MA_LK', width: 120,
+            render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>
+        },
+        { title: 'Mã BN', dataIndex: 'MA_BN', key: 'MA_BN', width: 110 },
+        { title: 'Họ Tên', dataIndex: 'HO_TEN', key: 'HO_TEN', width: 200, className: 'uppercase font-medium' },
+        { title: 'Mã Bác sĩ', dataIndex: 'MA_BS', key: 'MA_BS', width: 120, className: 'font-bold text-purple-600' },
+        { title: 'Họ Tên BS', dataIndex: 'TEN_BAC_SI', key: 'TEN_BAC_SI', width: 200, className: 'font-medium text-purple-700' },
+        { title: 'Trình độ', dataIndex: 'TRINH_DO', key: 'TRINH_DO', width: 120 },
+        {
+            title: 'Ngày Y Lệnh (Tính đến giây)', dataIndex: 'THOI_GIAN_YL', key: 'THOI_GIAN_YL', width: 180, className: 'font-bold text-red-500',
+            render: (text: string) => formatDateTime(text)
+        },
+        {
+            title: 'Loại', dataIndex: 'TYPE', key: 'TYPE', width: 100, align: 'center' as const,
+            render: (type: string) => type === 'Thuốc' ? <Tag color="green">{type}</Tag> : <Tag color="blue">{type}</Tag>
+        },
+        { title: 'Mã', dataIndex: 'MA_LOAI', key: 'MA_LOAI', width: 120 },
+        { title: 'Tên Dịch Vụ / Thuốc', dataIndex: 'TEN_LOAI', key: 'TEN_LOAI', width: 350, ellipsis: true },
+        { title: 'Mã Khoa', dataIndex: 'MA_KHOA', key: 'MA_KHOA', width: 100 },
+        { title: 'Tên Khoa', dataIndex: 'TEN_KHOA', key: 'TEN_KHOA', width: 200 },
+    ];
+
     if (loading) return (
         <div className="p-12 text-center">
             <Spin size="large" />
@@ -580,6 +880,39 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             <Button type="primary" href="/">Về trang chủ tải file</Button>
         </Empty>
     );
+
+    // Render Request View (Duplicate Doctor Mode)
+    if (isDuplicateDoctorMode) {
+        return (
+            <div className="space-y-4">
+                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="text-lg font-bold text-slate-700">Kiểm tra Trùng Bác Sĩ (Cùng Y Lệnh)</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại dữ liệu</Button>
+                        <Button icon={<FileExcelOutlined />} onClick={handleExportExcelDoctor}>Xuất Excel</Button>
+                        <Button
+                            type="primary"
+                            danger
+                            icon={<ScanOutlined />}
+                            onClick={scanDoctorDuplicates}
+                        >
+                            Quét Trùng Lặp
+                        </Button>
+                    </div>
+                </div>
+
+                <Table
+                    dataSource={doctorOrders} // Apply local filtering logic here if needed!
+                    columns={doctorColumns}
+                    size="middle"
+                    bordered
+                    scroll={{ x: 1300, y: 600 }}
+                    pagination={{ defaultPageSize: 20, showSizeChanger: true }}
+                    rowClassName={(record) => record.rowColor || ''}
+                />
+            </div>
+        );
+    }
 
     // Render Request View (Duplicate Bed Mode)
     if (isDuplicateBedMode) {
@@ -608,11 +941,13 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                             style={{ width: 120 }}
                             onChange={(e) => setFilterMaGiuong(e.target.value)}
                         />
-                        <DatePicker
-                            placeholder="Ngày ra"
+                        <DatePicker.RangePicker
+                            placeholder={["Từ ngày (Ngày ra)", "Đến ngày (Ngày ra)"]}
                             format="DD/MM/YYYY"
-                            style={{ width: 140 }}
-                            onChange={(date, dateString) => setFilterNgayRa(dateString as string)}
+                            style={{ width: 280 }}
+                            onChange={(dates) => {
+                                setFilterNgayRaRange(dates as [dayjs.Dayjs | null, dayjs.Dayjs | null]);
+                            }}
                             allowClear
                         />
                     </div>
