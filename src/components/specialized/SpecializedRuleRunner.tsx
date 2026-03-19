@@ -32,6 +32,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     // Duplicate Doctor specific state
     const [doctorOrders, setDoctorOrders] = useState<any[]>([]);
     const [isDuplicateDoctorMode, setIsDuplicateDoctorMode] = useState(false);
+    const [filterNgayYlRange, setFilterNgayYlRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
 
     const [deptMap, setDeptMap] = useState<Record<string, string>>({});
     const [staffMap, setStaffMap] = useState<Record<string, { ho_ten: string, trinh_do: string }>>({});
@@ -194,6 +195,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                                 key: `${record.id}_${item.MA_DICH_VU}_${index}`,
                                 stt: index++,
                                 MA_LK: record.summary?.MA_LK,
+                                MA_BN: record.summary?.MA_BN,
+                                MA_THE_BHYT: record.summary?.MA_THE_BHYT,
                                 HO_TEN: record.summary?.HO_TEN,
                                 MA_KHOA: deptCode,
                                 TEN_KHOA: deptMap[deptCode] || '', // Lookup department name
@@ -411,6 +414,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         const columns = [
             { header: 'STT', key: 'stt', width: 5 },
             { header: 'Mã LK', key: 'MA_LK', width: 15 },
+            { header: 'Mã BN', key: 'MA_BN', width: 15 },
+            { header: 'Mã Thẻ BHYT', key: 'MA_THE_BHYT', width: 20 },
             { header: 'Họ Tên', key: 'HO_TEN', width: 25 },
             { header: 'Mã Khoa', key: 'MA_KHOA', width: 10 },
             { header: 'Tên Khoa', key: 'TEN_KHOA', width: 20 },
@@ -443,6 +448,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             const row = sheet.addRow({
                 stt: index + 1,
                 MA_LK: item.MA_LK,
+                MA_BN: item.MA_BN,
+                MA_THE_BHYT: item.MA_THE_BHYT,
                 HO_TEN: item.HO_TEN,
                 MA_KHOA: item.MA_KHOA,
                 TEN_KHOA: item.TEN_KHOA,
@@ -497,7 +504,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             { header: 'Mã Bác sĩ', key: 'MA_BS', width: 15 },
             { header: 'Họ Tên BS', key: 'TEN_BAC_SI', width: 25 },
             { header: 'Trình độ', key: 'TRINH_DO', width: 15 },
-            { header: 'Ngày Y Lệnh', key: 'THOI_GIAN_YL', width: 20 },
+            { header: 'Ngày chỉ định', key: 'THOI_GIAN_YL', width: 20 },
             { header: 'Loại', key: 'TYPE', width: 10 },
             { header: 'Mã', key: 'MA_LOAI', width: 15 },
             { header: 'Tên Dịch Vụ / Thuốc', key: 'TEN_LOAI', width: 35 },
@@ -516,7 +523,9 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             'bg-pink-50': 'FFFDF2F8'
         };
 
-        doctorOrders.forEach((item, index) => {
+        const dataToExport = getFilteredDoctorData();
+
+        dataToExport.forEach((item, index) => {
             const row = sheet.addRow({
                 stt: index + 1,
                 MA_LK: item.MA_LK,
@@ -683,6 +692,78 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         }, 500);
     };
 
+    const getFilteredDoctorData = () => {
+        const matchingGroupsByDate = new Set<string>();
+        // Check if user has selected any date range
+        const hasDateRange = filterNgayYlRange && filterNgayYlRange.length === 2 && (filterNgayYlRange[0] || filterNgayYlRange[1]);
+
+        if (hasDateRange) {
+            const startRange = filterNgayYlRange[0] ? filterNgayYlRange[0].startOf('day').toDate() : null;
+            const endRange = filterNgayYlRange[1] ? filterNgayYlRange[1].endOf('day').toDate() : null;
+
+            doctorOrders.forEach(item => {
+                if (item.THOI_GIAN_YL) {
+                    const rowDate = parseDate(item.THOI_GIAN_YL);
+
+                    let inRange = true;
+                    if (startRange && rowDate < startRange) inRange = false;
+                    if (endRange && rowDate > endRange) inRange = false;
+
+                    if (inRange) {
+                        if (item.groupId) {
+                            matchingGroupsByDate.add(item.groupId);
+                        } else {
+                            matchingGroupsByDate.add(`ungrouped_${item.key}`);
+                        }
+                    }
+                }
+            });
+        }
+
+        const filtered = doctorOrders.filter(item => {
+            let ngayYlMatch = true;
+            if (hasDateRange) {
+                const matchesByGroup = item.groupId && matchingGroupsByDate.has(item.groupId);
+                let matchesByRow = false;
+
+                if (item.THOI_GIAN_YL) {
+                    const rowDate = parseDate(item.THOI_GIAN_YL);
+                    const startRange = filterNgayYlRange[0] ? filterNgayYlRange[0].startOf('day').toDate() : null;
+                    const endRange = filterNgayYlRange[1] ? filterNgayYlRange[1].endOf('day').toDate() : null;
+
+                    matchesByRow = true;
+                    if (startRange && rowDate < startRange) matchesByRow = false;
+                    if (endRange && rowDate > endRange) matchesByRow = false;
+                }
+
+                ngayYlMatch = matchesByGroup || matchesByRow;
+            }
+
+            return ngayYlMatch;
+        });
+
+        // Recalculate alternating colors based on the filtered results
+        const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50', 'bg-pink-50'];
+        let colorIdx = 0;
+        let lastGroupKey = '';
+
+        return filtered.map((item, index) => {
+            // Apply grouping color if it was involved in a collision (groupId exists)
+            if (item.groupId) {
+                const currentGroupKey = item.groupId;
+                if (index === 0 || currentGroupKey !== lastGroupKey) {
+                    if (index > 0) colorIdx++;
+                    lastGroupKey = currentGroupKey;
+                }
+                return {
+                    ...item,
+                    rowColor: colors[colorIdx % colors.length]
+                };
+            }
+            return item; // If no groupId (no collision or standard view), return normally
+        });
+    };
+
     // 2. Machine Check
     const checkMachine = (data: ExtendedHosoRecord[], config: any) => {
         const { fields, constraints, filter } = config;
@@ -778,6 +859,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             title: 'Mã LK', dataIndex: 'MA_LK', key: 'MA_LK', width: 120,
             render: (text: string) => <span className="font-semibold text-blue-600">{text}</span>
         },
+        { title: 'Mã BN', dataIndex: 'MA_BN', key: 'MA_BN', width: 110 },
+        { title: 'Mã Thẻ BHYT', dataIndex: 'MA_THE_BHYT', key: 'MA_THE_BHYT', width: 160 },
         { title: 'Họ Tên', dataIndex: 'HO_TEN', key: 'HO_TEN', width: 200, className: 'uppercase font-medium' },
         { title: 'Mã Khoa', dataIndex: 'MA_KHOA', key: 'MA_KHOA', width: 100, className: 'font-bold text-blue-700' },
         { title: 'Tên Khoa', dataIndex: 'TEN_KHOA', key: 'TEN_KHOA', width: 200, className: 'text-slate-500' },
@@ -852,7 +935,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         { title: 'Họ Tên BS', dataIndex: 'TEN_BAC_SI', key: 'TEN_BAC_SI', width: 200, className: 'font-medium text-purple-700' },
         { title: 'Trình độ', dataIndex: 'TRINH_DO', key: 'TRINH_DO', width: 120 },
         {
-            title: 'Ngày Y Lệnh (Tính đến giây)', dataIndex: 'THOI_GIAN_YL', key: 'THOI_GIAN_YL', width: 180, className: 'font-bold text-red-500',
+            title: 'Ngày chỉ định (Tính đến giây)', dataIndex: 'THOI_GIAN_YL', key: 'THOI_GIAN_YL', width: 180, className: 'font-bold text-red-500',
             render: (text: string) => formatDateTime(text)
         },
         {
@@ -888,6 +971,15 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="text-lg font-bold text-slate-700">Kiểm tra Trùng Bác Sĩ (Cùng Y Lệnh)</div>
                     <div className="flex items-center gap-2 flex-wrap">
+                        <DatePicker.RangePicker
+                            placeholder={["Từ ngày (Ngày chỉ định)", "Đến ngày (Ngày chỉ định)"]}
+                            format="DD/MM/YYYY"
+                            style={{ width: 280 }}
+                            onChange={(dates) => {
+                                setFilterNgayYlRange(dates as [dayjs.Dayjs | null, dayjs.Dayjs | null]);
+                            }}
+                            allowClear
+                        />
                         <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại dữ liệu</Button>
                         <Button icon={<FileExcelOutlined />} onClick={handleExportExcelDoctor}>Xuất Excel</Button>
                         <Button
@@ -902,7 +994,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 </div>
 
                 <Table
-                    dataSource={doctorOrders} // Apply local filtering logic here if needed!
+                    dataSource={getFilteredDoctorData()} // Apply local filtering logic here if needed!
                     columns={doctorColumns}
                     size="middle"
                     bordered

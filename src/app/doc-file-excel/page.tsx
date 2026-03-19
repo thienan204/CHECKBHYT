@@ -467,7 +467,17 @@ export default function ExcelReaderPage() {
 
                     if (!startB || !endB) continue;
 
-                    if (startA < endB && endA > startB) {
+                    // Tính thời gian giao nhau (overlap) giữa 2 khoảng thời gian
+                    const overlapStart = Math.max(startA.getTime(), startB.getTime());
+                    const overlapEnd = Math.min(endA.getTime(), endB.getTime());
+
+                    // Nếu Start = End cho cả 2 (ví dụ trùng đúng 1 thời điểm NGAY_YL)
+                    const isExactMatch = startA.getTime() === startB.getTime() && startA.getTime() === endA.getTime() && startB.getTime() === endB.getTime();
+
+                    // Các trường hợp giao nhau:
+                    // 1. Khoảng thời gian giao nhau > 0 (overlapEnd > overlapStart)
+                    // 2. Điểm thời gian giao nhau giống hệt nhau (isExactMatch)
+                    if (overlapEnd > overlapStart || isExactMatch) {
                         adj[i].push(j);
                         adj[j].push(i);
                     }
