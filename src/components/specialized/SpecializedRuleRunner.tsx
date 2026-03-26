@@ -264,6 +264,23 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                     // Support exact match checking (e.g. identical NGAY_YL -> difference is 0)
                     const isExactMatch = curr._start.getTime() === next._start.getTime() && curr._start.getTime() === curr._end.getTime() && next._start.getTime() === next._end.getTime();
 
+                    // Dynamic Field skipping (e.g. MA_BN, MA_LK)
+                    const ignoreIfSameField = rule.logicConfig?.ignoreIfSameField;
+                    let isIgnoreMatch = false;
+
+                    if (ignoreIfSameField) {
+                        const valA = curr[ignoreIfSameField] !== undefined ? String(curr[ignoreIfSameField]) : (curr.original ? String(curr.original[ignoreIfSameField]) : undefined);
+                        const valB = next[ignoreIfSameField] !== undefined ? String(next[ignoreIfSameField]) : (next.original ? String(next.original[ignoreIfSameField]) : undefined);
+
+                        if (valA && valB && valA === valB && valA !== 'undefined') {
+                            isIgnoreMatch = true;
+                        }
+                    }
+
+                    if (isIgnoreMatch) {
+                        continue; // Bỏ qua lặp 2 dịch vụ này vì chúng có cùng thuộc tính loại trừ
+                    }
+
                     if (overlapMinutes > tolerance || isExactMatch) {
                         overlaps.add(curr.key);
                         overlaps.add(next.key);

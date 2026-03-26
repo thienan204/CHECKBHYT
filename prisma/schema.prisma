@@ -102,6 +102,7 @@ model DuplicateRule {
   active              Boolean  @default(true)
   serviceValues       String[]
   excludedServiceValues String[]
+  ignoreIfSameField   String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
@@ -123,4 +124,185 @@ model SpecializedRule {
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model DepartmentCatalog {
+  id          String   @id @default(uuid())
+  STT         Int?
+  MA_KHOA     String   @db.VarChar(50)
+  TEN_KHOA    String   @db.Text
+  BAN_KHAM    Int?
+  GIUONG_PD   Int?
+  GIUONG_TK   Int?
+  GIUONG_HSTC Int?
+  GIUONG_HSCC Int?
+  TU_NGAY     String?  @db.VarChar(8)
+  DEN_NGAY    String?  @db.VarChar(8)
+  MA_CSKCB    String?  @db.VarChar(5)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Mau02Catalog {
+  id              String   @id @default(uuid())
+  STT             Int?
+  MA_KHOA         String?  @db.VarChar(100)
+  TEN_KHOA        String?
+  HO_TEN          String?  @db.VarChar(250)
+  GIOI_TINH       Int?     
+  SO_DINH_DANH    String?  @db.VarChar(15)
+  CHUCDANH_NN     String?  @db.VarChar(2)
+  VI_TRI          String?  @db.VarChar(5)
+  MACCHN          String?  @db.VarChar(250)
+  NGAYCAP_CCHN    String?  @db.VarChar(8)
+  NOICAP_CCHN     String?  @db.VarChar(250)
+  PHAMVI_CM       String?  @db.VarChar(15)
+  PHAMVI_CMBS     String?  @db.VarChar(50)
+  DVKT_KHAC       String?  
+  VB_PHANCONG     String?  @db.VarChar(50)
+  THOIGIAN_DK     Int?     
+  THOIGIAN_NGAY   String?  @db.VarChar(200)
+  THOIGIAN_TUAN   String?  @db.VarChar(200)
+  CSKCB_KHAC      String?  @db.VarChar(30)
+  CSKCB_CGKT      String?  @db.VarChar(5)
+  QD_CGKT         String?  @db.VarChar(50)
+  TU_NGAY         String?  @db.VarChar(8)
+  DEN_NGAY        String?  @db.VarChar(8)
+  MA_CSKCB        String?  @db.VarChar(5)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Mau03Catalog {
+  id              String   @id @default(uuid())
+  STT             Int?
+  MA_THUOC        String?  @db.VarChar(255)
+  TEN_HOAT_CHAT   String?  
+  TEN_THUOC       String?  
+  DON_VI_TINH     String?  @db.VarChar(50)
+  HAM_LUONG       String?  
+  DUONG_DUNG      String?  @db.VarChar(255)
+  MA_DUONG_DUNG   String?  @db.VarChar(10)
+  DANG_BAO_CHE    String?  
+  SO_DANG_KY      String?  
+  SO_LUONG        Float?   
+  DON_GIA         Float?
+  DON_GIA_BH      Float?
+  QUY_CACH        String?  
+  NHA_SX          String?  
+  NUOC_SX         String?  @db.VarChar(100)
+  NHA_THAU        String?  
+  TT_THAU         String?  @db.VarChar(50)
+  TU_NGAY_HD      String?  @db.VarChar(8)
+  DEN_NGAY_HD     String?  @db.VarChar(8)
+  MA_CSKCB        String?  @db.VarChar(5)
+  LOAI_THUOC      Int?     
+  LOAI_THAU       Int?     
+  HT_THAU         Int?     
+  MA_DVKT         String?  
+  TCCL            String?  @db.VarChar(50)
+  BO_PHAN_VT      Int?     
+  TEN_KHOA_HOC    String?  @db.VarChar(500)
+  NGUON_GOC       String?  @db.VarChar(500)
+  PP_CHEBIEN      String?  
+  MA_DL_NHAP      String?  @db.VarChar(3)
+  MA_DL_CB        String?  @db.VarChar(3)
+  TLHH_CB         Float?   
+  TLHH_BQ         Float?   
+  MA_CSKCB_THUOC  String?  @db.VarChar(5)
+  TU_NGAY         String?  @db.VarChar(8)
+  DEN_NGAY        String?  @db.VarChar(8)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Mau04Catalog {
+  id              String   @id @default(uuid())
+  STT             Int?
+  MA_VAT_TU       String?  @db.VarChar(50)
+  NHOM_VAT_TU     String?  
+  TEN_VAT_TU      String?  
+  MA_HIEU         String?  
+  SO_LUU_HANH     String?  @db.VarChar(20)
+  TINHNANG_KT     String?  
+  QUY_CACH        String?  
+  HANG_SX         String?  
+  NUOC_SX         String?  @db.VarChar(100)
+  DON_VI_TINH     String?  @db.VarChar(50)
+  DON_GIA         Float?   
+  DON_GIA_BH      Float?   
+  TYLE_TT_BH      Float?   
+  SO_LUONG        Float?   
+  DINH_MUC        Float?   
+  NHA_THAU        String?  
+  TT_THAU         String?  @db.VarChar(50)
+  TU_NGAY_HD      String?  @db.VarChar(8)
+  DEN_NGAY_HD     String?  @db.VarChar(8)
+  MA_CSKCB        String?  @db.VarChar(5)
+  LOAI_THAU       Int?     
+  HT_THAU         Int?     
+  MA_CSKCB_TBYT   String?  @db.VarChar(5)
+  TU_NGAY         String?  @db.VarChar(8)
+  DEN_NGAY        String?  @db.VarChar(8)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Mau05Catalog {
+  id              String   @id @default(uuid())
+  STT             Int?
+  MA_DICH_VU      String?  @db.VarChar(20)
+  TEN_DICH_VU     String?  
+  TEN_DVKT_GIA    String?  
+  DON_GIA         Float?   
+  QUY_TRINH       String?  @db.VarChar(50)
+  SO_LUONG_CGKT   Float?   
+  CSKCB_CGKT      String?  @db.VarChar(5)
+  CSKCB_CLS       String?  @db.VarChar(5)
+  QD_DVKT         String?  @db.VarChar(50)
+  QD_PD_GIA       String?  @db.VarChar(50)
+  GHI_CHU         String?  
+  MA_THUOC        String?  @db.VarChar(15)
+  TEN_THUOC       String?  
+  SO_DANG_KY      String?  @db.VarChar(50)
+  DON_VI_TINH     String?  
+  TT_THAU         String?  
+  DON_GIA_THUOC   Float?   
+  DM_NSX_CDD      Float?   
+  DM_THUCTE_CDD   Float?   
+  LIEU_BQ_PX      Float?   
+  TL_THUCTE_BQ_PX Float?   
+  THANH_TIEN_THUOC Float?   
+  GIA_THANH_TOAN  Float?   
+  TU_NGAY         String?  @db.VarChar(8)
+  DEN_NGAY        String?  @db.VarChar(8)
+  MA_CSKCB        String?  @db.VarChar(5)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Mau06Catalog {
+  id              String   @id @default(uuid())
+  STT             Int?
+  TEN_TB          String?  
+  KY_HIEU         String?  
+  CONGTY_SX       String?  
+  NUOC_SX         String?  @db.VarChar(100)
+  NAM_SX          Int?     
+  NAM_SD          Int?     
+  MA_MAY          String?  
+  SO_LUU_HANH     String?  @db.VarChar(20)
+  HD_TU           String?  @db.VarChar(8)
+  HD_DEN          String?  @db.VarChar(8)
+  TU_NGAY         String?  @db.VarChar(8)
+  DEN_NGAY        String?  @db.VarChar(8)
+  MA_CSKCB        String?  @db.VarChar(5)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

@@ -49,9 +49,11 @@ const XML_LIST_PATHS: Record<string, string> = {
  */
 export class ValidationEngine {
     private rules: ValidationRule[] = [];
+    private masterData: Record<string, Set<string>> = {};
 
-    constructor(rules: ValidationRule[] = []) {
+    constructor(rules: ValidationRule[] = [], masterData: Record<string, Set<string>> = {}) {
         this.rules = rules;
+        this.masterData = masterData;
     }
 
     setRules(rules: ValidationRule[]) {
@@ -524,6 +526,12 @@ export class ValidationEngine {
                 return diffMs / (1000 * 60 * 60);
             };
 
+            const EXISTS_IN = (listName: string, value: any): boolean => {
+                if (!this.masterData || !this.masterData[listName] || value === null || value === undefined) return false;
+                const valStr = String(value).trim();
+                return this.masterData[listName].has(valStr);
+            };
+
             // Only expose specific safe keys and the context objects
             // We expose all keys in context for maximum flexibility
             // Inject Helpers
@@ -533,7 +541,8 @@ export class ValidationEngine {
                 parseFloat: parseFloat,
                 parseInt: parseInt,
                 parseDate: parseDate,
-                diffHours: diffHours
+                diffHours: diffHours,
+                EXISTS_IN: EXISTS_IN
             };
 
             const keys = [...Object.keys(context), ...Object.keys(helpers)];
@@ -561,25 +570,6 @@ export class ValidationEngine {
                 if (cleanCode[firstEq + 1] !== '=') {
                     cleanCode = cleanCode.substring(firstEq + 1).trim();
                 }
-            }
-
-            // 1. Handle LOGICAL OR (||)
-            // Split by || but respect parentheses (naive implementation for now, assuming simple logic)
-            if (cleanCode.includes('||')) {
-                const parts = cleanCode.split('||');
-                return parts.some(part => this.evaluateRuleCode(part, context, throwError));
-            }
-
-            // 2. Handle LOGICAL AND (&&)
-            if (cleanCode.includes('&&')) {
-                const parts = cleanCode.split('&&');
-                // All parts must be true
-                return parts.every(part => this.evaluateRuleCode(part, context, throwError));
-            }
-
-            // 3. Handle PARENTHESES (Basic support for wrapping single expression)
-            if (cleanCode.startsWith('(') && cleanCode.endsWith(')')) {
-                return this.evaluateRuleCode(cleanCode.substring(1, cleanCode.length - 1), context, throwError);
             }
 
             const getVal = (path: string) => {
@@ -623,6 +613,41 @@ export class ValidationEngine {
                 }
                 return current;
             };
+
+            // 0. Handle EXISTS_IN Helper (Dynamic substitution)
+            cleanCode = cleanCode.replace(/(!?)EXISTS_IN\(\s*['"]([^'"]+)['"]\s*,\s*([^)]+)\s*\)/g, (match, notOp, listName, field) => {
+                const val = getVal(field.trim());
+                const valStr = val !== null && val !== undefined ? String(val).trim() : '';
+                let exists = false;
+                if (this.masterData && this.masterData[listName]) {
+                    exists = this.masterData[listName].has(valStr);
+                }
+                const result = notOp ? !exists : exists;
+                // Return string representation of boolean
+                return result ? "true" : "false";
+            });
+
+            // 1. Handle LOGICAL OR (||)
+            // Split by || but respect parentheses (naive implementation for now, assuming simple logic)
+            if (cleanCode.includes('||')) {
+                const parts = cleanCode.split('||');
+                return parts.some(part => this.evaluateRuleCode(part, context, throwError));
+            }
+
+            // 2. Handle LOGICAL AND (&&)
+            if (cleanCode.includes('&&')) {
+                const parts = cleanCode.split('&&');
+                // All parts must be true
+                return parts.every(part => this.evaluateRuleCode(part, context, throwError));
+            }
+
+            // 3. Handle PARENTHESES (Basic support for wrapping single expression)
+            if (cleanCode.startsWith('(') && cleanCode.endsWith(')')) {
+                return this.evaluateRuleCode(cleanCode.substring(1, cleanCode.length - 1), context, throwError);
+            }
+
+            if (cleanCode === 'true') return true;
+            if (cleanCode === 'false') return false;
 
             // 4. Comparison operations
             const ops = ['<=', '>=', '==', '!=', '===', '!==', '<', '>'];

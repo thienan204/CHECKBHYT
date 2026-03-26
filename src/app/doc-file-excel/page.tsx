@@ -28,6 +28,7 @@ interface DuplicateRule {
     active?: boolean;
     serviceValues?: string[]; // Specific values to filter
     excludedServiceValues?: string[]; // Specific values to exclude
+    ignoreIfSameField?: string;
 }
 
 
@@ -124,7 +125,8 @@ export default function ExcelReaderPage() {
             ignoreNullValues: values.ignoreNullValues || false,
             active: values.active !== undefined ? values.active : true,
             serviceValues: values.serviceValues || [],
-            excludedServiceValues: values.excludedServiceValues || []
+            excludedServiceValues: values.excludedServiceValues || [],
+            ignoreIfSameField: values.ignoreIfSameField || ''
         });
 
         if (res.success) {
@@ -152,7 +154,8 @@ export default function ExcelReaderPage() {
             ignoreNullValues: values.ignoreNullValues || false,
             active: values.active,
             serviceValues: values.serviceValues || [],
-            excludedServiceValues: values.excludedServiceValues || []
+            excludedServiceValues: values.excludedServiceValues || [],
+            ignoreIfSameField: values.ignoreIfSameField || ''
         });
 
         if (res.success) {
@@ -389,7 +392,8 @@ export default function ExcelReaderPage() {
         ignoreMinusOne: boolean,
         ignoreNullValues: boolean,
         filterServiceValues?: string[],
-        excludedServiceValues?: string[]
+        excludedServiceValues?: string[],
+        ignoreSameColIdx?: number
     ) => {
         setLoading(true);
 
@@ -467,6 +471,19 @@ export default function ExcelReaderPage() {
 
                     if (!startB || !endB) continue;
 
+                    // Ignored Field Logic: Skip if same value in ignoreSameColIdx
+                    if (ignoreSameColIdx !== undefined && ignoreSameColIdx !== -1) {
+                        const valA = itemA[ignoreSameColIdx];
+                        const valB = itemB[ignoreSameColIdx];
+                        if (valA !== undefined && valB !== undefined) {
+                            const strA = String(valA).trim();
+                            const strB = String(valB).trim();
+                            if (strA !== '' && strA === strB) {
+                                continue;
+                            }
+                        }
+                    }
+
                     // Tính thời gian giao nhau (overlap) giữa 2 khoảng thời gian
                     const overlapStart = Math.max(startA.getTime(), startB.getTime());
                     const overlapEnd = Math.min(endA.getTime(), endB.getTime());
@@ -541,17 +558,30 @@ export default function ExcelReaderPage() {
         if (!rule) return;
 
         // Map rule column names to indices
-        // headers is array of strings.
-        const getInd = (name: string) => headers.indexOf(name);
+        // headers is array of strings. Handle trimmed cases.
+        const getInd = (name: string) => {
+            const lowerName = String(name).trim().toLowerCase();
+            return headers.findIndex(h => h && String(h).trim().toLowerCase() === lowerName);
+        };
 
         const machineIndices = rule.machineCols.map(getInd).filter(i => i !== -1);
         const startIndex = getInd(rule.startCol);
         const endIndex = getInd(rule.endCol);
         const serviceIndex = rule.serviceCol ? getInd(rule.serviceCol) : undefined;
+        const ignoreSameColIdx = rule.ignoreIfSameField ? getInd(rule.ignoreIfSameField) : undefined;
 
         if (machineIndices.length === 0 || startIndex === -1 || endIndex === -1) {
-            message.error("Không tìm thấy các cột tương ứng trong file Excel! Hãy kiểm tra lại tên cột trong Quy tắc.");
+            message.error("Không tìm thấy các cột tương ứng trong file Excel! Hãy kiểm tra lại tên cột kết nối Mốc thời gian, Máy trong Quy tắc.");
             return;
+        }
+
+        if (rule.ignoreIfSameField && ignoreSameColIdx === -1) {
+            message.warning(`⚠ Cột "${rule.ignoreIfSameField}" chưa trùng khớp chính xác 100% với tên trên mảng Header dòng đầu của Excel. Đã Trim. Lỗi vẫn sẽ quét!`);
+            console.log("Cofig Rule Ignore:", rule.ignoreIfSameField, "nhưng Headers là:", headers);
+        } else if (rule.ignoreIfSameField && ignoreSameColIdx !== undefined && ignoreSameColIdx !== -1) {
+            message.info(`Đã áp dụng bỏ qua cảnh báo nếu 2 dòng có cùng Dữ liệu ở Cột [${rule.ignoreIfSameField}] (Index Cột thứ: ${ignoreSameColIdx})`);
+        } else {
+            console.log("Rule Object khong chua truong ignoreIfSameField:", rule);
         }
 
         performDuplicateCheck(
@@ -562,7 +592,8 @@ export default function ExcelReaderPage() {
             rule.ignoreMaMayMinusOne,
             rule.ignoreNullValues || false,
             rule.serviceValues,
-            rule.excludedServiceValues
+            rule.excludedServiceValues,
+            ignoreSameColIdx
         );
     };
 
@@ -957,6 +988,15 @@ export default function ExcelReaderPage() {
 
                     <Form.Item name="ignoreNullValues" valuePropName="checked">
                         <Checkbox>Bỏ qua nếu giá trị Cột Định Danh là NULL hoặc Rỗng</Checkbox>
+                    </Form.Item>
+
+                    <Divider />
+                    <Form.Item
+                        label="Giá trị cần bỏ qua nếu trùng (Tuỳ chọn)"
+                        name="ignoreIfSameField"
+                        help="Gõ tên Cột trên File Excel (VD: MAHOSOBENHAN). Nếu 2 dòng bị trùng lịch có cùng giá trị ở cột này, hệ thống sẽ BỎ QUA không báo lỗi nó."
+                    >
+                        <Input placeholder="VD: MAHOSOBENHAN" />
                     </Form.Item>
 
                     <div className="flex justify-end gap-2 mt-6">

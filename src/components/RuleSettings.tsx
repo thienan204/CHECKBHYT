@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ValidationRule, DEFAULT_RULES, ValidationEngine } from '@/lib/validation';
 import { HosoRecord } from '@/lib/xml';
-import { Modal, Form, Input, Select, Switch, Button, Popconfirm, Table, Badge, Card, Row, Col, Space, Alert, Tag, Tooltip, message, AutoComplete, Checkbox, InputNumber } from 'antd';
+import { Modal, Form, Input, Select, Switch, Button, Popconfirm, Table, Badge, Card, Row, Col, Space, Alert, Tag, Tooltip, message, AutoComplete, Checkbox, InputNumber, Collapse } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined, ToolOutlined, CheckCircleOutlined, CloseCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -381,6 +381,50 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
         </div>
     );
 
+    const logicCheatSheetItems = [
+        {
+            key: '1',
+            label: <span className="font-bold text-yellow-800">💡 Xem Hướng dẫn & Biểu thức Mẫu (Cheatsheet)</span>,
+            children: (
+                <div className="text-xs space-y-3">
+                    <div>
+                        <div className="font-bold text-blue-700">1. Kiểm tra danh mục hệ thống (EXISTS_IN)</div>
+                        <div className="text-gray-600 mb-1">Dùng để đối chiếu MÃ của File XML với danh sách trong Database hệ thống.</div>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li><code className="bg-white px-1 border rounded text-red-600">!EXISTS_IN('Staff.ma_bac_si', MA_BAC_SI)</code> : Báo lỗi nếu Mã Bác sĩ không có trên hệ thống.</li>
+                            <li><code className="bg-white px-1 border rounded text-red-600">!EXISTS_IN('Department.ma_khoa', MA_KHOA)</code> : Báo lỗi nếu Mã Khoa không có trên hệ thống.</li>
+                            <li><span className="text-gray-500 italic">Mẹo: Bạn có thể đổi 'Staff.ma_bac_si' bằng bất kỳ Tên_Bảng.Tên_Cột nào có trong Database sau này. Nó sẽ tự động hiểu!</span></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div className="font-bold text-blue-700">2. So sánh Ngày Tháng (Date)</div>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li><code className="bg-white px-1 border rounded text-red-600">NGAY_RA {"<"} NGAY_VAO</code> : Báo lỗi nếu Ngày ra viện nhỏ hơn Ngày vào viện.</li>
+                            <li><code className="bg-white px-1 border rounded text-red-600">NGAY_KQ {"<"} root.XML1.NGAY_VAO</code> : Khi viết luật cho bảng phụ (như XML3), cần truy cập chéo dữ liệu bảng gốc XML1 bằng chữ <code className="bg-white px-1 border rounded">root.XML1.</code> đằng trước.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div className="font-bold text-blue-700">3. Rỗng / Bắt buộc nhập (Null)</div>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li><code className="bg-white px-1 border rounded text-red-600">MA_BENH == null</code> : Không có dữ liệu, báo lỗi.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div className="font-bold text-blue-700">4. Phép toán Logic ghép</div>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li>Dùng <code className="font-bold">&&</code> cho "VÀ": <code className="bg-white px-1 border rounded">A {">"} 0 && B {">"} 0</code></li>
+                            <li>Dùng <code className="font-bold">||</code> cho "HOẶC": <code className="bg-white px-1 border rounded">A == null || B == null</code></li>
+                        </ul>
+                    </div>
+                </div>
+            )
+        }
+    ];
+
+    const logicCheatSheet = (
+        <Collapse size="small" bordered={false} className="mb-4 mt-2 bg-yellow-50 border border-yellow-200" items={logicCheatSheetItems} />
+    );
+
     // If not using Antd Modal as wrapper (e.g. full page), render directly
     // But requirement is Modal replacement.
 
@@ -484,10 +528,12 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                         label="Biểu thức logic"
                                         help="Ví dụ: NGAY_YL < XML1.NGAY_VAO"
                                         tooltip="Sử dụng mã trường. Dùng root.XML1... để truy cập chéo bảng."
-                                        style={{ marginBottom: 12 }}
+                                        style={{ marginBottom: 0 }}
                                     >
                                         <TextArea rows={4} className="font-mono bg-sky-50" />
                                     </Form.Item>
+
+                                    {logicCheatSheet}
 
                                     <div className="mb-4 p-3 bg-white rounded border border-blue-100">
                                         <Space orientation="vertical" style={{ width: '100%' }}>
@@ -719,10 +765,12 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                                     label="Biểu thức logic"
                                     help="Ví dụ: NGAY_YL < XML1.NGAY_VAO"
                                     tooltip="Sử dụng mã trường. Dùng root.XML1... để truy cập chéo bảng."
-                                    style={{ marginBottom: 12 }}
+                                    style={{ marginBottom: 0 }}
                                 >
                                     <TextArea rows={4} className="font-mono bg-sky-50" />
                                 </Form.Item>
+
+                                {logicCheatSheet}
 
                                 <div className="mb-4 p-3 bg-white rounded border border-blue-100">
                                     <Space orientation="vertical" style={{ width: '100%' }}>

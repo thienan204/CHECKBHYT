@@ -156,6 +156,7 @@ export default function XmlReader() {
     const [detailFilters, setDetailFilters] = useState<Record<string, string>>({});
     const [headerDepartmentFilter, setHeaderDepartmentFilter] = useState<string | null>(null);
     const [initialDBLoadDone, setInitialDBLoadDone] = useState(false);
+    const [masterData, setMasterData] = useState<Record<string, Set<string>>>({});
 
     // Load DB
     useEffect(() => {
@@ -191,6 +192,50 @@ export default function XmlReader() {
         };
     }, []);
 
+    // Fetch dynamic master data required by rules
+    useEffect(() => {
+        if (!isRulesLoaded || !rules || rules.length === 0) return;
+
+        const refs = new Set<string>();
+        rules.forEach(rule => {
+            if (!rule.active || !rule.code) return;
+            const matches = rule.code.matchAll(/EXISTS_IN\(\s*['"]([^'"]+)['"]/g);
+            for (const match of matches) {
+                if (match[1]) refs.add(match[1]);
+            }
+            if (rule.mathExpression) {
+                const mathMatches = rule.mathExpression.matchAll(/EXISTS_IN\(\s*['"]([^'"]+)['"]/g);
+                for (const match of mathMatches) {
+                    if (match[1]) refs.add(match[1]);
+                }
+            }
+        });
+
+        if (refs.size === 0) {
+            setMasterData({});
+            return;
+        }
+
+        const fetchDynamicMaster = async () => {
+            try {
+                const params = Array.from(refs).join(',');
+                const res = await fetch(`${getBasePath()}/api/dynamic-master?refs=${params}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const parsedData: Record<string, Set<string>> = {};
+                    for (const key in data) {
+                        parsedData[key] = new Set(data[key]);
+                    }
+                    setMasterData(parsedData);
+                }
+            } catch (error) {
+                console.error("Error fetching dynamic master data:", error);
+            }
+        };
+
+        fetchDynamicMaster();
+    }, [rules, isRulesLoaded]);
+
 
     // Re-validate when rules change
     useEffect(() => {
@@ -199,7 +244,7 @@ export default function XmlReader() {
 
         setRecords(prev => {
             if (prev.length === 0) return prev;
-            const validator = new ValidationEngine(rules);
+            const validator = new ValidationEngine(rules, masterData);
             // Re-validate all existing records
             const newRecords = prev.map(r => ({ ...r, validationResults: validator.validate(r) }));
             // If selected record exists, update it too
@@ -210,7 +255,7 @@ export default function XmlReader() {
             }
             return newRecords;
         });
-    }, [rules, isRulesLoaded, initialDBLoadDone]); // Remove selectedRecord to avoid loop, handled inside
+    }, [rules, isRulesLoaded, initialDBLoadDone, masterData]); // Remove selectedRecord to avoid loop, handled inside
 
     // Handle File Upload
     const handleFileUpload = async (fileList: File[]) => {
@@ -221,7 +266,7 @@ export default function XmlReader() {
         await clearDB();
 
         setProcessingProgress({ current: 0, total: fileList.length });
-        const validator = new ValidationEngine(rules);
+        const validator = new ValidationEngine(rules, masterData);
 
         const BATCH_SIZE = 10;
         let processedCount = 0;
@@ -1066,7 +1111,7 @@ export default function XmlReader() {
                                             icon={<ReloadOutlined />}
                                             onClick={async () => {
                                                 const latestRules = await reloadRules();
-                                                const validator = new ValidationEngine(latestRules);
+                                                const validator = new ValidationEngine(latestRules, masterData);
                                                 setRecords(prev => prev.map(r => ({ ...r, validationResults: validator.validate(r) })));
                                                 message.success('Đã tải lại quy tắc mới nhất và áp dụng cho dữ liệu hiện tại.');
                                             }}

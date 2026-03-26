@@ -23,11 +23,12 @@
         "MA_NHOM": 15,
         "TYLE_TT_DV": 100
       },
-      "toleranceMinutes": 0
+      "toleranceMinutes": 0,
+      "ignoreIfSameField": "MA_BN"
     },
     "sqlQuery": null,
     "createdAt": "2026-02-04T09:12:33.636Z",
-    "updatedAt": "2026-02-09T01:27:39.298Z"
+    "updatedAt": "2026-03-25T09:49:00.208Z"
   },
   {
     "id": "cml88004h0000ksk5fz4t5o6k",
@@ -87,5 +88,36 @@
     "sqlQuery": null,
     "createdAt": "2026-02-05T15:14:07.432Z",
     "updatedAt": "2026-02-09T01:28:26.523Z"
+  },
+  {
+    "id": "cmmskx8fc0000gzldgaugfofm",
+    "name": "Trùng thời gian chi định",
+    "slug": "trung-thoi-gian-chidinh-bs",
+    "description": null,
+    "isActive": true,
+    "order": 4,
+    "ruleType": "MACHINE_CHECK",
+    "logicConfig": {
+      "type": "DUPLICATE_DOCTOR",
+      "fields": {
+        "time": "NGAY_YL",
+        "doctor": "MA_BAC_SI"
+      },
+      "filter": {
+        "MA_NHOM": [
+          1,
+          2,
+          3,
+          4,
+          8,
+          18,
+          5
+        ]
+      },
+      "toleranceMinutes": 0
+    },
+    "sqlQuery": null,
+    "createdAt": "2026-03-16T02:43:37.319Z",
+    "updatedAt": "2026-03-17T15:07:51.301Z"
   }
 ]

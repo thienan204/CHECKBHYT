@@ -19,6 +19,7 @@ interface DuplicateRule {
     active?: boolean;
     serviceValues?: string[];
     excludedServiceValues?: string[];
+    ignoreIfSameField?: string;
 }
 
 export default function ExcelRulesPage() {
@@ -53,6 +54,7 @@ export default function ExcelRulesPage() {
             ...values,
             ignoreMaMayMinusOne: values.ignoreMaMayMinusOne || false,
             active: values.active !== undefined ? values.active : true,
+            ignoreIfSameField: values.ignoreIfSameField || ''
         });
 
         if (res.success) {
@@ -72,6 +74,7 @@ export default function ExcelRulesPage() {
         const res = await updateDuplicateRule(editingRule.id, {
             ...values,
             ignoreMaMayMinusOne: values.ignoreMaMayMinusOne || false,
+            ignoreIfSameField: values.ignoreIfSameField || ''
         });
 
         if (res.success) {
@@ -239,9 +242,18 @@ export default function ExcelRulesPage() {
                         </Col>
                     </Row>
 
-                    <Form.Item name="ignoreMaMayMinusOne" valuePropName="checked">
-                        <Checkbox>Bỏ qua nếu giá trị định danh = -1</Checkbox>
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={24}>
+                            <Form.Item name="ignoreMaMayMinusOne" valuePropName="checked">
+                                <Checkbox>Bỏ qua nếu giá trị định danh = -1</Checkbox>
+                            </Form.Item>
+                        </Col>
+                        <Col span={24}>
+                            <Form.Item label="Giá trị cần bỏ qua nếu trùng (Tuỳ chọn)" name="ignoreIfSameField">
+                                <Input placeholder="VD: MA_BN (Bỏ qua báo lỗi nếu 2 đối tượng cùng chung giá trị trường này)" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
 
                     <div className="flex justify-end gap-2 mt-4">
                         <Button onClick={() => setIsModalOpen(false)}>Hủy</Button>

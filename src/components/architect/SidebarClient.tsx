@@ -6,7 +6,7 @@ import {
     RocketOutlined, AppstoreOutlined,
     FileTextOutlined, FileExcelOutlined,
     SettingOutlined, DashboardOutlined,
-    TableOutlined
+    TableOutlined, UserOutlined, MedicineBoxOutlined, ToolOutlined, HeartOutlined, DesktopOutlined
 } from '@ant-design/icons';
 import { Button } from 'antd';
 import { getBasePath } from '@/utils/config';
@@ -110,6 +110,42 @@ export default function SidebarClient({ rules, isOpen, user }: SidebarClientProp
                         <Link href="/staff" className="text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
                             <RocketOutlined className="text-lg opacity-70" />
                             Q.Lý Nhân Viên
+                        </Link>
+
+                        {/* Mau01 Catalog Link */}
+                        <Link href="/mau01-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                            <TableOutlined className="text-lg opacity-70" />
+                            Quản lý Mẫu 01/DM
+                        </Link>
+
+                        {/* Mau02 Catalog Link */}
+                        <Link href="/mau02-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                            <UserOutlined className="text-lg opacity-70" />
+                            Quản lý Nhân lực (Mẫu 02)
+                        </Link>
+
+                        {/* Mau03 Catalog Link */}
+                        <Link href="/mau03-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-rose-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                            <MedicineBoxOutlined className="text-lg opacity-70" />
+                            Quản lý Thuốc (Mẫu 03)
+                        </Link>
+
+                        {/* Mau04 Catalog Link */}
+                        <Link href="/mau04-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-orange-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                            <ToolOutlined className="text-lg opacity-70" />
+                            Quản lý VTYT (Mẫu 04)
+                        </Link>
+
+                        {/* Mau05 Catalog Link */}
+                        <Link href="/mau05-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-red-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                            <HeartOutlined className="text-lg opacity-70" />
+                            Quản lý DVKT (Mẫu 05)
+                        </Link>
+
+                        {/* Mau06 Catalog Link */}
+                        <Link href="/mau06-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                            <DesktopOutlined className="text-lg opacity-70" />
+                            Quản lý Máy móc (Mẫu 06)
                         </Link>
                     </div>
                 )}

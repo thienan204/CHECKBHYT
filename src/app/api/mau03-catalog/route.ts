@@ -1,0 +1,120 @@
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export async function GET() {
+    try {
+        const records = await prisma.mau03Catalog.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+        return NextResponse.json(records);
+    } catch (error) {
+        console.error('Error fetching mau03 catalog:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function POST(request: Request) {
+    try {
+        const body = await request.json();
+
+        // Bulk insert
+        if (Array.isArray(body)) {
+            const createData = body.map((row: any) => ({
+                STT: row.STT ? Number(row.STT) : null,
+                MA_THUOC: row.MA_THUOC ? String(row.MA_THUOC).substring(0, 255) : null,
+                TEN_HOAT_CHAT: row.TEN_HOAT_CHAT ? String(row.TEN_HOAT_CHAT) : null,
+                TEN_THUOC: row.TEN_THUOC ? String(row.TEN_THUOC) : null,
+                DON_VI_TINH: row.DON_VI_TINH ? String(row.DON_VI_TINH).substring(0, 50) : null,
+                HAM_LUONG: row.HAM_LUONG ? String(row.HAM_LUONG) : null,
+                DUONG_DUNG: row.DUONG_DUNG ? String(row.DUONG_DUNG).substring(0, 255) : null,
+                MA_DUONG_DUNG: row.MA_DUONG_DUNG ? String(row.MA_DUONG_DUNG).substring(0, 10) : null,
+                DANG_BAO_CHE: row.DANG_BAO_CHE ? String(row.DANG_BAO_CHE) : null,
+                SO_DANG_KY: row.SO_DANG_KY ? String(row.SO_DANG_KY) : null,
+                SO_LUONG: row.SO_LUONG ? Number(row.SO_LUONG) : null,
+                DON_GIA: row.DON_GIA ? Number(row.DON_GIA) : null,
+                DON_GIA_BH: row.DON_GIA_BH ? Number(row.DON_GIA_BH) : null,
+                QUY_CACH: row.QUY_CACH ? String(row.QUY_CACH) : null,
+                NHA_SX: row.NHA_SX ? String(row.NHA_SX) : null,
+                NUOC_SX: row.NUOC_SX ? String(row.NUOC_SX).substring(0, 100) : null,
+                NHA_THAU: row.NHA_THAU ? String(row.NHA_THAU) : null,
+                TT_THAU: row.TT_THAU ? String(row.TT_THAU).substring(0, 50) : null,
+                TU_NGAY_HD: row.TU_NGAY_HD ? String(row.TU_NGAY_HD).substring(0, 8) : null,
+                DEN_NGAY_HD: row.DEN_NGAY_HD ? String(row.DEN_NGAY_HD).substring(0, 8) : null,
+                MA_CSKCB: row.MA_CSKCB ? String(row.MA_CSKCB).substring(0, 5) : null,
+                LOAI_THUOC: row.LOAI_THUOC ? Number(row.LOAI_THUOC) : null,
+                LOAI_THAU: row.LOAI_THAU ? Number(row.LOAI_THAU) : null,
+                HT_THAU: row.HT_THAU ? Number(row.HT_THAU) : null,
+                MA_DVKT: row.MA_DVKT ? String(row.MA_DVKT) : null,
+                TCCL: row.TCCL ? String(row.TCCL).substring(0, 50) : null,
+                BO_PHAN_VT: row.BO_PHAN_VT ? Number(row.BO_PHAN_VT) : null,
+                TEN_KHOA_HOC: row.TEN_KHOA_HOC ? String(row.TEN_KHOA_HOC).substring(0, 500) : null,
+                NGUON_GOC: row.NGUON_GOC ? String(row.NGUON_GOC).substring(0, 500) : null,
+                PP_CHEBIEN: row.PP_CHEBIEN ? String(row.PP_CHEBIEN) : null,
+                MA_DL_NHAP: row.MA_DL_NHAP ? String(row.MA_DL_NHAP).substring(0, 3) : null,
+                MA_DL_CB: row.MA_DL_CB ? String(row.MA_DL_CB).substring(0, 3) : null,
+                TLHH_CB: row.TLHH_CB ? Number(row.TLHH_CB) : null,
+                TLHH_BQ: row.TLHH_BQ ? Number(row.TLHH_BQ) : null,
+                MA_CSKCB_THUOC: row.MA_CSKCB_THUOC ? String(row.MA_CSKCB_THUOC).substring(0, 5) : null,
+                TU_NGAY: row.TU_NGAY ? String(row.TU_NGAY).substring(0, 8) : null,
+                DEN_NGAY: row.DEN_NGAY ? String(row.DEN_NGAY).substring(0, 8) : null,
+            }));
+
+            const result = await prisma.mau03Catalog.createMany({
+                data: createData,
+                skipDuplicates: true,
+            });
+
+            return NextResponse.json({ success: true, count: result.count });
+        }
+
+        // Single insert
+        const newRecord = await prisma.mau03Catalog.create({
+            data: {
+                STT: body.STT ? Number(body.STT) : null,
+                MA_THUOC: body.MA_THUOC ? String(body.MA_THUOC).substring(0, 255) : null,
+                TEN_HOAT_CHAT: body.TEN_HOAT_CHAT ? String(body.TEN_HOAT_CHAT) : null,
+                TEN_THUOC: body.TEN_THUOC ? String(body.TEN_THUOC) : null,
+                DON_VI_TINH: body.DON_VI_TINH ? String(body.DON_VI_TINH).substring(0, 50) : null,
+                HAM_LUONG: body.HAM_LUONG ? String(body.HAM_LUONG) : null,
+                DUONG_DUNG: body.DUONG_DUNG ? String(body.DUONG_DUNG).substring(0, 255) : null,
+                MA_DUONG_DUNG: body.MA_DUONG_DUNG ? String(body.MA_DUONG_DUNG).substring(0, 10) : null,
+                DANG_BAO_CHE: body.DANG_BAO_CHE ? String(body.DANG_BAO_CHE) : null,
+                SO_DANG_KY: body.SO_DANG_KY ? String(body.SO_DANG_KY) : null,
+                SO_LUONG: body.SO_LUONG ? Number(body.SO_LUONG) : null,
+                DON_GIA: body.DON_GIA ? Number(body.DON_GIA) : null,
+                DON_GIA_BH: body.DON_GIA_BH ? Number(body.DON_GIA_BH) : null,
+                QUY_CACH: body.QUY_CACH ? String(body.QUY_CACH) : null,
+                NHA_SX: body.NHA_SX ? String(body.NHA_SX) : null,
+                NUOC_SX: body.NUOC_SX ? String(body.NUOC_SX).substring(0, 100) : null,
+                NHA_THAU: body.NHA_THAU ? String(body.NHA_THAU) : null,
+                TT_THAU: body.TT_THAU ? String(body.TT_THAU).substring(0, 50) : null,
+                TU_NGAY_HD: body.TU_NGAY_HD ? String(body.TU_NGAY_HD).substring(0, 8) : null,
+                DEN_NGAY_HD: body.DEN_NGAY_HD ? String(body.DEN_NGAY_HD).substring(0, 8) : null,
+                MA_CSKCB: body.MA_CSKCB ? String(body.MA_CSKCB).substring(0, 5) : null,
+                LOAI_THUOC: body.LOAI_THUOC ? Number(body.LOAI_THUOC) : null,
+                LOAI_THAU: body.LOAI_THAU ? Number(body.LOAI_THAU) : null,
+                HT_THAU: body.HT_THAU ? Number(body.HT_THAU) : null,
+                MA_DVKT: body.MA_DVKT ? String(body.MA_DVKT) : null,
+                TCCL: body.TCCL ? String(body.TCCL).substring(0, 50) : null,
+                BO_PHAN_VT: body.BO_PHAN_VT ? Number(body.BO_PHAN_VT) : null,
+                TEN_KHOA_HOC: body.TEN_KHOA_HOC ? String(body.TEN_KHOA_HOC).substring(0, 500) : null,
+                NGUON_GOC: body.NGUON_GOC ? String(body.NGUON_GOC).substring(0, 500) : null,
+                PP_CHEBIEN: body.PP_CHEBIEN ? String(body.PP_CHEBIEN) : null,
+                MA_DL_NHAP: body.MA_DL_NHAP ? String(body.MA_DL_NHAP).substring(0, 3) : null,
+                MA_DL_CB: body.MA_DL_CB ? String(body.MA_DL_CB).substring(0, 3) : null,
+                TLHH_CB: body.TLHH_CB ? Number(body.TLHH_CB) : null,
+                TLHH_BQ: body.TLHH_BQ ? Number(body.TLHH_BQ) : null,
+                MA_CSKCB_THUOC: body.MA_CSKCB_THUOC ? String(body.MA_CSKCB_THUOC).substring(0, 5) : null,
+                TU_NGAY: body.TU_NGAY ? String(body.TU_NGAY).substring(0, 8) : null,
+                DEN_NGAY: body.DEN_NGAY ? String(body.DEN_NGAY).substring(0, 8) : null,
+            }
+        });
+
+        return NextResponse.json(newRecord);
+    } catch (error) {
+        console.error('Error creating mau03 catalog record:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}

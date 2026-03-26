@@ -15,8 +15,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_TH_YL lớn hơn hoặc bằng NGAY_KQ",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767176843600",
@@ -34,8 +37,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_KQ lớn hơn NGAY_RV ngày ra viện",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767235724974",
@@ -53,8 +59,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "MA_GIUONG không đúng định dạng",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767237135767",
@@ -72,8 +81,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "MA_THE_TAM không đúng định dạng",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767265410288",
@@ -91,8 +103,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_YL lơn hơn NGAY_TH_YL",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767278606478",
@@ -110,8 +125,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_YL  lớn hơn  NGAY_TH_YL PTTT",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767422990107",
@@ -129,8 +147,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_YL lớn hơn hoặc bằng NGAY_KQ",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767425011179",
@@ -148,8 +169,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "MA_TTDV không được để trống",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767501281160",
@@ -167,8 +191,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "Sai thành tiền so với SO_LUONG, DON_GIA của  XML3",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767540482692",
@@ -186,8 +213,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "XML4.GIA_TRỊ lớn hơn 250 ký tự",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767947958309",
@@ -205,8 +235,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "MA_TTDV không được để trống",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1767951606332",
@@ -224,8 +257,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "NGUOI_THUC_HIEN không được để trống",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1768033903984",
@@ -243,8 +279,11 @@
     "conditionMaDichVu": null,
     "conditionMaDichVuValue": null,
     "errorMessage": "NGAY_KQ nhỏ hơn NGAY_TH_YL",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1768445961548",
@@ -262,8 +301,11 @@
     "conditionMaDichVu": "MA_DICH_VU",
     "conditionMaDichVuValue": "01.0281.1510",
     "errorMessage": "MA_MAY không được để trống",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1768782311465",
@@ -281,8 +323,11 @@
     "conditionMaDichVu": "",
     "conditionMaDichVuValue": "",
     "errorMessage": "Cân nặng không được để trống",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1770164706014",
@@ -300,8 +345,11 @@
     "conditionMaDichVu": "",
     "conditionMaDichVuValue": "",
     "errorMessage": "Ngày giường điều trị <4h",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1770712609274",
@@ -319,8 +367,11 @@
     "conditionMaDichVu": "",
     "conditionMaDichVuValue": "",
     "errorMessage": "NGAY_YL bằng NGAY_TH_YL",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1771985478814",
@@ -338,8 +389,11 @@
     "conditionMaDichVu": "",
     "conditionMaDichVuValue": "",
     "errorMessage": "NGUOI_THUC_HIEN không được để trống",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1771986068023",
@@ -349,7 +403,7 @@
     "field": "NGAY_YL",
     "name": "NGAY_YL lớn hớn NGAY_TH_YL xml2",
     "description": null,
-    "code": "XML2.NGAY_YL>XML2.NGAY_THUC_YL",
+    "code": "XML2.NGAY_YL>XML2.NGAY_TH_YL",
     "mathExpression": "",
     "checkNotNull": false,
     "conditionField": "",
@@ -357,12 +411,15 @@
     "conditionMaDichVu": "",
     "conditionMaDichVuValue": "",
     "errorMessage": "NGAY_YL lớn hớn NGAY_TH_YL xml2",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   },
   {
     "id": "1771990905147",
-    "active": false,
+    "active": true,
     "type": "Xuất toán",
     "xmlType": "XML2",
     "field": "NGAY_KQ",
@@ -376,7 +433,76 @@
     "conditionMaDichVu": "",
     "conditionMaDichVuValue": "",
     "errorMessage": "NGAY_KQ  sau ngày ra viện xml2",
-    "createdAt": "2026-02-25T03:43:33.574Z",
-    "updatedAt": "2026-02-25T03:43:33.574Z"
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
+  },
+  {
+    "id": "1774413343407",
+    "active": true,
+    "type": "Xuất toán",
+    "xmlType": "XML3",
+    "field": "MA_BAC_SI",
+    "name": "MA_BAC_SI không được để trống XML3",
+    "description": null,
+    "code": "",
+    "mathExpression": "",
+    "checkNotNull": true,
+    "conditionField": "",
+    "conditionValue": "",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": "",
+    "errorMessage": "MA_BAC_SI không được để trống XML3",
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
+  },
+  {
+    "id": "1774414443758",
+    "active": true,
+    "type": "Xuất toán",
+    "xmlType": "XML3",
+    "field": "MA_BAC_SI",
+    "name": "MA_BAC_SI không có trong danh mục được BHXH duyệt xml3",
+    "description": null,
+    "code": "!EXISTS_IN('Staff.ma_bac_si', MA_BAC_SI)",
+    "mathExpression": "",
+    "checkNotNull": false,
+    "conditionField": "",
+    "conditionValue": "",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": "",
+    "errorMessage": "MA_BAC_SI không có trong danh mục được BHXH duyệt",
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
+  },
+  {
+    "id": "1774415958349",
+    "active": true,
+    "type": "Xuất toán",
+    "xmlType": "XML2",
+    "field": "MA_BAC_SI",
+    "name": "MA_BAC_SI không có trong danh mục được BHXH duyệt xml2",
+    "description": null,
+    "code": "!EXISTS_IN('Staff.ma_bac_si', MA_BAC_SI)",
+    "mathExpression": "",
+    "checkNotNull": false,
+    "conditionField": "",
+    "conditionValue": "",
+    "conditionMaDichVu": null,
+    "conditionMaDichVuValue": "",
+    "errorMessage": "MA_BAC_SI không có trong danh mục được BHXH duyệt xml2",
+    "isGroupCount": false,
+    "minCountVal": null,
+    "maxCountVal": null,
+    "createdAt": "2026-03-25T05:23:45.219Z",
+    "updatedAt": "2026-03-25T05:23:45.219Z"
   }
 ]

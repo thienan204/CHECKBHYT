@@ -5,9 +5,8 @@ import { revalidatePath } from 'next/cache';
 
 export async function getDuplicateRules() {
     try {
-        const rules = await prisma.duplicateRule.findMany({
-            orderBy: { createdAt: 'desc' }
-        });
+        // Use raw query to bypass Prisma Client cache when server is not restarted yet.
+        const rules: any = await prisma.$queryRaw`SELECT * FROM "DuplicateRule" ORDER BY "createdAt" DESC`;
         return { success: true, data: rules };
     } catch (error) {
         console.error("Error fetching rules:", error);
@@ -26,6 +25,7 @@ export async function createDuplicateRule(data: {
     active?: boolean;
     serviceValues?: string[];
     excludedServiceValues?: string[];
+    ignoreIfSameField?: string;
 }) {
     try {
         const newRule = await prisma.duplicateRule.create({
@@ -42,6 +42,9 @@ export async function createDuplicateRule(data: {
                 excludedServiceValues: data.excludedServiceValues || [],
             }
         });
+        if ('ignoreIfSameField' in data) {
+            await prisma.$executeRaw`UPDATE "DuplicateRule" SET "ignoreIfSameField" = ${data.ignoreIfSameField || null} WHERE "id" = ${newRule.id}`;
+        }
         revalidatePath('/doc-file-excel');
         return { success: true, data: newRule };
     } catch (error) {
@@ -61,6 +64,7 @@ export async function updateDuplicateRule(id: string, data: {
     active?: boolean;
     serviceValues?: string[];
     excludedServiceValues?: string[];
+    ignoreIfSameField?: string;
 }) {
     try {
         const updatedRule = await prisma.duplicateRule.update({
@@ -78,6 +82,9 @@ export async function updateDuplicateRule(id: string, data: {
                 excludedServiceValues: data.excludedServiceValues || [],
             }
         });
+        if ('ignoreIfSameField' in data) {
+            await prisma.$executeRaw`UPDATE "DuplicateRule" SET "ignoreIfSameField" = ${data.ignoreIfSameField || null} WHERE "id" = ${id}`;
+        }
         revalidatePath('/doc-file-excel');
         return { success: true, data: updatedRule };
     } catch (error) {

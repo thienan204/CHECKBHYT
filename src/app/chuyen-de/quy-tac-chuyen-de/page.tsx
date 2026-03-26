@@ -33,7 +33,8 @@ const DuplicateBedConfigInput = ({ value, onChange }: { value?: string, onChange
                     tyleTtDv: parsed.filter?.TYLE_TT_DV || '',
                     includeServices: parsed.filter?.MA_DICH_VU_INCLUDE || [],
                     excludeServices: parsed.filter?.MA_DICH_VU_EXCLUDE || [],
-                    tolerance: parsed.toleranceMinutes !== undefined ? parsed.toleranceMinutes : 15
+                    tolerance: parsed.toleranceMinutes !== undefined ? parsed.toleranceMinutes : 15,
+                    ignoreIfSameField: parsed.ignoreIfSameField || ''
                 };
             }
         } catch (e) { }
@@ -45,7 +46,8 @@ const DuplicateBedConfigInput = ({ value, onChange }: { value?: string, onChange
             tyleTtDv: '',
             includeServices: [],
             excludeServices: [],
-            tolerance: 15
+            tolerance: 15,
+            ignoreIfSameField: ''
         };
     };
 
@@ -83,7 +85,8 @@ const DuplicateBedConfigInput = ({ value, onChange }: { value?: string, onChange
                     endTime: newState.endTime
                 },
                 filter: filter,
-                toleranceMinutes: Number(newState.tolerance)
+                toleranceMinutes: Number(newState.tolerance),
+                ignoreIfSameField: newState.ignoreIfSameField
             };
             onChange(JSON.stringify(json, null, 2));
         }
@@ -132,6 +135,26 @@ const DuplicateBedConfigInput = ({ value, onChange }: { value?: string, onChange
                         className="w-full"
                         placeholder="Ví dụ: 100"
                     />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Bỏ qua lỗi trùng Nếu 2 DV cùng trường (Field)</label>
+                    <Select
+                        mode="tags"
+                        maxCount={1}
+                        value={state.ignoreIfSameField ? [state.ignoreIfSameField] : []}
+                        onChange={(v) => handleChange('ignoreIfSameField', v[0] || '')}
+                        className="w-full"
+                        placeholder="VD: MA_BN, MA_LK..."
+                        options={[
+                            { label: 'MA_BN (Cùng Bệnh Nhân)', value: 'MA_BN' },
+                            { label: 'MA_LK (Cùng Lượt Khám)', value: 'MA_LK' },
+                            { label: 'MA_THE_BHYT (Cùng Thẻ BHYT)', value: 'MA_THE_BHYT' }
+                        ]}
+                    />
+                    <div className="text-xs text-slate-400 mt-1">Để trống nếu muốn luôn kiểm tra. Gõ tên trường XML nếu cần.</div>
                 </div>
             </div>
 
@@ -394,7 +417,8 @@ export default function ConfigPage() {
                     endTime: "NGAY_KQ"
                 },
                 filter: { MA_NHOM: 15 },
-                toleranceMinutes: 15
+                toleranceMinutes: 15,
+                ignoreIfSameField: ''
             },
             'DUPLICATE_DOCTOR': {
                 type: "DUPLICATE_DOCTOR",
