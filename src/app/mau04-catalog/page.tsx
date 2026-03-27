@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Modal, Form, Input, InputNumber, Popconfirm, message, Upload, Card, Tooltip, Row, Col } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, SyncOutlined, ToolOutlined, DollarOutlined, FileDoneOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
+import { getBasePath } from '@/utils/config';
 
 export default function Mau04CatalogPage() {
     const [data, setData] = useState<any[]>([]);
@@ -16,7 +17,7 @@ export default function Mau04CatalogPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/mau04-catalog');
+            const res = await fetch(`${getBasePath()}/api/mau04-catalog`);
             if (!res.ok) throw new Error('Failed to fetch data');
             const result = await res.json();
             setData(result);
@@ -53,7 +54,7 @@ export default function Mau04CatalogPage() {
 
     const handleDelete = async (id: string) => {
         try {
-            const res = await fetch(`/api/mau04-catalog/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${getBasePath()}/api/mau04-catalog/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 message.success('Đã xóa dòng');
                 fetchData();
@@ -67,7 +68,7 @@ export default function Mau04CatalogPage() {
 
     const handleSave = async (values: any) => {
         try {
-            const url = editingRecord ? `/api/mau04-catalog/${editingRecord.id}` : '/api/mau04-catalog';
+            const url = editingRecord ? `${getBasePath()}/api/mau04-catalog/${editingRecord.id}` : `${getBasePath()}/api/mau04-catalog`;
             const method = editingRecord ? 'PUT' : 'POST';
 
             const res = await fetch(url, {
@@ -116,7 +117,7 @@ export default function Mau04CatalogPage() {
                 if (jsonData.length === 0) return message.warning('File trống!');
 
                 setLoading(true);
-                const res = await fetch('/api/mau04-catalog', {
+                const res = await fetch(`${getBasePath()}/api/mau04-catalog`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(jsonData)

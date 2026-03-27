@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Modal, Form, Input, InputNumber, Popconfirm, message, Upload, Card, Tooltip, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, SyncOutlined, AppstoreOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
+import { getBasePath } from '@/utils/config';
 
 export default function Mau02CatalogPage() {
     const [data, setData] = useState<any[]>([]);
@@ -16,7 +17,7 @@ export default function Mau02CatalogPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/api/mau02-catalog');
+            const res = await fetch(`${getBasePath()}/api/mau02-catalog`);
             if (!res.ok) throw new Error('Network response was not ok');
             const result = await res.json();
             setData(result);
@@ -53,7 +54,7 @@ export default function Mau02CatalogPage() {
 
     const handleDelete = async (id: string) => {
         try {
-            const res = await fetch(`/api/mau02-catalog/${id}`, { method: 'DELETE' });
+            const res = await fetch(`${getBasePath()}/api/mau02-catalog/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 message.success('Đã xóa dòng');
                 fetchData();
@@ -69,7 +70,7 @@ export default function Mau02CatalogPage() {
         try {
             if (editingRecord) {
                 // Update
-                const res = await fetch(`/api/mau02-catalog/${editingRecord.id}`, {
+                const res = await fetch(`${getBasePath()}/api/mau02-catalog/${editingRecord.id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(values)
@@ -81,7 +82,7 @@ export default function Mau02CatalogPage() {
                 }
             } else {
                 // Create
-                const res = await fetch('/api/mau02-catalog', {
+                const res = await fetch(`${getBasePath()}/api/mau02-catalog`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(values)
@@ -142,7 +143,7 @@ export default function Mau02CatalogPage() {
                 }
 
                 setLoading(true);
-                const res = await fetch('/api/mau02-catalog', {
+                const res = await fetch(`${getBasePath()}/api/mau02-catalog`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(jsonData)
