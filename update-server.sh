@@ -9,17 +9,17 @@ echo "📥 Bước 1: Kéo mã nguồn mới nhất từ GitHub..."
 git pull origin main
 
 echo ""
-echo "🗄️ Bước 2: Chạy cấu hình Database (Đẩy bảng mới vào DB)..."
-# Chạy db push để cấu trúc Database luôn được cập nhật mà không cần file migration
-docker compose exec app npx -y prisma@5.22.0 db push
-
-echo ""
-echo "🏗️ Bước 3: Cài đặt thư viện mới và Build lại hệ thống..."
+echo "🏗️ Bước 2: Build lại hệ thống với Code và Môi trường mới..."
 docker compose build --no-cache app
 
 echo ""
-echo "🔄 Bước 4: Khởi động lại Server..."
+echo "🔄 Bước 3: Khởi động lại Server..."
 docker compose up -d
+
+echo ""
+echo "🗄️ Bước 4: Chạy cấu hình Database (Đẩy cấu trúc bảng mới vào DB)..."
+# Ép cấu trúc mới vào CSDL và bỏ qua rác generate do trong build đã có. (Chạy trên container MỚI NHẤT sau khi khởi động)
+docker compose exec app npx -y prisma@5.22.0 db push --skip-generate
 
 echo ""
 echo "==================================================="
