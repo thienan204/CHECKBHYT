@@ -50,10 +50,32 @@ const XML_LIST_PATHS: Record<string, string> = {
 export class ValidationEngine {
     private rules: ValidationRule[] = [];
     private masterData: Record<string, Set<string>> = {};
+    private allRecords: HosoRecord[] = [];
 
     constructor(rules: ValidationRule[] = [], masterData: Record<string, Set<string>> = {}) {
         this.rules = rules;
         this.masterData = masterData;
+    }
+
+    setContextRecords(records: HosoRecord[]) {
+        this.allRecords = records;
+    }
+
+    private resolvePathValues(record: HosoRecord, path: string): any[] {
+        const parts = path.trim().split('.');
+        if (parts.length === 1) {
+            return [record.summary?.[path]];
+        }
+        const xmlType = parts[0];
+        const field = parts[1];
+        if (xmlType === 'XML1') return [record.summary?.[field]];
+        
+        const group = record.groups.find(g => g.type === xmlType);
+        if (!group) return [];
+        const list = getXmlDataList(group);
+        if (!list || !Array.isArray(list)) return [];
+        
+        return list.map(item => item[field]).filter(v => v !== undefined && v !== null);
     }
 
     setRules(rules: ValidationRule[]) {
@@ -532,6 +554,22 @@ export class ValidationEngine {
                 return this.masterData[listName].has(valStr);
             };
 
+            const CHECK_DUPLICATE_DIFF = (pathSame: string, valSame: any, pathDiff: string, valDiff: any): boolean => {
+                const sameValStr = valSame !== null && valSame !== undefined ? String(valSame).trim() : '';
+                const diffValStr = valDiff !== null && valDiff !== undefined ? String(valDiff).trim() : '';
+                if (!sameValStr) return false;
+
+                return this.allRecords.some(r => {
+                    const sameValues = this.resolvePathValues(r, pathSame);
+                    const hasSame = sameValues.some(v => String(v).trim() === sameValStr);
+                    if (!hasSame) return false;
+                    
+                    const diffValues = this.resolvePathValues(r, pathDiff);
+                    const hasDifferent = diffValues.some(v => String(v).trim() !== diffValStr);
+                    return hasDifferent;
+                });
+            };
+
             // Only expose specific safe keys and the context objects
             // We expose all keys in context for maximum flexibility
             // Inject Helpers
@@ -542,7 +580,8 @@ export class ValidationEngine {
                 parseInt: parseInt,
                 parseDate: parseDate,
                 diffHours: diffHours,
-                EXISTS_IN: EXISTS_IN
+                EXISTS_IN: EXISTS_IN,
+                CHECK_DUPLICATE_DIFF: CHECK_DUPLICATE_DIFF
             };
 
             const keys = [...Object.keys(context), ...Object.keys(helpers)];
@@ -625,6 +664,28 @@ export class ValidationEngine {
                 const result = notOp ? !exists : exists;
                 // Return string representation of boolean
                 return result ? "true" : "false";
+            });
+
+            // 0.5. Handle CHECK_DUPLICATE_DIFF
+            cleanCode = cleanCode.replace(/CHECK_DUPLICATE_DIFF\(\s*['"]([^'"]+)['"]\s*,\s*([^,]+)\s*,\s*['"]([^'"]+)['"]\s*,\s*([^)]+)\s*\)/g, (match, pathSame, sameValueRef, pathDiff, diffValueRef) => {
+                const valSame = getVal(sameValueRef.trim());
+                const valDiff = getVal(diffValueRef.trim());
+                const sameValStr = valSame !== null && valSame !== undefined ? String(valSame).trim() : '';
+                const diffValStr = valDiff !== null && valDiff !== undefined ? String(valDiff).trim() : '';
+
+                if (!sameValStr) return "false";
+
+                const hasConflict = this.allRecords.some(r => {
+                    const sameValues = this.resolvePathValues(r, pathSame);
+                    const hasSame = sameValues.some(v => String(v).trim() === sameValStr);
+                    if (!hasSame) return false;
+                    
+                    const diffValues = this.resolvePathValues(r, pathDiff);
+                    const hasDifferent = diffValues.some(v => String(v).trim() !== diffValStr);
+                    return hasDifferent;
+                });
+
+                return hasConflict ? "true" : "false";
             });
 
             // 1. Handle LOGICAL OR (||)

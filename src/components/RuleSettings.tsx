@@ -39,7 +39,7 @@ const XML_TYPE_LABELS: Record<string, string> = {
 
 const XML_FIELDS: Record<string, string[]> = {
     'XML1': [
-        'MA_LK', 'MA_BN', 'HO_TEN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 'MA_THE', 'MA_DKBD',
+        'MA_LK', 'MA_BN', 'HO_TEN', 'NGAY_SINH', 'GIOI_TINH', 'DIA_CHI', 'MA_THE', 'MA_THE_BHYT', 'MA_DKBD',
         'GT_THE_TU', 'GT_THE_DEN', 'MIEN_CUNG_CT', 'TEN_BENH', 'MA_BENH', 'MA_BENHKHAC',
         'MA_LYDO_VVIEN', 'MA_NOI_CHUYEN', 'MA_TAI_NAN', 'NGAY_VAO', 'NGAY_RA', 'SO_NGAY_DTRI',
         'KET_QUA_DTRI', 'TINH_TRANG_RV', 'NGAY_TTOAN', 'T_TONGCHI', 'T_XETNGHIEM', 'T_CDHA',
@@ -104,6 +104,7 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
     const [testResult, setTestResult] = useState<{ matched: number, total: number, errors: string[] } | null>(null);
     const [form] = Form.useForm();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isGuideModalVisible, setIsGuideModalVisible] = useState(false);
 
     useEffect(() => {
         setRules(initialRules);
@@ -381,6 +382,58 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
         </div>
     );
 
+    const renderGuideModal = () => (
+        <Modal
+            title={<div className="font-bold text-lg text-blue-700">📖 Hướng Dẫn Cấu Hình Quy Tắc Đa Hồ Sơ (Cross-Record)</div>}
+            open={isGuideModalVisible}
+            onCancel={() => setIsGuideModalVisible(false)}
+            footer={[
+                <Button key="close" type="primary" onClick={() => setIsGuideModalVisible(false)}>
+                    Đã hiểu
+                </Button>
+            ]}
+            width={700}
+        >
+            <div className="space-y-4 text-sm text-slate-700 max-h-[60vh] overflow-y-auto pr-2">
+                <div>
+                    <h3 className="font-bold text-slate-800 text-base mb-1">1. Mục đích của CHECK_DUPLICATE_DIFF</h3>
+                    <p>Trong đa số các trường hợp, hệ thống kiểm tra từng hồ sơ một cách độc lập. Tuy nhiên, có một số quy tắc cần phải quét toàn bộ các hồ sơ đang được nạp để tìm ra sự bất thường.</p>
+                    <p className="mt-1">Ví dụ điển hình: Hành vi "Mượn thẻ BHYT". Bệnh nhân sử dụng cùng một thẻ BHYT nhưng lại đi khám dưới 2 mã bệnh nhân khác nhau trong cùng một kỳ báo cáo.</p>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                    <h3 className="font-bold text-blue-800 text-base mb-1">2. Cú Pháp Sử Dụng</h3>
+                    <p>Tại ô Biểu thức Logic, gõ:</p>
+                    <code className="block bg-white p-2 mt-2 rounded border border-blue-200 text-red-600 font-bold overflow-x-auto">CHECK_DUPLICATE_DIFF('BẢNG_1.TRƯỜNG_1', Giá_Trị_1, 'BẢNG_2.TRƯỜNG_2', Giá_Trị_2)</code>
+                    <ul className="list-disc pl-5 mt-2 space-y-1">
+                        <li><b>'BẢNG_1.TRƯỜNG_1'</b>: Tên Bảng và Trường cần quét để tìm điểm <b>TRÙNG LẶP</b> (Cần nằm trong nháy đơn).</li>
+                        <li><b>Giá_Trị_1</b>: Dữ liệu của hồ sơ hiện tại. (Biến động, KHÔNG có nháy đơn).</li>
+                        <li><b>'BẢNG_2.TRƯỜNG_2'</b>: Tên Bảng và Trường đối chiếu sự <b>KHÁC BIỆT</b>.</li>
+                        <li><b>Giá_Trị_2</b>: Dữ liệu của hồ sơ hiện tại.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 className="font-bold text-slate-800 text-base mb-1">3. Các Ví Dụ Thực Tế</h3>
+                    
+                    <div className="mb-3">
+                        <div className="font-semibold text-green-700">Ví dụ 1: Trùng Thẻ BHYT nhưng Khác Mã Bệnh Nhân</div>
+                        <ul className="list-disc pl-5">
+                            <li>Quy tắc: <code>XML1_TONGHOP</code></li>
+                            <li>Logic: <code className="bg-slate-100 px-1 rounded text-red-600">CHECK_DUPLICATE_DIFF('XML1.MA_THE', MA_THE, 'XML1.MA_BN', MA_BN)</code></li>
+                        </ul>
+                    </div>
+
+                    <div className="mb-3">
+                        <div className="font-semibold text-green-700">Ví dụ 2: Trùng Căn Cước Công Dân (CCCD), Khác Thẻ BHYT</div>
+                        <ul className="list-disc pl-5">
+                            <li>Logic: <code className="bg-slate-100 px-1 rounded text-red-600">CHECK_DUPLICATE_DIFF('XML1.SO_CCCD', SO_CCCD, 'XML1.MA_THE', MA_THE)</code></li>
+                        </ul>
+                    </div>
+                </div>
+                <Alert type="warning" title="Mẹo" description="Từ khoá XML1 đại diện cho dữ liệu TỔNG HỢP. Để truy xuất trường thông tin biên bản hãy dùng tiền tố XML1. Hành động quét này kiểm tra trên toàn bộ dữ liệu mà bạn đang nạp vào màn hình. Việc này cho phép phát hiện tức thời hồ sơ bị lỗi khi nạp số lượng lớn." showIcon />
+            </div>
+        </Modal>
+    );
+
     const logicCheatSheetItems = [
         {
             key: '1',
@@ -416,13 +469,26 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                             <li>Dùng <code className="font-bold">||</code> cho "HOẶC": <code className="bg-white px-1 border rounded">A == null || B == null</code></li>
                         </ul>
                     </div>
+                    <div>
+                        <div className="font-bold text-blue-700 flex items-center justify-between">
+                            <span>5. Đối chiếu nâng cao Đa Hồ Sơ (Cross-Record)</span>
+                            <Button size="small" type="primary" ghost onClick={() => setIsGuideModalVisible(true)}>📖 Mở sổ tay hướng dẫn</Button>
+                        </div>
+                        <ul className="list-disc pl-4 space-y-1 mt-2">
+                            <li><code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_DIFF('BẢNG.TRƯỜNG1', GiáTrị1, 'BẢNG.TRƯỜNG2', GiáTrị2)</code> : Dùng để tìm xem có hồ sơ nào khác TRÙNG Trường 1 nhưng lại KHÁC Trường 2 không.</li>
+                            <li><span className="text-gray-500 italic">Ví dụ (Trùng Mã Thẻ BHYT nhưng Khác Mã Bệnh nhân):</span> <code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_DIFF('XML1.MA_THE', MA_THE, 'XML1.MA_BN', MA_BN)</code></li>
+                        </ul>
+                    </div>
                 </div>
             )
         }
     ];
 
     const logicCheatSheet = (
-        <Collapse size="small" bordered={false} className="mb-4 mt-2 bg-yellow-50 border border-yellow-200" items={logicCheatSheetItems} />
+        <>
+            <Collapse size="small" bordered={false} className="mb-4 mt-2 bg-yellow-50 border border-yellow-200" items={logicCheatSheetItems} />
+            {renderGuideModal()}
+        </>
     );
 
     // If not using Antd Modal as wrapper (e.g. full page), render directly

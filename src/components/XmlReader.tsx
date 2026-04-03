@@ -245,6 +245,7 @@ export default function XmlReader() {
         setRecords(prev => {
             if (prev.length === 0) return prev;
             const validator = new ValidationEngine(rules, masterData);
+            validator.setContextRecords(prev);
             // Re-validate all existing records
             const newRecords = prev.map(r => ({ ...r, validationResults: validator.validate(r) }));
             // If selected record exists, update it too
@@ -267,6 +268,12 @@ export default function XmlReader() {
 
         setProcessingProgress({ current: 0, total: fileList.length });
         const validator = new ValidationEngine(rules, masterData);
+        // Load old records to support global duplicate checking
+        const existingRecords = records || [];
+        // Note: For large file uploads, we can construct the context combining existing and newly uploaded.
+        // But for performance, setting initial is enough. It will re-validate once all batches finish later if needed, 
+        // or we just set current known. 
+        validator.setContextRecords(existingRecords);
 
         const BATCH_SIZE = 10;
         let processedCount = 0;
@@ -282,17 +289,30 @@ export default function XmlReader() {
                         const text = await file.text();
                         const parsed = parseXmlContent(text);
                         parsed.records.forEach(r => {
-                            batchRecords.push({
+                            // Update context dynamically for current record if batch has new items
+                            // Ideally, we could re-merge batch records but this is a lightweight approach
+                            const newRecord = {
                                 ...r,
                                 sourceFile: file.name,
-                                validationResults: validator.validate(r),
                                 uuid: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-                            });
+                            };
+                            
+                            // To support real cross-record during batch load, we might need all batch records
+                            // We push it to batchRecords first
+                            batchRecords.push(newRecord);
                         });
                     } catch (error: any) {
                         message.error(`Lỗi đọc file ${file.name}: ${error.message}`);
                     }
                 }));
+
+                // Update validator context dynamically with new batch items
+                validator.setContextRecords([...existingRecords, ...batchRecords]);
+
+                // Run validate
+                batchRecords.forEach(r => {
+                     r.validationResults = validator.validate(r);
+                });
 
                 // Save batch to DB and State
                 if (batchRecords.length > 0) {
