@@ -5,9 +5,20 @@ echo "🚀 BẮT ĐẦU CẬP NHẬT MÃ NGUỒN VÀ DATABASE"
 echo "==================================================="
 
 echo ""
-echo "📥 Bước 1: Kéo mã nguồn mới nhất từ GitHub..."
-git pull origin main
+echo "📥 Bước 1: Kéo mã nguồn mới nhất từ GitHub (Tự động xử lý xung đột)..."
+# Tự động sao lưu an toàn file .env (chứa cấu hình database mật)
+if [ -f .env ]; then
+  cp .env .env.backup
+fi
 
+# Ép đồng bộ mã nguồn 100% giống với Github (Bỏ qua mọi sửa đổi lặt vặt trên server gây nghẽn lệnh pull)
+git fetch origin main
+git reset --hard origin/main
+
+# Đắp lại file .env vào hệ thống sau khi reset
+if [ -f .env.backup ]; then
+  mv .env.backup .env
+fi
 echo ""
 echo "🏗️ Bước 2: Build lại hệ thống với Code và Môi trường mới..."
 docker compose build --no-cache app
