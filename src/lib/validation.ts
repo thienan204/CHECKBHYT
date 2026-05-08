@@ -169,7 +169,8 @@ export class ValidationEngine {
                                 const itemContext = {
                                     ...rootContext,
                                     [rule.xmlType]: item,
-                                    'XML': item
+                                    'XML': item,
+                                    '__CURRENT_LIST__': list
                                 };
                                 const extendedContext = { ...itemContext, ...item };
 
@@ -264,7 +265,8 @@ export class ValidationEngine {
                                 const itemContext = {
                                     ...rootContext,
                                     [rule.xmlType]: item, // Overwrite the raw list with the specific item for this key
-                                    'XML': item // Generic alias for the current item
+                                    'XML': item, // Generic alias for the current item
+                                    '__CURRENT_LIST__': list
                                 };
 
                                 const extendedContext = { ...itemContext, ...item }; // Merge item props to top level for convenience
@@ -423,6 +425,7 @@ export class ValidationEngine {
                         ...rootContext,
                         [rule.xmlType]: item,
                         'XML': item,
+                        '__CURRENT_LIST__': list,
                         ...item
                     };
 
@@ -489,6 +492,7 @@ export class ValidationEngine {
                         ...rootContext,
                         [rule.xmlType]: item,
                         'XML': item,
+                        '__CURRENT_LIST__': list,
                         ...item
                     };
 
@@ -551,7 +555,10 @@ export class ValidationEngine {
             const EXISTS_IN = (listName: string, value: any): boolean => {
                 if (!this.masterData || !this.masterData[listName] || value === null || value === undefined) return false;
                 const valStr = String(value).trim();
-                return this.masterData[listName].has(valStr);
+                if (!valStr) return false;
+                const parts = valStr.split(';').map(s => s.trim()).filter(Boolean);
+                if (parts.length === 0) return false;
+                return parts.every(p => this.masterData[listName].has(p));
             };
 
             const CHECK_DUPLICATE_DIFF = (pathSame: string, valSame: any, pathDiff: string, valDiff: any): boolean => {
@@ -570,6 +577,38 @@ export class ValidationEngine {
                 });
             };
 
+            const CHECK_DUPLICATE_IN_LIST = (...args: any[]): boolean => {
+                if (!context.__CURRENT_LIST__ || !Array.isArray(context.__CURRENT_LIST__)) return false;
+                if (args.length === 0 || args.length % 2 !== 0) return false;
+
+                // Nếu bất kỳ giá trị kiểm tra nào bị rỗng thì bỏ qua không quy thành duplicate
+                for (let i = 1; i < args.length; i += 2) {
+                    const val = this.getDataValue(args[i]);
+                    if (!val) return false;
+                }
+
+                let count = 0;
+                for (const row of context.__CURRENT_LIST__) {
+                    let isMatch = true;
+                    for (let i = 0; i < args.length; i += 2) {
+                        const fieldName = String(args[i]).trim();
+                        const expectedValue = this.getDataValue(args[i + 1]);
+                        const rowVal = this.getDataValue(row[fieldName]);
+                        
+                        if (rowVal !== expectedValue) {
+                            isMatch = false;
+                            break;
+                        }
+                    }
+
+                    if (isMatch) {
+                        count++;
+                        if (count > 1) return true;
+                    }
+                }
+                return false;
+            };
+
             // Only expose specific safe keys and the context objects
             // We expose all keys in context for maximum flexibility
             // Inject Helpers
@@ -581,7 +620,8 @@ export class ValidationEngine {
                 parseDate: parseDate,
                 diffHours: diffHours,
                 EXISTS_IN: EXISTS_IN,
-                CHECK_DUPLICATE_DIFF: CHECK_DUPLICATE_DIFF
+                CHECK_DUPLICATE_DIFF: CHECK_DUPLICATE_DIFF,
+                CHECK_DUPLICATE_IN_LIST: CHECK_DUPLICATE_IN_LIST
             };
 
             const keys = [...Object.keys(context), ...Object.keys(helpers)];
@@ -658,8 +698,11 @@ export class ValidationEngine {
                 const val = getVal(field.trim());
                 const valStr = val !== null && val !== undefined ? String(val).trim() : '';
                 let exists = false;
-                if (this.masterData && this.masterData[listName]) {
-                    exists = this.masterData[listName].has(valStr);
+                if (this.masterData && this.masterData[listName] && valStr !== '') {
+                    const parts = valStr.split(';').map(s => s.trim()).filter(Boolean);
+                    if (parts.length > 0) {
+                        exists = parts.every(p => this.masterData[listName].has(p));
+                    }
                 }
                 const result = notOp ? !exists : exists;
                 // Return string representation of boolean

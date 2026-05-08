@@ -11,6 +11,13 @@ import { getDepartments } from '@/actions/department';
 import { getBasePath } from '@/utils/config';
 import dayjs from 'dayjs';
 
+const DISTINCT_COLORS = [
+    '#ffebee', '#e3f2fd', '#e8f5e9', '#f3e5f5', '#fff3e0', 
+    '#e0f7fa', '#fce4ec', '#f1f8e9', '#fff8e1', '#e8eaf6', 
+    '#efebe9', '#e0f2f1', '#f9fbe7', '#eceff1', '#fffde7', 
+    '#ffcdd2', '#c8e6c9', '#b3e5fc', '#d1c4e9', '#ffecb3'
+];
+
 interface SpecializedRuleRunnerProps {
     rule: any;
 }
@@ -109,7 +116,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         } else if (isDuplicateDoctorMode && records.length > 0) {
             prepareDoctorOrders(records);
         }
-    }, [records, isDuplicateBedMode, isDuplicateDoctorMode, rule, deptMap]);
+    }, [records, isDuplicateBedMode, isDuplicateDoctorMode, rule, deptMap, staffMap]);
 
     const executeRule = (data: ExtendedHosoRecord[]) => {
         if (!rule || !rule.logicConfig) return;
@@ -166,62 +173,91 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                                     continue;
                                 }
 
-                                // loose comparison for numbers/strings
-                                if (item[key] != value) {
-                                    match = false;
-                                    break;
+                                // loose comparison for numbers/strings or arrays
+                                if (Array.isArray(value)) {
+                                    if (value.length > 0 && !value.map(String).includes(String(item[key]))) {
+                                        match = false;
+                                        break;
+                                    }
+                                } else {
+                                    if (item[key] != value) {
+                                        match = false;
+                                        break;
+                                    }
                                 }
                             }
                         }
 
                         if (match) {
-                            let keyValue = '';
+                            let keyValues: string[] = [];
                             if (fields?.bed) {
                                 if (Array.isArray(fields.bed) && fields.bed.length > 0) {
-                                    // Normally the first one is the main grouping key (like MA_BS or MA_GIUONG)
-                                    keyValue = fields.bed.map((b: string) => item[b] || '').join('-');
+                                    const bedFieldStr = fields.bed[0];
+                                    const rawVal = item[bedFieldStr] || record.summary?.[bedFieldStr] || '';
+                                    
+                                    keyValues = [String(rawVal).split(';')[0].trim()];
+                                    
+                                    if (fields.bed.length > 1) {
+                                        const suffix = fields.bed.slice(1).map((b: string) => {
+                                            const rv = item[b] || record.summary?.[b] || '';
+                                            return String(rv).split(';')[0].trim();
+                                        }).join('-');
+                                        keyValues = keyValues.map(k => `${k}-${suffix}`);
+                                    }
                                 } else {
-                                    keyValue = item[fields.bed];
+                                    const rawVal = item[fields.bed] || record.summary?.[fields.bed] || '';
+                                    keyValues = [String(rawVal).split(';')[0].trim()];
                                 }
                             } else {
-                                keyValue = item.MA_GIUONG; // Fallback
+                                keyValues = [item.MA_GIUONG || '']; // Fallback
                             }
+
+                            if (keyValues.length === 0) keyValues = [''];
 
                             const startTime = fields?.startTime ? item[fields.startTime] : item.NGAY_YL;
                             const endTime = fields?.endTime ? item[fields.endTime] : item.NGAY_KQ;
                             const deptCode = fields?.department ? item[fields.department] : (item.MA_KHOA || record.summary?.MA_KHOA);
+                            const maBs = item.MA_BS || item.MA_BAC_SI || '';
+                            const nguoiThucHien = item.NGUOI_THUC_HIEN || '';
 
-                            list.push({
-                                key: `${record.id}_${item.MA_DICH_VU}_${index}`,
-                                stt: index++,
-                                MA_LK: record.summary?.MA_LK,
-                                MA_BN: record.summary?.MA_BN,
-                                MA_THE_BHYT: record.summary?.MA_THE_BHYT,
-                                HO_TEN: record.summary?.HO_TEN,
-                                MA_KHOA: deptCode,
-                                TEN_KHOA: deptMap[deptCode] || '', // Lookup department name
-                                MA_GIUONG: item.MA_GIUONG || '', // Keep original MA_GIUONG for columns
-                                KEY_VALUE: keyValue || '',       // The dynamic value (e.g., Doctor code, Machine code)
-                                TYLE_BH: item.TYLE_TT_BH || '',
-                                TYLE_DV: item.TYLE_TT_DV || '',
-                                NGAY_YL: item.NGAY_YL || '',
-                                NGAY_KQ: item.NGAY_KQ || '',
-                                NGAY_VAO: record.summary?.NGAY_VAO || '',
-                                NGAY_RA: record.summary?.NGAY_RA || '',
-                                NGAY_TH_YL: item.NGAY_TH_YL || '',
-                                MA_DICH_VU: item.MA_DICH_VU,
-                                TEN_DICH_VU: item.TEN_DICH_VU,
-                                SOLUONG: item.SO_LUONG || 0,
+                            keyValues.forEach((keyValue, kIndex) => {
+                                list.push({
+                                    key: `${record.id}_${item.MA_DICH_VU}_${index}_${kIndex}`,
+                                    stt: index++,
+                                    MA_LK: record.summary?.MA_LK,
+                                    MA_BN: record.summary?.MA_BN,
+                                    MA_THE_BHYT: record.summary?.MA_THE_BHYT,
+                                    HO_TEN: record.summary?.HO_TEN,
+                                    MA_KHOA: deptCode,
+                                    TEN_KHOA: deptMap[deptCode] || '', // Lookup department name
+                                    MA_BAC_SI: maBs,
+                                    TEN_BAC_SI: staffMap[maBs]?.ho_ten || '',
+                                    TRINH_DO: staffMap[maBs]?.trinh_do || '',
+                                    NGUOI_THUC_HIEN: nguoiThucHien,
+                                    TEN_NGUOI_THUC_HIEN: nguoiThucHien ? String(nguoiThucHien).split(';').map(c => staffMap[c.trim()]?.ho_ten || c.trim()).filter(Boolean).join('; ') : '',
+                                    MA_GIUONG: item.MA_GIUONG || '', // Keep original MA_GIUONG for columns
+                                    KEY_VALUE: keyValue || '',       // The dynamic value (e.g., Doctor code, Machine code)
+                                    TYLE_BH: item.TYLE_TT_BH || '',
+                                    TYLE_DV: item.TYLE_TT_DV || '',
+                                    NGAY_YL: item.NGAY_YL || '',
+                                    NGAY_KQ: item.NGAY_KQ || '',
+                                    NGAY_VAO: record.summary?.NGAY_VAO || '',
+                                    NGAY_RA: record.summary?.NGAY_RA || '',
+                                    NGAY_TH_YL: item.NGAY_TH_YL || '',
+                                    MA_DICH_VU: item.MA_DICH_VU,
+                                    TEN_DICH_VU: item.TEN_DICH_VU,
+                                    SOLUONG: item.SO_LUONG || 0,
 
-                                // Clean Data for sorting/overlap
-                                _start: parseDate(startTime),
-                                _end: parseDate(endTime),
-                                _ma_giuong: item.MA_GIUONG,     // Original
-                                _key_value: keyValue,           // Dynamic Grouping Key
-                                _ma_khoa: deptCode,
+                                    // Clean Data for sorting/overlap
+                                    _start: parseDate(startTime),
+                                    _end: parseDate(endTime).getTime() === 0 && parseDate(startTime).getTime() !== 0 ? parseDate(startTime) : parseDate(endTime),
+                                    _ma_giuong: item.MA_GIUONG,     // Original
+                                    _key_value: keyValue,           // Dynamic Grouping Key
+                                    _ma_khoa: deptCode,
 
-                                original: item,
-                                recordId: record.id
+                                    original: item,
+                                    recordId: record.id
+                                });
                             });
                         }
                     });
@@ -236,104 +272,120 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         setLoading(true);
         // Simulate delay for effect
         setTimeout(() => {
-            const overlaps = new Set<string>();
-
             // Group by Dynamic Key (fallback to MA_GIUONG)
             const groups: Record<string, typeof bedServices> = {};
 
             bedServices.forEach(item => {
                 const groupKeyStr = item._key_value || item._ma_giuong;
                 if (!groupKeyStr) return;
-                const key = `${item._ma_khoa}_${groupKeyStr}`;
+                const key = groupKeyStr;
                 if (!groups[key]) groups[key] = [];
                 groups[key].push(item);
             });
 
+            const duplicateItems: any[] = [];
+            let globalColorIndex = 0;
+
             Object.entries(groups).forEach(([key, items]) => {
+                if (items.length < 2) return;
+
+                // Sort internally just for logical checking ordering
                 items.sort((a, b) => a._start.getTime() - b._start.getTime());
 
-                // Check for ANY overlap in this group
-                for (let i = 0; i < items.length - 1; i++) {
+                const adj: Record<number, number[]> = {};
+                for (let i = 0; i < items.length; i++) adj[i] = [];
+
+                for (let i = 0; i < items.length; i++) {
                     const curr = items[i];
-                    const next = items[i + 1];
-                    // Check for overlap between current and next item
-                    // Overlap exists if (StartA < EndB) and (EndA > StartB)
-                    const overlapMinutes = (Math.min(curr._end.getTime(), next._end.getTime()) - Math.max(curr._start.getTime(), next._start.getTime())) / 60000;
-                    const tolerance = rule.logicConfig?.toleranceMinutes || 0;
+                    for (let j = i + 1; j < items.length; j++) {
+                        const next = items[j];
 
-                    // Support exact match checking (e.g. identical NGAY_YL -> difference is 0)
-                    const isExactMatch = curr._start.getTime() === next._start.getTime() && curr._start.getTime() === curr._end.getTime() && next._start.getTime() === next._end.getTime();
+                        // Skip if date is absolutely invalid
+                        if (curr._start.getTime() === 0 || next._start.getTime() === 0) continue;
 
-                    // Dynamic Field skipping (e.g. MA_BN, MA_LK)
-                    const ignoreIfSameField = rule.logicConfig?.ignoreIfSameField;
-                    let isIgnoreMatch = false;
+                        const overlapMinutes = (Math.min(curr._end.getTime(), next._end.getTime()) - Math.max(curr._start.getTime(), next._start.getTime())) / 60000;
+                        const tolerance = rule.logicConfig?.toleranceMinutes || 0;
 
-                    if (ignoreIfSameField) {
-                        const valA = curr[ignoreIfSameField] !== undefined ? String(curr[ignoreIfSameField]) : (curr.original ? String(curr.original[ignoreIfSameField]) : undefined);
-                        const valB = next[ignoreIfSameField] !== undefined ? String(next[ignoreIfSameField]) : (next.original ? String(next.original[ignoreIfSameField]) : undefined);
+                        const isExactMatch = curr._start.getTime() === next._start.getTime() && curr._start.getTime() === curr._end.getTime() && next._start.getTime() === next._end.getTime();
+                        
+                        // Nếu 1 trong 2 sự kiện là tức thời (duration = 0) và thời điểm đó nằm trọn trong sự kiện còn lại thì overlapMinutes sẽ = 0.
+                        const isZeroDurationCollision = overlapMinutes === 0 && (curr._start.getTime() === curr._end.getTime() || next._start.getTime() === next._end.getTime());
 
-                        if (valA && valB && valA === valB && valA !== 'undefined') {
-                            isIgnoreMatch = true;
+                        // Dynamic Field skipping (e.g. MA_BN, MA_LK)
+                        const ignoreIfSameField = rule.logicConfig?.ignoreIfSameField;
+                        let isIgnoreMatch = false;
+
+                        if (ignoreIfSameField) {
+                            const valA = curr[ignoreIfSameField] !== undefined ? String(curr[ignoreIfSameField]) : (curr.original ? String(curr.original[ignoreIfSameField]) : undefined);
+                            const valB = next[ignoreIfSameField] !== undefined ? String(next[ignoreIfSameField]) : (next.original ? String(next.original[ignoreIfSameField]) : undefined);
+
+                            if (valA && valB && valA === valB && valA !== 'undefined') {
+                                isIgnoreMatch = true;
+                            }
+                        }
+
+                        if (isIgnoreMatch) {
+                            continue; // Bỏ qua lặp 2 dịch vụ này vì chúng có cùng thuộc tính loại trừ
+                        }
+
+                        if (overlapMinutes > tolerance || isExactMatch || isZeroDurationCollision) {
+                            adj[i].push(j);
+                            adj[j].push(i);
+                        }
+                    }
+                }
+
+                // connected components
+                const visited = new Set<number>();
+                for (let i = 0; i < items.length; i++) {
+                    if (visited.has(i)) continue;
+                    if (adj[i].length === 0) continue;
+
+                    const queue = [i];
+                    visited.add(i);
+                    const component = [i];
+
+                    while (queue.length > 0) {
+                        const u = queue.shift()!;
+                        for (const v of adj[u]) {
+                            if (!visited.has(v)) {
+                                visited.add(v);
+                                queue.push(v);
+                                component.push(v);
+                            }
                         }
                     }
 
-                    if (isIgnoreMatch) {
-                        continue; // Bỏ qua lặp 2 dịch vụ này vì chúng có cùng thuộc tính loại trừ
-                    }
+                    if (component.length > 1) {
+                        const groupColor = DISTINCT_COLORS[globalColorIndex % DISTINCT_COLORS.length];
+                        const groupId = `group_${globalColorIndex}`;
+                        globalColorIndex++;
 
-                    if (overlapMinutes > tolerance || isExactMatch) {
-                        overlaps.add(curr.key);
-                        overlaps.add(next.key);
+                        component.forEach(idx => {
+                            duplicateItems.push({
+                                ...items[idx],
+                                groupId,
+                                rowColor: groupColor
+                            });
+                        });
                     }
                 }
             });
 
-            // Filter only overlaps? Or just highlighting?
-            // User requested "Quét Trùng Lặp". Usually means filter to show ONLY errors.
-            if (overlaps.size > 0) {
-                // Filter only items involved in overlaps
-                let filtered = bedServices.filter(item => overlaps.has(item.key));
+            // Sort outcome by Machine -> GroupID -> Start time
+            duplicateItems.sort((a, b) => {
+                const aKey = a._key_value || a._ma_giuong || '';
+                const bKey = b._key_value || b._ma_giuong || '';
+                if (aKey !== bKey) return aKey.localeCompare(bKey);
+                
+                if (a.groupId !== b.groupId) return (a.groupId || '').localeCompare(b.groupId || '', undefined, { numeric: true });
 
-                // Sort by Department -> Bed -> Time
-                filtered.sort((a, b) => {
-                    // 1. Sort by Department (MA_KHOA)
-                    if (a._ma_khoa !== b._ma_khoa) {
-                        return (a._ma_khoa || '').localeCompare(b._ma_khoa || '');
-                    }
-                    // 2. Sort by Dynamic Key (fallback to Bed)
-                    const aKey = a._key_value || a._ma_giuong || '';
-                    const bKey = b._key_value || b._ma_giuong || '';
-                    if (aKey !== bKey) {
-                        return aKey.localeCompare(bKey);
-                    }
-                    // 3. Sort by Start Time
-                    return a._start.getTime() - b._start.getTime();
-                });
+                return a._start.getTime() - b._start.getTime();
+            });
 
-                // Assign colors based on groups (Dept + Bed)
-                const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50'];
-                let colorIdx = 0;
-                let lastGroupKey = '';
-
-                const coloredData = filtered.map((item, index) => {
-                    const groupKeyStr = item._key_value || item._ma_giuong || '';
-                    const currentGroupKey = `${item._ma_khoa}_${groupKeyStr}`;
-
-                    // If this is the first item, or group key changed from previous item
-                    if (index === 0 || currentGroupKey !== lastGroupKey) {
-                        if (index > 0) colorIdx++; // Verify we don't increment for the very first group
-                        lastGroupKey = currentGroupKey;
-                    }
-
-                    return {
-                        ...item,
-                        groupId: currentGroupKey, // Unique identifier for this collision group
-                        rowColor: colors[colorIdx % colors.length]
-                    };
-                });
-
-                setBedServices(coloredData);
-                message.warning(`Phát hiện ${coloredData.length} dịch vụ trùng lặp!`);
+            if (duplicateItems.length > 0) {
+                setBedServices(duplicateItems);
+                message.warning(`Phát hiện ${duplicateItems.length} dịch vụ trùng lặp!`);
             } else {
                 setBedServices([]);
                 message.success('Không phát hiện trùng lặp nào!');
@@ -380,7 +432,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 (item.TEN_KHOA && item.TEN_KHOA.toLowerCase().includes(filterKhoa.toLowerCase()));
 
             const giuongMatch = !filterMaGiuong ||
-                (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase()));
+                (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase())) ||
+                (item.KEY_VALUE && item.KEY_VALUE.toLowerCase().includes(filterMaGiuong.toLowerCase()));
 
             let ngayRaMatch = true;
             if (hasDateRange) {
@@ -403,24 +456,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             return searchMatch && khoaMatch && giuongMatch && ngayRaMatch;
         });
 
-        // Recalculate alternating colors based on the filtered results so that adjacent groups don't accidentally share a color
-        const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50'];
-        let colorIdx = 0;
-        let lastGroupKey = '';
-
-        return filtered.map((item, index) => {
-            const currentGroupKey = item.groupId || `ungrouped_${item.key}`;
-
-            if (index === 0 || currentGroupKey !== lastGroupKey) {
-                if (index > 0) colorIdx++;
-                lastGroupKey = currentGroupKey;
-            }
-
-            return {
-                ...item,
-                rowColor: colors[colorIdx % colors.length]
-            };
-        });
+        return filtered;
     };
 
     const handleExportExcel = async () => {
@@ -436,6 +472,11 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             { header: 'Họ Tên', key: 'HO_TEN', width: 25 },
             { header: 'Mã Khoa', key: 'MA_KHOA', width: 10 },
             { header: 'Tên Khoa', key: 'TEN_KHOA', width: 20 },
+            { header: 'Mã Bác sĩ', key: 'MA_BAC_SI', width: 15 },
+            { header: 'Tên Bác sĩ', key: 'TEN_BAC_SI', width: 25 },
+            { header: 'Trình độ', key: 'TRINH_DO', width: 15 },
+            { header: 'Người Thực Hiện', key: 'NGUOI_THUC_HIEN', width: 15 },
+            { header: 'Tên Người TH', key: 'TEN_NGUOI_THUC_HIEN', width: 25 },
             { header: rule.logicConfig?.filter?.MA_NHOM == 15 || rule.slug?.includes('giuong') ? 'Mã Giường' : 'Mã Máy', key: 'KEY_VALUE', width: 15 },
             { header: 'Số Lượng', key: 'SOLUONG', width: 10 },
             { header: 'Tỷ lệ BH', key: 'TYLE_BH', width: 10 },
@@ -451,14 +492,6 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         sheet.columns = columns;
 
         // Data
-        const colorMap: Record<string, string> = {
-            'bg-red-50': 'FFFEF2F2',
-            'bg-blue-50': 'FFEFF6FF',
-            'bg-green-50': 'FFF0FDF4',
-            'bg-purple-50': 'FFFAF5FF',
-            'bg-orange-50': 'FFFFF7ED'
-        };
-
         const dataToExport = getFilteredData();
 
         dataToExport.forEach((item, index) => {
@@ -470,6 +503,11 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 HO_TEN: item.HO_TEN,
                 MA_KHOA: item.MA_KHOA,
                 TEN_KHOA: item.TEN_KHOA,
+                MA_BAC_SI: item.MA_BAC_SI,
+                TEN_BAC_SI: item.TEN_BAC_SI,
+                TRINH_DO: item.TRINH_DO,
+                NGUOI_THUC_HIEN: item.NGUOI_THUC_HIEN,
+                TEN_NGUOI_THUC_HIEN: item.TEN_NGUOI_THUC_HIEN,
                 KEY_VALUE: item.KEY_VALUE ? String(item.KEY_VALUE).split('-')[0] : '', // Chỉnh sửa: Chỉ lấy phần đầu (MA_GIUONG)
                 SOLUONG: item.SOLUONG,
                 TYLE_BH: item.TYLE_BH,
@@ -483,12 +521,12 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 TEN_DICH_VU: item.TEN_DICH_VU
             });
 
-            if (item.rowColor && colorMap[item.rowColor]) {
+            if (item.rowColor) {
                 row.eachCell((cell) => {
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
-                        fgColor: { argb: colorMap[item.rowColor] }
+                        fgColor: { argb: 'FF' + item.rowColor.replace('#', '').toUpperCase() }
                     };
                 });
             }
@@ -530,16 +568,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         ];
         sheet.columns = columns;
 
-        // Data & Colors
-        const colorMap: Record<string, string> = {
-            'bg-red-50': 'FFFEF2F2',
-            'bg-blue-50': 'FFEFF6FF',
-            'bg-green-50': 'FFF0FDF4',
-            'bg-purple-50': 'FFFAF5FF',
-            'bg-orange-50': 'FFFFF7ED',
-            'bg-pink-50': 'FFFDF2F8'
-        };
-
+        // Data
         const dataToExport = getFilteredDoctorData();
 
         dataToExport.forEach((item, index) => {
@@ -559,12 +588,12 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 TEN_KHOA: item.TEN_KHOA
             });
 
-            if (item.rowColor && colorMap[item.rowColor]) {
+            if (item.rowColor) {
                 row.eachCell((cell) => {
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
-                        fgColor: { argb: colorMap[item.rowColor] }
+                        fgColor: { argb: 'FF' + item.rowColor.replace('#', '').toUpperCase() }
                     };
                 });
             }
@@ -677,7 +706,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 const distinctPatients = new Set(items.map(item => item._ma_bn));
                 if (distinctPatients.size > 1) { // Same doctor same time but DIFFERENT patients
                     // Assign a collision color
-                    const assignedColor = colors[colorIdx % colors.length];
+                    const assignedColor = DISTINCT_COLORS[colorIdx % DISTINCT_COLORS.length];
                     colorIdx++;
 
                     items.forEach(item => {
@@ -759,26 +788,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             return ngayYlMatch;
         });
 
-        // Recalculate alternating colors based on the filtered results
-        const colors = ['bg-red-50', 'bg-blue-50', 'bg-green-50', 'bg-purple-50', 'bg-orange-50', 'bg-pink-50'];
-        let colorIdx = 0;
-        let lastGroupKey = '';
-
-        return filtered.map((item, index) => {
-            // Apply grouping color if it was involved in a collision (groupId exists)
-            if (item.groupId) {
-                const currentGroupKey = item.groupId;
-                if (index === 0 || currentGroupKey !== lastGroupKey) {
-                    if (index > 0) colorIdx++;
-                    lastGroupKey = currentGroupKey;
-                }
-                return {
-                    ...item,
-                    rowColor: colors[colorIdx % colors.length]
-                };
-            }
-            return item; // If no groupId (no collision or standard view), return normally
-        });
+        return filtered;
     };
 
     // 2. Machine Check
@@ -846,14 +856,16 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
 
     const parseDate = (str: string) => {
         // YYYYMMDD or YYYYMMDDHHmm or YYYYMMDDHHmmss
-        if (!str) return new Date();
-        const y = parseInt(str.substring(0, 4));
-        const m = parseInt(str.substring(4, 6)) - 1;
-        const d = parseInt(str.substring(6, 8));
+        if (!str) return new Date(0);
+        const y = parseInt(str.substring(0, 4)) || 0;
+        const m = (parseInt(str.substring(4, 6)) || 1) - 1;
+        const d = parseInt(str.substring(6, 8)) || 1;
         const h = str.length >= 10 ? parseInt(str.substring(8, 10)) : 0;
         const min = str.length >= 12 ? parseInt(str.substring(10, 12)) : 0;
         const sec = str.length >= 14 ? parseInt(str.substring(12, 14)) : 0;
-        return new Date(y, m, d, h, min, sec);
+        const dObj = new Date(y, m, d, h, min, sec);
+        if (isNaN(dObj.getTime())) return new Date(0);
+        return dObj;
     };
 
     const formatDateTime = (dateStr: string) => {
@@ -881,6 +893,11 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         { title: 'Họ Tên', dataIndex: 'HO_TEN', key: 'HO_TEN', width: 200, className: 'uppercase font-medium' },
         { title: 'Mã Khoa', dataIndex: 'MA_KHOA', key: 'MA_KHOA', width: 100, className: 'font-bold text-blue-700' },
         { title: 'Tên Khoa', dataIndex: 'TEN_KHOA', key: 'TEN_KHOA', width: 200, className: 'text-slate-500' },
+        { title: 'Mã Bác sĩ', dataIndex: 'MA_BAC_SI', key: 'MA_BAC_SI', width: 120, className: 'font-bold text-purple-600' },
+        { title: 'Tên Bác sĩ', dataIndex: 'TEN_BAC_SI', key: 'TEN_BAC_SI', width: 200, className: 'font-medium text-purple-700' },
+        { title: 'Trình độ', dataIndex: 'TRINH_DO', key: 'TRINH_DO', width: 120 },
+        { title: 'Người TH', dataIndex: 'NGUOI_THUC_HIEN', key: 'NGUOI_THUC_HIEN', width: 120, className: 'font-bold text-emerald-600' },
+        { title: 'Tên Người TH', dataIndex: 'TEN_NGUOI_THUC_HIEN', key: 'TEN_NGUOI_THUC_HIEN', width: 200, className: 'font-medium text-emerald-700' },
         {
             title: rule.logicConfig?.filter?.MA_NHOM == 15 || rule.slug?.includes('giuong') ? 'Mã Giường' : 'Mã Máy',
             dataIndex: 'KEY_VALUE',
@@ -1017,7 +1034,9 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                     bordered
                     scroll={{ x: 1300, y: 600 }}
                     pagination={{ defaultPageSize: 20, showSizeChanger: true }}
-                    rowClassName={(record) => record.rowColor || ''}
+                    onRow={(record) => ({
+                        style: { backgroundColor: record.rowColor || undefined }
+                    })}
                 />
             </div>
         );
@@ -1082,7 +1101,9 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                     bordered
                     scroll={{ x: 1500, y: 600 }}
                     pagination={{ defaultPageSize: 20, showSizeChanger: true }}
-                    rowClassName={(record) => record.rowColor || ''}
+                    onRow={(record) => ({
+                        style: { backgroundColor: record.rowColor || undefined }
+                    })}
                 />
             </div>
         );

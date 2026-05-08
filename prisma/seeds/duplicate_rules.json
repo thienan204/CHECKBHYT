@@ -35,5 +35,23 @@
     "ignoreIfSameField": "MAHOSOBENHAN",
     "createdAt": "2026-02-05T03:24:08.713Z",
     "updatedAt": "2026-03-25T13:30:33.538Z"
+  },
+  {
+    "id": "cmnjssa3s0002d8dt8ha1ul07",
+    "name": "Kiểm tra trung Thời gian PTTT của PTTT viên chính",
+    "machineCols": [
+      "TT_CHINH"
+    ],
+    "serviceCol": null,
+    "startCol": "NGAYPTTT",
+    "endCol": "NGAYPTTT",
+    "ignoreMaMayMinusOne": true,
+    "ignoreNullValues": false,
+    "active": true,
+    "serviceValues": [],
+    "excludedServiceValues": [],
+    "ignoreIfSameField": null,
+    "createdAt": "2026-04-04T03:53:29.894Z",
+    "updatedAt": "2026-04-04T03:54:20.084Z"
   }
 ]

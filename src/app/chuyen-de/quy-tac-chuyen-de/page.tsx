@@ -62,9 +62,14 @@ const DuplicateBedConfigInput = ({ value, onChange }: { value?: string, onChange
     const triggerChange = (newState: any) => {
         setState(newState);
         if (onChange) {
-            const filter: any = {
-                MA_NHOM: Number(newState.maNhom)
-            };
+            const filter: any = {};
+            if (newState.maNhom) {
+                if (Array.isArray(newState.maNhom)) {
+                     if (newState.maNhom.length > 0) filter.MA_NHOM = newState.maNhom;
+                } else {
+                     filter.MA_NHOM = Number(newState.maNhom);
+                }
+            }
             if (newState.tyleTtDv) {
                 filter.TYLE_TT_DV = Number(newState.tyleTtDv);
             }
@@ -115,16 +120,21 @@ const DuplicateBedConfigInput = ({ value, onChange }: { value?: string, onChange
                             { label: 'MA_KHOA (Mã Khoa)', value: 'MA_KHOA' },
                             { label: 'MA_PHONG (Mã Phòng)', value: 'MA_PHONG' },
                             { label: 'MA_MAY (Mã Máy)', value: 'MA_MAY' },
-                            { label: 'MA_BS (Mã Bác Sĩ)', value: 'MA_BS' },
+                            { label: 'MA_BAC_SI (Mã Bác Sĩ)', value: 'MA_BAC_SI' },
+                            { label: 'MA_BN (Mã Bệnh nhân)', value: 'MA_BN' },
+                            { label: 'MA_LK (Mã Lượt khám)', value: 'MA_LK' },
+                            { label: 'NGUOI_THUC_HIEN (Người thực hiện)', value: 'NGUOI_THUC_HIEN' },
                         ]}
                     />
                 </div>
                 <div>
                     <label className="block text-xs font-semibold text-slate-500 mb-1">Mã Nhóm (Filter)</label>
-                    <InputNumber
-                        value={state.maNhom}
+                    <Select
+                        mode="tags"
+                        value={Array.isArray(state.maNhom) ? state.maNhom : (state.maNhom ? [String(state.maNhom)] : [])}
                         onChange={(v) => handleChange('maNhom', v)}
                         className="w-full"
+                        placeholder="VD: 15, 18"
                     />
                 </div>
                 <div>

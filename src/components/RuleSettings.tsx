@@ -479,6 +479,29 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                             <li><span className="text-gray-500 italic">Ví dụ (Trùng Mã Thẻ BHYT nhưng Khác Mã Bệnh nhân):</span> <code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_DIFF('XML1.MA_THE', MA_THE, 'XML1.MA_BN', MA_BN)</code></li>
                         </ul>
                     </div>
+                    <div className="mt-2">
+                        <div className="font-bold text-blue-700">6. Kiểm tra trùng lặp trong cùng một Hồ sơ (Cùng 1 bệnh nhân - MA_BN)</div>
+                        <div className="text-gray-600 mb-1">Dùng để kiểm tra xem trong cùng 1 hồ sơ bệnh nhân hiện tại, có 2 dòng/dịch vụ nào có trùng giá trị hay không. Bạn có thể chắp vá thêm nhiều trường để kiểm tra chung! (Gõ vào ô <b>Biểu thức toán học</b>)</div>
+                        <ul className="list-disc pl-4 space-y-2 mt-2">
+                            <li>
+                                <div className="text-gray-800 font-semibold text-[13px]">Kịch bản 1: Chỉ add field cần bám sát kiểm tra trùng lặp vào đây (Các field khác có thể giống hoặc khác nhau thì tuỳ ý, KHÔNG cần add vào đây)</div>
+                                <div className="text-gray-500 italic text-xs mb-1">Ví dụ: Chỉ cần trùng Ngày/Giờ thực hiện là báo lỗi (mặc kệ MA_DICH_VU là gì):</div>
+                                <code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_IN_LIST('NGAY_TH_YL', NGAY_TH_YL)</code>
+                            </li>
+                            <li>
+                                <div className="text-gray-800 font-semibold text-[13px]">Kịch bản 2: Vừa trùng Mã Dịch vụ VÀ trùng cả Ngày/Giờ thực hiện</div>
+                                <code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_IN_LIST('MA_DICH_VU', MA_DICH_VU, 'NGAY_TH_YL', NGAY_TH_YL)</code>
+                            </li>
+                            <li>
+                                <div className="text-gray-800 font-semibold text-[13px]">Kịch bản 3: Đổi sang kiểm tra: Trùng Bác sĩ VÀ trùng Ngày/Giờ thực hiện</div>
+                                <code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_IN_LIST('MA_BAC_SI', MA_BAC_SI, 'NGAY_TH_YL', NGAY_TH_YL)</code>
+                            </li>
+                            <li>
+                                <div className="text-gray-800 font-semibold text-[13px]">Kịch bản 4: Check siêu chặt (Trùng 3 tiêu chí: Bác Sĩ + Dịch Vụ + Ngày Giờ)</div>
+                                <code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_IN_LIST('MA_BAC_SI', MA_BAC_SI, 'MA_DICH_VU', MA_DICH_VU, 'NGAY_TH_YL', NGAY_TH_YL)</code>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             )
         }

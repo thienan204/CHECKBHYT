@@ -1132,8 +1132,12 @@ export default function XmlReader() {
                                             onClick={async () => {
                                                 const latestRules = await reloadRules();
                                                 const validator = new ValidationEngine(latestRules, masterData);
-                                                setRecords(prev => prev.map(r => ({ ...r, validationResults: validator.validate(r) })));
-                                                message.success('Đã tải lại quy tắc mới nhất và áp dụng cho dữ liệu hiện tại.');
+                                                setRecords(prev => {
+                                                    const newRecords = prev.map(r => ({ ...r, validationResults: validator.validate(r) }));
+                                                    addRecordsToDB(newRecords).catch(e => console.error(e));
+                                                    return newRecords;
+                                                });
+                                                message.success('Đã tải lại quy tắc mới nhất và cập nhật cho dữ liệu hiện tại.');
                                             }}
                                         >
                                             Chạy lại kiểm tra

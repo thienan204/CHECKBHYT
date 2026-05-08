@@ -44,10 +44,44 @@ const COLOR_PALETTE = [
 ];
 
 const parseDateStr = (dateStr: any) => {
-    if (!dateStr) return null;
+    if (dateStr === null || dateStr === undefined || dateStr === '') return null;
+    
+    // Nếu đã là Date object (do dùng cellDates: true)
+    if (dateStr instanceof Date) {
+        return dateStr;
+    }
+
+    // Xử lý ngày dạng số Serial của Excel (ví dụ 44927.5)
+    if (typeof dateStr === 'number') {
+        const ms = Math.round((dateStr - 25569) * 86400 * 1000);
+        return new Date(ms); 
+    }
+
     let s = String(dateStr).trim();
 
-    // Regex for DD/MM/YYYY HH:mm
+    // Regex YYYYMMDDHHmm (vd: 202305011030)
+    const yyyymmddhhmm = s.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/);
+    if (yyyymmddhhmm) {
+        return new Date(
+            parseInt(yyyymmddhhmm[1]),
+            parseInt(yyyymmddhhmm[2]) - 1,
+            parseInt(yyyymmddhhmm[3]),
+            parseInt(yyyymmddhhmm[4]),
+            parseInt(yyyymmddhhmm[5])
+        );
+    }
+
+    // Regex YYYYMMDD (vd: 20230501)
+    const yyyymmdd = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+    if (yyyymmdd) {
+        return new Date(
+            parseInt(yyyymmdd[1]),
+            parseInt(yyyymmdd[2]) - 1,
+            parseInt(yyyymmdd[3])
+        );
+    }
+
+    // Regex DD/MM/YYYY HH:mm
     const dmyhm = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})/);
     if (dmyhm) {
         return new Date(
@@ -56,6 +90,16 @@ const parseDateStr = (dateStr: any) => {
             parseInt(dmyhm[1]),
             parseInt(dmyhm[4]),
             parseInt(dmyhm[5])
+        );
+    }
+
+    // Regex DD/MM/YYYY
+    const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (dmy) {
+        return new Date(
+            parseInt(dmy[3]),
+            parseInt(dmy[2]) - 1,
+            parseInt(dmy[1])
         );
     }
 
@@ -233,7 +277,7 @@ export default function ExcelReaderPage() {
                     reader.onload = (e) => {
                         try {
                             const data = e.target?.result;
-                            const wb = XLSX.read(data, { type: 'binary' });
+                            const wb = XLSX.read(data, { type: 'binary', cellDates: true });
                             setWorkbook(wb);
                             setSheetNames(wb.SheetNames);
                             if (wb.SheetNames.length > 0) {
@@ -282,7 +326,12 @@ export default function ExcelReaderPage() {
             key: index,
             width: 150,
             ellipsis: true,
-            render: (text: any) => <span className="text-slate-700">{text}</span>
+            render: (text: any) => {
+                if (text instanceof Date) {
+                    return <span className="text-slate-700">{text.toLocaleString('vi-VN')}</span>;
+                }
+                return <span className="text-slate-700">{String(text ?? '')}</span>;
+            }
         }));
 
         const data = rows.map((row: any, index) => {
@@ -348,7 +397,7 @@ export default function ExcelReaderPage() {
             reader.onload = (e) => {
                 try {
                     const data = e.target?.result;
-                    const wb = XLSX.read(data, { type: 'binary' });
+                    const wb = XLSX.read(data, { type: 'binary', cellDates: true });
                     setWorkbook(wb);
                     setSheetNames(wb.SheetNames);
                     if (wb.SheetNames.length > 0) {
@@ -756,6 +805,23 @@ export default function ExcelReaderPage() {
                                 </Button>
 
                                 <Button
+                                    icon={<AuditOutlined />}
+                                    onClick={async () => {
+                                        const dups = tableData.filter(x => x.__groupIndex !== undefined);
+                                        if (dups.length === 0) {
+                                            message.info("Không có dữ liệu trùng để hiển thị. Hãy chạy kiểm tra trước.");
+                                        } else {
+                                            const db = await initDB();
+                                            await db.put('files', { headers, dups }, 'currentDuplicates');
+                                            window.open('/doc-file-excel/duplicates', '_blank');
+                                        }
+                                    }}
+                                    className="border-purple-600 text-purple-600 ml-2"
+                                >
+                                    Danh sách Trùng
+                                </Button>
+
+                                <Button
                                     icon={<DownloadOutlined />}
                                     onClick={handleExportDuplicates}
                                     className="border-green-600 text-green-600 ml-2"
@@ -806,8 +872,9 @@ export default function ExcelReaderPage() {
                                     )
                                 }))}
                                 dataSource={filteredTableData}
-                                scroll={{ x: 'max-content', y: 600 }}
+                                scroll={{ x: tableColumns.length * 150, y: 600 }}
                                 pagination={false}
+                                virtual
                                 bordered
                                 size="middle"
                                 onRow={(record) => {
@@ -1006,7 +1073,7 @@ export default function ExcelReaderPage() {
                         </Button>
                     </div>
                 </Form>
-            </Modal >
-        </div >
+            </Modal>
+        </div>
     );
 }

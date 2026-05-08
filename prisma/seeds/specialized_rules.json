@@ -24,11 +24,11 @@
         "TYLE_TT_DV": 100
       },
       "toleranceMinutes": 0,
-      "ignoreIfSameField": "MA_BN"
+      "ignoreIfSameField": ""
     },
     "sqlQuery": null,
     "createdAt": "2026-02-04T09:12:33.636Z",
-    "updatedAt": "2026-03-25T09:49:00.208Z"
+    "updatedAt": "2026-05-08T02:31:51.863Z"
   },
   {
     "id": "cml88004h0000ksk5fz4t5o6k",
@@ -59,7 +59,7 @@
     },
     "sqlQuery": null,
     "createdAt": "2026-02-04T16:06:45.665Z",
-    "updatedAt": "2026-02-09T01:28:02.531Z"
+    "updatedAt": "2026-04-29T07:53:12.948Z"
   },
   {
     "id": "cml9lk5vs0002ksk5s76nh18t",
@@ -119,5 +119,103 @@
     "sqlQuery": null,
     "createdAt": "2026-03-16T02:43:37.319Z",
     "updatedAt": "2026-03-17T15:07:51.301Z"
+  },
+  {
+    "id": "cmnjt9xyc0003d8dtxt4afmf5",
+    "name": "Kiểm tra PTTT chính trùng thời gian thực hiện PTTT",
+    "slug": "kiem-tra-pttchinh-trungthoi",
+    "description": null,
+    "isActive": true,
+    "order": 5,
+    "ruleType": "MACHINE_CHECK",
+    "logicConfig": {
+      "type": "DUPLICATE_BED",
+      "fields": {
+        "bed": [
+          "MA_BS"
+        ],
+        "room": "MA_PHONG",
+        "endTime": "NGAY_TH_YL",
+        "startTime": "NGAY_TH_YL",
+        "department": "MA_KHOA"
+      },
+      "filter": {
+        "MA_NHOM": 18
+      },
+      "toleranceMinutes": 0,
+      "ignoreIfSameField": ""
+    },
+    "sqlQuery": null,
+    "createdAt": "2026-04-04T04:07:13.955Z",
+    "updatedAt": "2026-04-04T04:09:24.815Z"
+  },
+  {
+    "id": "cmof9oyqf0006y2kvtuleyjf2",
+    "name": "Kiểm tra trung thời gian thực hiện cùng một BN",
+    "slug": "trung-thoi-gian-chidinh-bstsdafsfd",
+    "description": null,
+    "isActive": true,
+    "order": 6,
+    "ruleType": "Trugnthoigianthuwcjhien 1 BN",
+    "logicConfig": {
+      "type": "DUPLICATE_BED",
+      "fields": {
+        "bed": [
+          "MA_BN",
+          "NGUOI_THUC_HIEN"
+        ],
+        "room": "MA_PHONG",
+        "endTime": "NGAY_TH_YL",
+        "startTime": "NGAY_TH_YL",
+        "department": "MA_KHOA"
+      },
+      "filter": {
+        "MA_NHOM": [
+          "18",
+          "8",
+          "2",
+          "3"
+        ]
+      },
+      "toleranceMinutes": 0,
+      "ignoreIfSameField": ""
+    },
+    "sqlQuery": null,
+    "createdAt": "2026-04-26T04:27:40.117Z",
+    "updatedAt": "2026-05-06T02:21:15.143Z"
+  },
+  {
+    "id": "cmogqksxw0009y2kvkn3guk85",
+    "name": "Trùng người thực hiện thời gian",
+    "slug": "trungnguoithuchienthoigian",
+    "description": null,
+    "isActive": true,
+    "order": 7,
+    "ruleType": "MACHINE_CHECK",
+    "logicConfig": {
+      "type": "DUPLICATE_BED",
+      "fields": {
+        "bed": [
+          "NGUOI_THUC_HIEN"
+        ],
+        "room": "MA_PHONG",
+        "endTime": "NGAY_TH_YL",
+        "startTime": "NGAY_TH_YL",
+        "department": "MA_KHOA"
+      },
+      "filter": {
+        "MA_NHOM": [
+          "18",
+          "8",
+          "2",
+          "3"
+        ]
+      },
+      "toleranceMinutes": 0,
+      "ignoreIfSameField": ""
+    },
+    "sqlQuery": null,
+    "createdAt": "2026-04-27T05:08:05.633Z",
+    "updatedAt": "2026-05-06T02:18:56.243Z"
   }
 ]
