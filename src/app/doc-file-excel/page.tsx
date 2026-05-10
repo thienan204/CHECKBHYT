@@ -813,9 +813,8 @@ export default function ExcelReaderPage() {
                                         } else {
                                             const db = await initDB();
                                             await db.put('files', { headers, dups }, 'currentDuplicates');
-                                            const currentPath = window.location.pathname;
-                                            const targetPath = currentPath.endsWith('/') ? currentPath + 'duplicates' : currentPath + '/duplicates';
-                                            window.open(targetPath, '_blank');
+                                            const baseUrl = window.location.href.split('?')[0].replace(/\/$/, '');
+                                            window.open(`${baseUrl}/duplicates`, '_blank');
                                         }
                                     }}
                                     className="border-purple-600 text-purple-600 ml-2"
