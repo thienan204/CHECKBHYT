@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Badge, Avatar, Dropdown } from 'antd';
 import { logout } from '@/actions/auth';
+import { useRouter } from 'next/navigation';
 
 interface TopHeaderProps {
     onToggleSidebar: () => void;
@@ -15,6 +16,8 @@ interface TopHeaderProps {
 }
 
 const TopHeader = ({ onToggleSidebar, isSidebarOpen, user }: TopHeaderProps) => {
+    const router = useRouter();
+
     return (
         <div
             className={`
@@ -43,7 +46,8 @@ const TopHeader = ({ onToggleSidebar, isSidebarOpen, user }: TopHeaderProps) => 
                                 danger: true,
                                 onClick: async () => {
                                     await logout();
-                                    window.location.href = '/login';
+                                    router.push('/login');
+                                    router.refresh();
                                 }
                             }
                         ]
@@ -59,7 +63,7 @@ const TopHeader = ({ onToggleSidebar, isSidebarOpen, user }: TopHeaderProps) => 
                         </div>
                     </Dropdown>
                 ) : (
-                    <Button type="primary" href="/login" className="bg-blue-500 hover:bg-blue-600 font-bold shadow-md shadow-blue-200 border-none">
+                    <Button type="primary" onClick={() => router.push('/login')} className="bg-blue-500 hover:bg-blue-600 font-bold shadow-md shadow-blue-200 border-none">
                         Đăng nhập
                     </Button>
                 )}

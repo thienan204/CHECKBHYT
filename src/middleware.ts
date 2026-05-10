@@ -20,7 +20,8 @@ export async function middleware(request: NextRequest) {
         const token = request.cookies.get('auth_token')?.value;
 
         if (!token) {
-            return NextResponse.redirect(new URL('/login', request.url));
+            const bp = request.nextUrl.basePath || '';
+            return NextResponse.redirect(new URL(`${bp}/login`, request.url));
         }
 
         try {
@@ -30,7 +31,8 @@ export async function middleware(request: NextRequest) {
             return NextResponse.next();
         } catch (error) {
             // Token invalid or expired
-            return NextResponse.redirect(new URL('/login', request.url));
+            const bp = request.nextUrl.basePath || '';
+            return NextResponse.redirect(new URL(`${bp}/login`, request.url));
         }
     }
 
