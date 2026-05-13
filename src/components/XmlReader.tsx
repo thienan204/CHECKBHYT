@@ -514,7 +514,19 @@ export default function XmlReader() {
             render: (text) => formatDateTime(text)
         },
         {
-            title: 'Ngày ra',
+            title: (
+                <div className="flex flex-col gap-1">
+                    <span>Ngày ra</span>
+                    <Input
+                        placeholder="Tìm..."
+                        size="small"
+                        allowClear
+                        value={colFilters.NGAY_RA}
+                        onChange={(e) => setColFilters(prev => ({ ...prev, NGAY_RA: e.target.value }))}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            ),
             dataIndex: ['summary', 'NGAY_RA'],
             key: 'NGAY_RA',
             render: (text) => formatDateTime(text)
@@ -576,6 +588,14 @@ export default function XmlReader() {
         if (colFilters.MA_LOAI_KCB) {
             const k = colFilters.MA_LOAI_KCB.toLowerCase();
             result = result.filter(r => String(r.summary?.MA_LOAI_KCB || '').toLowerCase().includes(k));
+        }
+        if (colFilters.NGAY_RA) {
+            const k = colFilters.NGAY_RA.toLowerCase();
+            result = result.filter(r => {
+                const formatted = formatDateTime(r.summary?.NGAY_RA) || '';
+                const raw = String(r.summary?.NGAY_RA || '');
+                return formatted.toLowerCase().includes(k) || raw.toLowerCase().includes(k);
+            });
         }
 
 
