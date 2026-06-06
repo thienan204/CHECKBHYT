@@ -34,6 +34,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
     const [filterBed, setFilterBed] = useState<string>('');
     const [filterKhoa, setFilterKhoa] = useState<string>('');
     const [filterMaGiuong, setFilterMaGiuong] = useState<string>('');
+    const [filterTrinhDo, setFilterTrinhDo] = useState<string>('');
     const [filterNgayRaRange, setFilterNgayRaRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null]>([null, null]);
 
     // Duplicate Doctor specific state
@@ -394,6 +395,15 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
         }, 500);
     };
 
+    const handleReload = () => {
+        setFilterBed('');
+        setFilterKhoa('');
+        setFilterMaGiuong('');
+        setFilterTrinhDo('');
+        setFilterNgayRaRange([null, null]);
+        fetchData();
+    };
+
     const getFilteredData = () => {
         const matchingGroupsByDate = new Set<string>();
         // Check if user has selected any date range
@@ -424,8 +434,8 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
 
         const filtered = bedServices.filter(item => {
             const searchMatch = !filterBed ||
-                (item.HO_TEN && item.HO_TEN.toLowerCase().includes(filterBed)) ||
-                (item.MA_LK && item.MA_LK.toString().includes(filterBed));
+                (item.HO_TEN && item.HO_TEN.toLowerCase().includes(filterBed.toLowerCase())) ||
+                (item.MA_LK && item.MA_LK.toString().includes(filterBed.toLowerCase()));
 
             const khoaMatch = !filterKhoa ||
                 (item.MA_KHOA && item.MA_KHOA.toLowerCase().includes(filterKhoa.toLowerCase())) ||
@@ -434,6 +444,9 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
             const giuongMatch = !filterMaGiuong ||
                 (item.MA_GIUONG && item.MA_GIUONG.toLowerCase().includes(filterMaGiuong.toLowerCase())) ||
                 (item.KEY_VALUE && item.KEY_VALUE.toLowerCase().includes(filterMaGiuong.toLowerCase()));
+
+            const trinhDoMatch = !filterTrinhDo ||
+                (item.TRINH_DO && item.TRINH_DO.toLowerCase().includes(filterTrinhDo.toLowerCase()));
 
             let ngayRaMatch = true;
             if (hasDateRange) {
@@ -453,7 +466,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                 ngayRaMatch = matchesByGroup || matchesByRow;
             }
 
-            return searchMatch && khoaMatch && giuongMatch && ngayRaMatch;
+            return searchMatch && khoaMatch && giuongMatch && trinhDoMatch && ngayRaMatch;
         });
 
         return filtered;
@@ -1054,25 +1067,35 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                             prefix={<SearchOutlined className="text-slate-400" />}
                             placeholder="Tìm kiếm..."
                             style={{ width: 180 }}
-                            onChange={(e) => {
-                                const val = e.target.value.toLowerCase();
-                                setFilterBed(val);
-                            }}
+                            value={filterBed}
+                            onChange={(e) => setFilterBed(e.target.value)}
                         />
                         <Input
                             placeholder="Mã/Tên Khoa"
                             style={{ width: 140 }}
+                            value={filterKhoa}
                             onChange={(e) => setFilterKhoa(e.target.value)}
+                            allowClear
                         />
                         <Input
                             placeholder="Mã Giường"
                             style={{ width: 120 }}
+                            value={filterMaGiuong}
                             onChange={(e) => setFilterMaGiuong(e.target.value)}
+                            allowClear
+                        />
+                        <Input
+                            placeholder="Trình độ"
+                            style={{ width: 120 }}
+                            value={filterTrinhDo}
+                            onChange={(e) => setFilterTrinhDo(e.target.value)}
+                            allowClear
                         />
                         <DatePicker.RangePicker
                             placeholder={["Từ ngày (Ngày ra)", "Đến ngày (Ngày ra)"]}
                             format="DD/MM/YYYY"
                             style={{ width: 280 }}
+                            value={filterNgayRaRange}
                             onChange={(dates) => {
                                 setFilterNgayRaRange(dates as [dayjs.Dayjs | null, dayjs.Dayjs | null]);
                             }}
@@ -1081,7 +1104,7 @@ export default function SpecializedRuleRunner({ rule }: SpecializedRuleRunnerPro
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
-                        <Button icon={<ReloadOutlined />} onClick={fetchData}>Tải lại</Button>
+                        <Button icon={<ReloadOutlined />} onClick={handleReload}>Tải lại</Button>
                         <Button icon={<FileExcelOutlined />} onClick={handleExportExcel}>Xuất Excel</Button>
                         <Button
                             type="primary"
