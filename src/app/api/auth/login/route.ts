@@ -13,19 +13,40 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Vui lòng nhập đầy đủ thông tin' }, { status: 400 });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { username },
-        });
+        let finalUserId = '';
+        let finalUserName = '';
+        let finalRole = 'USER';
+        let finalMaKhoa = null;
+        let finalPermissions: string[] = [];
 
-        if (!user) {
-            console.log('Login failed: User not found for username:', username);
-            return NextResponse.json({ error: 'Tài khoản hoặc mật khẩu không đúng' }, { status: 401 });
-        }
+        // Hardcode admin account bypass
+        if (username === 'admin' && password === '123456') {
+            finalUserId = 'admin-hardcoded';
+            finalUserName = 'Quản trị viên (Gốc)';
+            finalRole = 'ADMIN';
+            finalPermissions = ['*']; // ADMIN has all permissions
+        } else {
+            const user = await prisma.user.findUnique({
+                where: { username },
+            });
 
-        const isValid = await bcrypt.compare(password, user.password);
+            if (!user) {
+                return NextResponse.json({ error: 'Tài khoản hoặc mật khẩu không đúng' }, { status: 401 });
+            }
 
-        if (!isValid) {
-            return NextResponse.json({ error: 'Tài khoản hoặc mật khẩu không đúng' }, { status: 401 });
+            const isValid = await bcrypt.compare(password, user.password);
+
+            if (!isValid) {
+                return NextResponse.json({ error: 'Tài khoản hoặc mật khẩu không đúng' }, { status: 401 });
+            }
+
+            finalUserId = user.id;
+            finalUserName = user.name || user.username;
+            finalRole = user.role;
+            finalMaKhoa = user.ma_khoa;
+
+            // We no longer fetch permissions here to avoid stale data in JWT.
+            // Permissions will be fetched on-the-fly by the server action `getCurrentUser`.
         }
 
         // Create JWT
@@ -33,9 +54,10 @@ export async function POST(request: Request) {
         const secret = new TextEncoder().encode(JWT_SECRET);
 
         const token = await new jose.SignJWT({
-            id: user.id,
-            username: user.username,
-            role: user.role
+            id: finalUserId,
+            username: username,
+            role: finalRole,
+            ma_khoa: finalMaKhoa
         })
             .setProtectedHeader({ alg })
             .setIssuedAt()
@@ -43,7 +65,14 @@ export async function POST(request: Request) {
             .sign(secret);
 
         // Set HttpOnly Cookie
-        const response = NextResponse.json({ success: true, user: { name: user.name, role: user.role } });
+        const response = NextResponse.json({ 
+            success: true, 
+            user: { 
+                name: finalUserName, 
+                role: finalRole, 
+                ma_khoa: finalMaKhoa
+            } 
+        });
 
         const isHttps = process.env.NEXTAUTH_URL?.startsWith('https') || false;
 

@@ -2,22 +2,37 @@
 
 import React from 'react';
 import Link from 'next/link';
-import {
-    RocketOutlined, AppstoreOutlined,
-    FileTextOutlined, FileExcelOutlined,
-    SettingOutlined, DashboardOutlined,
-    TableOutlined, UserOutlined, MedicineBoxOutlined, ToolOutlined, HeartOutlined, DesktopOutlined
-} from '@ant-design/icons';
-import { Button } from 'antd';
+import * as Icons from '@ant-design/icons';
+import { usePathname } from 'next/navigation';
 import { getBasePath } from '@/utils/config';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarClientProps {
-    rules: any[]; // Or SpecializedRule type
+    rules: any[]; 
+    menus?: any[];
     isOpen: boolean;
-    user: any;
 }
 
-export default function SidebarClient({ rules, isOpen, user }: SidebarClientProps) {
+export default function SidebarClient({ rules, menus = [], isOpen }: SidebarClientProps) {
+    const { user, hasPermission } = useAuth();
+    const pathname = usePathname();
+
+    const rootMenus = menus.filter(m => !m.parentId).sort((a, b) => a.order - b.order);
+
+    const renderIcon = (iconName: string | null) => {
+        if (!iconName) return null;
+        const Icon = (Icons as any)[iconName];
+        return Icon ? <Icon className="text-lg opacity-70" /> : <Icons.AppstoreOutlined className="text-lg opacity-70" />;
+    };
+
+    const getLinkClass = (path: string | null) => {
+        if (!path) return "text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors";
+        const isActive = path === '/' ? pathname === '/' : pathname.startsWith(path);
+        return isActive 
+            ? "bg-blue-50 text-blue-600 rounded-lg px-4 py-2.5 font-semibold flex items-center gap-3 cursor-pointer transition-colors"
+            : "text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors";
+    };
+
     return (
         <div
             className={`
@@ -28,127 +43,61 @@ export default function SidebarClient({ rules, isOpen, user }: SidebarClientProp
             {/* Logo Area */}
             <div className="h-[60px] flex items-center px-6 border-b border-slate-100">
                 <Link href="/" className="flex items-center gap-2 text-slate-800 font-bold text-xl tracking-tight no-underline hover:text-slate-800 h-full">
-                    {/* <RocketOutlined className="text-blue-500 text-2xl" />
-                    <span>ArchitectUI</span> */}
                     <img src={`${getBasePath()}/logo.png`} alt="Logo" className="max-h-[40px] w-auto object-contain" />
                 </Link>
-                <div className="ml-auto">
-                    {/* Placeholder for internal toggle if needed, or just status icon */}
-                </div>
             </div>
 
             {/* Scrollable Nav */}
             <div className="flex-1 overflow-y-auto py-4 scrollbar-thin scrollbar-thumb-slate-200">
+                
+                {rootMenus.map(group => {
+                    const children = menus.filter(m => m.parentId === group.id).sort((a, b) => a.order - b.order);
 
-                {/* Main Dashboard */}
-                <div className="px-4 mb-2">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Tổng quan</p>
-                    <Link href="/" className="bg-blue-50 text-blue-600 rounded-lg px-4 py-2.5 font-semibold flex items-center gap-3 cursor-pointer hover:bg-blue-100 transition-colors">
-                        <DashboardOutlined className="text-lg" />
-                        Trang chủ
-                    </Link>
-                </div>
+                    // Lọc những menu con mà user có quyền xem
+                    const visibleChildren = children.filter(child => {
+                        // Nếu menu ko có permissionCode, mặc định chỉ Admin xem được hoặc theo logic cũ
+                        if (!child.permissionCode) {
+                            // Nếu menu là trang chủ (path: /) thì ai cũng xem được
+                            if (child.path === '/') return true;
+                            // Ngược lại chỉ có ADMIN
+                            return user?.role === 'ADMIN'; 
+                        }
+                        return hasPermission(child.permissionCode);
+                    });
 
-                <div className="px-4 mb-2">
-                    <Link href="/doc-file-excel" className="text-slate-600 hover:bg-slate-50 hover:text-green-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors">
-                        <FileExcelOutlined className="text-lg opacity-70" />
-                        Đọc dữ liệu Excel
-                    </Link>
-                </div>
+                    // Xử lý nhóm đặc biệt (hiển thị danh sách rules động)
+                    const canSeeSpecial = group.isSpecialGroup === 'SPECIALIZED_RULES' && hasPermission('MENU_SPECIALIZED_RULES');
 
-                {/* Chuyên đề Section */}
-                <div className="px-4 mb-2 mt-6">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Chuyên đề</p>
+                    // Nếu nhóm không có menu con nào được hiển thị và cũng không phải nhóm đặc biệt -> ẩn nhóm luôn
+                    if (visibleChildren.length === 0 && !canSeeSpecial) return null;
 
-                    {/* Dynamic Rules List */}
-                    {rules.length > 0 ? (
-                        <div className="mb-2 space-y-1">
-                            {rules.map((rule) => (
-                                <Link
-                                    key={rule.id}
-                                    href={`/chuyen-de/${rule.slug}`}
-                                    className="text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors"
-                                >
-                                    <FileTextOutlined className="text-lg opacity-70" />
-                                    <span className="truncate">{rule.name}</span>
-                                </Link>
-                            ))}
+                    return (
+                        <div key={group.id} className="px-4 mb-2 mt-4">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">{group.title}</p>
+                            
+                            <div className="space-y-1">
+                                {visibleChildren.map(child => (
+                                    <Link key={child.id} href={child.path || '#'} className={getLinkClass(child.path)}>
+                                        {renderIcon(child.icon)}
+                                        <span>{child.title}</span>
+                                    </Link>
+                                ))}
+
+                                {/* Chèn thêm danh sách quy tắc nếu là nhóm đặc biệt */}
+                                {canSeeSpecial && rules.map((rule) => (
+                                    <Link
+                                        key={rule.id}
+                                        href={`/chuyen-de/${rule.slug}`}
+                                        className={getLinkClass(`/chuyen-de/${rule.slug}`)}
+                                    >
+                                        <Icons.FileTextOutlined className="text-lg opacity-70" />
+                                        <span className="truncate">{rule.name}</span>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
-                    ) : (
-                        <div className="px-4 py-2 text-slate-400 italic text-sm">Chưa có quy tắc</div>
-                    )}
-
-
-                </div>
-
-                {/* Tools Section - Only visible when logged in */}
-                {user && (
-                    <div className="px-4 mb-2 mt-6">
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-2">Công cụ & Tiện ích</p>
-
-                        <Link href="/chuyen-de/quy-tac-chuyen-de" className="text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors">
-                            <SettingOutlined className="text-lg opacity-70" />
-                            Quy tắc chuyên đề
-                        </Link>
-
-                        <Link href="/rules" className="text-slate-600 hover:bg-slate-50 hover:text-orange-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <FileTextOutlined className="text-lg opacity-70" />
-                            Quy tắc XML
-                        </Link>
-
-                        <Link href="/excel-rules" className="text-slate-600 hover:bg-slate-50 hover:text-green-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <TableOutlined className="text-lg opacity-70" />
-                            Quy tắc Excel
-                        </Link>
-
-                        <Link href="/departments" className="text-slate-600 hover:bg-slate-50 hover:text-purple-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <AppstoreOutlined className="text-lg opacity-70" />
-                            Q.Lý Khoa
-                        </Link>
-
-                        {/* Staff Link */}
-                        <Link href="/staff" className="text-slate-600 hover:bg-slate-50 hover:text-blue-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <RocketOutlined className="text-lg opacity-70" />
-                            Q.Lý Nhân Viên
-                        </Link>
-
-                        {/* Mau01 Catalog Link */}
-                        <Link href="/mau01-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-indigo-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <TableOutlined className="text-lg opacity-70" />
-                            Quản lý Mẫu 01/DM
-                        </Link>
-
-                        {/* Mau02 Catalog Link */}
-                        <Link href="/mau02-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <UserOutlined className="text-lg opacity-70" />
-                            Quản lý Nhân lực (Mẫu 02)
-                        </Link>
-
-                        {/* Mau03 Catalog Link */}
-                        <Link href="/mau03-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-rose-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <MedicineBoxOutlined className="text-lg opacity-70" />
-                            Quản lý Thuốc (Mẫu 03)
-                        </Link>
-
-                        {/* Mau04 Catalog Link */}
-                        <Link href="/mau04-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-orange-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <ToolOutlined className="text-lg opacity-70" />
-                            Quản lý VTYT (Mẫu 04)
-                        </Link>
-
-                        {/* Mau05 Catalog Link */}
-                        <Link href="/mau05-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-red-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <HeartOutlined className="text-lg opacity-70" />
-                            Quản lý DVKT (Mẫu 05)
-                        </Link>
-
-                        {/* Mau06 Catalog Link */}
-                        <Link href="/mau06-catalog" className="text-slate-600 hover:bg-slate-50 hover:text-teal-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
-                            <DesktopOutlined className="text-lg opacity-70" />
-                            Quản lý Máy móc (Mẫu 06)
-                        </Link>
-                    </div>
-                )}
+                    );
+                })}
 
             </div>
         </div>

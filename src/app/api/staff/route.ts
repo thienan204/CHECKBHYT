@@ -36,6 +36,7 @@ export async function POST(request: Request) {
                         ho_ten: item.ho_ten,
                         trinh_do: item.trinh_do || null,
                         chuc_danh: item.chuc_danh || null,
+                        so_dien_thoai: item.so_dien_thoai || null,
                         ma_khoa: item.ma_khoa
                     },
                     create: {
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
                         ho_ten: item.ho_ten,
                         trinh_do: item.trinh_do || null,
                         chuc_danh: item.chuc_danh || null,
+                        so_dien_thoai: item.so_dien_thoai || null,
                         ma_khoa: item.ma_khoa
                     }
                 });
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
         }
 
         // Handle Single Object (For Form Add/Update)
-        const { id, ho_ten, ma_bac_si, trinh_do, chuc_danh, ma_khoa } = body;
+        const { id, ho_ten, ma_bac_si, trinh_do, chuc_danh, so_dien_thoai, ma_khoa } = body;
 
         if (!ho_ten || !ma_bac_si || !ma_khoa) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -62,13 +64,13 @@ export async function POST(request: Request) {
             // Update existing
             const updated = await prisma.staff.update({
                 where: { id },
-                data: { ho_ten, ma_bac_si, trinh_do, chuc_danh, ma_khoa }
+                data: { ho_ten, ma_bac_si, trinh_do, chuc_danh, so_dien_thoai, ma_khoa }
             });
             return NextResponse.json(updated);
         } else {
             // Create new
             const created = await prisma.staff.create({
-                data: { ho_ten, ma_bac_si, trinh_do, chuc_danh, ma_khoa }
+                data: { ho_ten, ma_bac_si, trinh_do, chuc_danh, so_dien_thoai, ma_khoa }
             });
             return NextResponse.json(created);
         }
@@ -83,9 +85,21 @@ export async function DELETE(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
+        const idsParam = searchParams.get('ids');
+
+        if (idsParam) {
+            // Bulk delete
+            const ids = idsParam.split(',').filter(Boolean);
+            if (ids.length > 0) {
+                await prisma.staff.deleteMany({
+                    where: { id: { in: ids } }
+                });
+            }
+            return NextResponse.json({ success: true, deletedCount: ids.length });
+        }
 
         if (!id) {
-            return NextResponse.json({ error: 'Missing staff ID' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing staff ID or IDs' }, { status: 400 });
         }
 
         await prisma.staff.delete({

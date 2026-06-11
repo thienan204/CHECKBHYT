@@ -147,6 +147,7 @@ export default function XmlReader() {
     const [departments, setDepartments] = useState<Record<string, string>>({});
     const [selectedRecord, setSelectedRecord] = useState<ExtendedHosoRecord | null>(null);
     const [activeTab, setActiveTab] = useState<string>('XML1');
+    const [user, setUser] = useState<any>(null);
     const [processingProgress, setProcessingProgress] = useState<{ current: number, total: number } | null>(null);
     const { rules, saveRules, isLoaded: isRulesLoaded, reloadRules } = useRules();
     const [mainFilter, setMainFilter] = useState<'ALL' | 'ERROR' | 'VALID'>('ERROR');
@@ -157,6 +158,7 @@ export default function XmlReader() {
     const [headerDepartmentFilter, setHeaderDepartmentFilter] = useState<string | null>(null);
     const [initialDBLoadDone, setInitialDBLoadDone] = useState(false);
     const [masterData, setMasterData] = useState<Record<string, Set<string>>>({});
+    const isFirstRuleLoad = React.useRef(true);
 
     // Load DB
     useEffect(() => {
@@ -177,15 +179,39 @@ export default function XmlReader() {
         };
         fetchDepts();
 
-        loadRecordsFromDB().then(saved => {
-            if (ignore) return;
-            if (saved.length > 0) {
-                // Clear old validation results to prevent stale errors
-                const clean = saved.map(r => ({ ...r, validationResults: [] }));
-                setRecords(clean);
+        const fetchUser = async () => {
+            try {
+                const res = await fetch(`${getBasePath()}/api/auth/me`);
+                if (res.ok && !ignore) {
+                    const data = await res.json();
+                    if (data.authenticated && data.user) {
+                        setUser(data.user);
+                    }
+                }
+            } catch (e) {
+                console.error("Error fetching user", e);
             }
-            setInitialDBLoadDone(true);
-        });
+        };
+        fetchUser();
+
+        const initDB = async () => {
+            const hasSession = sessionStorage.getItem('xml_reader_session');
+            if (!hasSession) {
+                // Nếu là tab mới hoàn toàn hoặc vừa mở lại trình duyệt -> Dọn dẹp phiên cũ
+                sessionStorage.setItem('xml_reader_session', '1');
+                await clearDB();
+                if (!ignore) setInitialDBLoadDone(true);
+            } else {
+                // Nếu chỉ là F5 (refresh) -> Load lại dữ liệu từ cache để không bị mất
+                const saved = await loadRecordsFromDB();
+                if (ignore) return;
+                if (saved.length > 0) {
+                    setRecords(saved);
+                }
+                setInitialDBLoadDone(true);
+            }
+        };
+        initDB();
 
         return () => {
             ignore = true;
@@ -198,15 +224,36 @@ export default function XmlReader() {
 
         const refs = new Set<string>();
         rules.forEach(rule => {
-            if (!rule.active || !rule.code) return;
-            const matches = rule.code.matchAll(/EXISTS_IN\(\s*['"]([^'"]+)['"]/g);
-            for (const match of matches) {
-                if (match[1]) refs.add(match[1]);
+            if (!rule.active) return;
+            
+            if (rule.code) {
+                const matches = rule.code.matchAll(/EXISTS_IN\(\s*['"]([^'"]+)['"]/g);
+                for (const match of matches) {
+                    if (match[1]) refs.add(match[1]);
+                }
+                
+                const mismatchMatches = rule.code.matchAll(/CHECK_MISMATCH\(\s*['"]([^'"]+)['"]/g);
+                for (const match of mismatchMatches) {
+                    if (match[1]) refs.add(match[1]);
+                }
+
+                if (rule.code.includes('CHECK_MAU05_PRICE_MISMATCH')) {
+                    refs.add('Mau05_PRICE_MAP');
+                }
             }
             if (rule.mathExpression) {
                 const mathMatches = rule.mathExpression.matchAll(/EXISTS_IN\(\s*['"]([^'"]+)['"]/g);
                 for (const match of mathMatches) {
                     if (match[1]) refs.add(match[1]);
+                }
+                
+                const mathMismatchMatches = rule.mathExpression.matchAll(/CHECK_MISMATCH\(\s*['"]([^'"]+)['"]/g);
+                for (const match of mathMismatchMatches) {
+                    if (match[1]) refs.add(match[1]);
+                }
+
+                if (rule.mathExpression.includes('CHECK_MAU05_PRICE_MISMATCH')) {
+                    refs.add('Mau05_PRICE_MAP');
                 }
             }
         });
@@ -241,6 +288,13 @@ export default function XmlReader() {
     useEffect(() => {
         if (!isRulesLoaded) return;
         if (!initialDBLoadDone) return;
+
+        // Bỏ qua lần re-validate tự động đầu tiên khi vừa F5 xong 
+        // vì dữ liệu load từ DB đã có sẵn kết quả validation rồi, giúp trang F5 siêu nhanh
+        if (isFirstRuleLoad.current) {
+            isFirstRuleLoad.current = false;
+            return;
+        }
 
         setRecords(prev => {
             if (prev.length === 0) return prev;
@@ -642,7 +696,7 @@ export default function XmlReader() {
             { header: 'Ngày Vào Nội Trú', key: 'ngay_vao_noi_tru', width: 16 },
             { header: 'Mã DV/Thuốc', key: 'ma_dv', width: 15 },
             { header: 'Tên DV/Thuốc', key: 'ten_dv', width: 40 },
-
+            { header: 'Đơn giá BH', key: 'don_gia_bh', width: 15 },
             { header: 'Mã đối tượng KCB', key: 'ma_doituong_kcb', width: 15 },
             { header: 'Chi tiết lỗi', key: 'error', width: 60 },
         ];
@@ -673,6 +727,7 @@ export default function XmlReader() {
                     let ngayYL = '';
                     let ngayTHYL = '';
                     let ngayKQ = '';
+                    let donGiaBh = '';
                     let maKhoa = renderValue(record.summary?.MA_KHOA);
 
                     if (err.xmlType && err.index !== undefined) {
@@ -686,6 +741,7 @@ export default function XmlReader() {
                                 ngayYL = formatDateTime(item.NGAY_YL);
                                 ngayTHYL = formatDateTime(item.NGAY_TH_YL);
                                 ngayKQ = formatDateTime(item.NGAY_KQ);
+                                donGiaBh = renderValue(item.DON_GIA_BH);
                                 if (item.MA_KHOA) maKhoa = renderValue(item.MA_KHOA);
                             }
                         }
@@ -707,6 +763,7 @@ export default function XmlReader() {
                         ma_doituong_kcb: renderValue(record.summary?.MA_DOITUONG_KCB),
                         ma_dv: renderValue(code),
                         ten_dv: renderValue(name),
+                        don_gia_bh: donGiaBh,
                         error: `[${err.xmlType}] ${err.message || err.ruleName}`
                     });
                 });
@@ -1146,6 +1203,96 @@ export default function XmlReader() {
                                         >
                                             Xuất Excel
                                         </Button>
+
+                                        {user?.role === 'ADMIN' && (
+                                            <Button
+                                                type="primary"
+                                                danger
+                                                icon={<CloudUploadOutlined />}
+                                                onClick={async () => {
+                                                    const targetRecords = getFilteredRecords();
+                                                    if (targetRecords.length === 0) {
+                                                        message.warning("Không có dữ liệu lỗi để lưu");
+                                                        return;
+                                                    }
+
+                                                    // Prepare records for API
+                                                    const apiRecords: any[] = [];
+                                                    targetRecords.forEach((record) => {
+                                                        const errors = record.validationResults.filter(v => v.isError);
+                                                        if (errors.length > 0) {
+                                                            const ngayVaoNoiTru = record.summary?.NGAY_VAO_NOI_TRU;
+                                                            errors.forEach(err => {
+                                                                let code = '';
+                                                                let name = '';
+                                                                let ngayYL = null;
+                                                                let ngayTHYL = null;
+                                                                let ngayKQ = null;
+                                                                let maKhoa = record.summary?.MA_KHOA || '';
+
+                                                                if (err.xmlType && err.index !== undefined) {
+                                                                    const group = record.groups.find(g => g.type === err.xmlType);
+                                                                    if (group) {
+                                                                        const list = getXmlDataList(group);
+                                                                        const item = list[err.index];
+                                                                        if (item) {
+                                                                            code = item.MA_DICH_VU || item.MA_THUOC || item.MA_VAT_TU || '';
+                                                                            name = item.TEN_DICH_VU || item.TEN_THUOC || item.TEN_VAT_TU || '';
+                                                                            ngayYL = item.NGAY_YL;
+                                                                            ngayTHYL = item.NGAY_TH_YL;
+                                                                            ngayKQ = item.NGAY_KQ;
+                                                                            if (item.MA_KHOA) maKhoa = item.MA_KHOA;
+                                                                        }
+                                                                    }
+                                                                }
+
+                                                                apiRecords.push({
+                                                                    ma_lk: String(record.summary?.MA_LK || ''),
+                                                                    ma_bn: String(record.summary?.MA_BN || ''),
+                                                                    ma_khoa: String(maKhoa),
+                                                                    ten_khoa: String(maKhoa).split(';').map((c: string) => departments[c] || c).join('; '),
+                                                                    ho_ten: String(record.summary?.HO_TEN || ''),
+                                                                    ma_the: String(record.summary?.MA_THE_BHYT || ''),
+                                                                    ngay_vao: record.summary?.NGAY_VAO,
+                                                                    ngay_ra: record.summary?.NGAY_RA,
+                                                                    ngay_yl: ngayYL,
+                                                                    ngay_th_yl: ngayTHYL,
+                                                                    ngay_kq: ngayKQ,
+                                                                    ngay_vao_noi_tru: ngayVaoNoiTru,
+                                                                    ma_doituong_kcb: String(record.summary?.MA_DOITUONG_KCB || ''),
+                                                                    ma_dv: String(code),
+                                                                    ten_dv: String(name),
+                                                                    error: `[${err.xmlType}] ${err.message || err.ruleName}`
+                                                                });
+                                                            });
+                                                        }
+                                                    });
+
+                                                    if (apiRecords.length === 0) {
+                                                        message.warning("Không có dữ liệu lỗi để lưu");
+                                                        return;
+                                                    }
+
+                                                    try {
+                                                        const res = await fetch('/api/error-management/xml-errors', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ records: apiRecords })
+                                                        });
+                                                        if (res.ok) {
+                                                            const result = await res.json();
+                                                            message.success(`Đã lưu ${result.count} lỗi vào hệ thống!`);
+                                                        } else {
+                                                            message.error("Lưu dữ liệu thất bại");
+                                                        }
+                                                    } catch (error) {
+                                                        message.error("Lỗi kết nối");
+                                                    }
+                                                }}
+                                            >
+                                                Lưu Lỗi vào DB
+                                            </Button>
+                                        )}
 
                                         <Button
                                             icon={<ReloadOutlined />}

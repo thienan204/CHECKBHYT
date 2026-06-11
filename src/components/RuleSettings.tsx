@@ -479,8 +479,17 @@ export default function RuleSettings({ isOpen, onClose, rules: initialRules, onS
                             <li><span className="text-gray-500 italic">Ví dụ (Trùng Mã Thẻ BHYT nhưng Khác Mã Bệnh nhân):</span> <code className="bg-white px-1 border rounded text-red-600">CHECK_DUPLICATE_DIFF('XML1.MA_THE', MA_THE, 'XML1.MA_BN', MA_BN)</code></li>
                         </ul>
                     </div>
+                    <div>
+                        <div className="font-bold text-blue-700">6. Kiểm tra sai lệch với BẤT KỲ BẢNG NÀO (Động hoàn toàn)</div>
+                        <div className="text-gray-600 mb-1">Dùng để so sánh giá trị của hồ sơ hiện tại với cột bất kỳ trong bảng danh mục bất kỳ. Rất mạnh mẽ! Báo lỗi nếu tìm thấy mã nhưng giá trị bị sai lệch.</div>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li>Cú pháp: <code className="bg-white px-1 border rounded text-red-600">CHECK_MISMATCH('TênBảng.CộtMã:CộtSoSánh', Giá_Trị_Mã_XML, Giá_Trị_So_Sánh_XML)</code></li>
+                            <li><span className="text-gray-500 italic">Ví dụ 1 (Giá Mẫu 05):</span> <code className="bg-white px-1 border rounded text-red-600">CHECK_MISMATCH('Mau05Catalog.MA_DICH_VU:DON_GIA', MA_DICH_VU, DON_GIA_BH)</code></li>
+                            <li><span className="text-gray-500 italic">Ví dụ 2 (Tên Bác Sĩ):</span> <code className="bg-white px-1 border rounded text-red-600">CHECK_MISMATCH('Staff.ma_bac_si:ten_bac_si', MA_BAC_SI, TEN_BAC_SI)</code></li>
+                        </ul>
+                    </div>
                     <div className="mt-2">
-                        <div className="font-bold text-blue-700">6. Kiểm tra trùng lặp trong cùng một Hồ sơ (Cùng 1 bệnh nhân - MA_BN)</div>
+                        <div className="font-bold text-blue-700">7. Kiểm tra trùng lặp trong cùng một Hồ sơ (Cùng 1 bệnh nhân - MA_BN)</div>
                         <div className="text-gray-600 mb-1">Dùng để kiểm tra xem trong cùng 1 hồ sơ bệnh nhân hiện tại, có 2 dòng/dịch vụ nào có trùng giá trị hay không. Bạn có thể chắp vá thêm nhiều trường để kiểm tra chung! (Gõ vào ô <b>Biểu thức toán học</b>)</div>
                         <ul className="list-disc pl-4 space-y-2 mt-2">
                             <li>

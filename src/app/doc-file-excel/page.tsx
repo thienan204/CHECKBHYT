@@ -9,6 +9,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { createDuplicateRule, deleteDuplicateRule, getDuplicateRules, updateDuplicateRule } from '@/actions/duplicate-rules';
 import { getCurrentUser, type UserPayload } from '@/actions/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 const { Dragger } = Upload;
@@ -133,8 +134,7 @@ export default function ExcelReaderPage() {
     const [editingRule, setEditingRule] = useState<DuplicateRule | null>(null);
     const [ruleLoading, setRuleLoading] = useState(false);
     const [showOnlyDuplicates, setShowOnlyDuplicates] = useState(false);
-    const [currentUser, setCurrentUser] = useState<UserPayload | null>(null);
-
+    const { user: currentUser, hasPermission } = useAuth();
     const router = useRouter();
 
     const [form] = Form.useForm(); // For execution (hidden or manual)
@@ -154,7 +154,6 @@ export default function ExcelReaderPage() {
 
     useEffect(() => {
         fetchRules();
-        getCurrentUser().then(user => setCurrentUser(user));
     }, []);
 
     const handleCreateRule = async (values: any) => {
@@ -704,6 +703,19 @@ export default function ExcelReaderPage() {
 
         return data;
     }, [tableData, showOnlyDuplicates, columnFilters]);
+
+    if (!hasPermission('MENU_DOC_FILE_EXCEL')) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full min-h-[60vh] p-12">
+                <div className="text-red-500 text-7xl mb-4"><AuditOutlined /></div>
+                <h1 className="text-3xl font-bold text-slate-800">Truy cập bị từ chối</h1>
+                <p className="text-slate-500 mt-3 text-lg">Bạn không có quyền truy cập vào chức năng Đọc dữ liệu Excel.</p>
+                <Button type="primary" size="large" className="mt-6 bg-blue-600" onClick={() => router.push('/')}>
+                    Về trang chủ
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 p-6 max-w-[1600px] mx-auto">

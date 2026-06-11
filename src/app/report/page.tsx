@@ -52,6 +52,7 @@ interface ReportRow {
     ngay_vao_noi_tru: string;
     ma_dv: string;
     ten_dv: string;
+    don_gia_bh: string;
     ma_khoa: string;
     ten_khoa: string;
     chi_tiet_loi: string;
@@ -111,6 +112,7 @@ export default function ReportPage() {
                             ngay_vao_noi_tru: ngayVaoNoiTru,
                             ma_dv: '',
                             ten_dv: '',
+                            don_gia_bh: '',
                             ma_khoa: renderValue(record.summary?.MA_KHOA),
                             ten_khoa: departments[renderValue(record.summary?.MA_KHOA)] || '',
                             chi_tiet_loi: '',
@@ -124,6 +126,7 @@ export default function ReportPage() {
                             let ngayYL = '';
                             let ngayTHYL = '';
                             let ngayKQ = '';
+                            let donGiaBh = '';
                             let maKhoa = renderValue(record.summary?.MA_KHOA);
 
                             if (err.xmlType && err.index !== undefined) {
@@ -137,6 +140,7 @@ export default function ReportPage() {
                                         ngayYL = formatDateTime(item.NGAY_YL);
                                         ngayTHYL = formatDateTime(item.NGAY_TH_YL);
                                         ngayKQ = formatDateTime(item.NGAY_KQ);
+                                        donGiaBh = renderValue(item.DON_GIA_BH);
                                         if (item.MA_KHOA) maKhoa = renderValue(item.MA_KHOA);
                                     }
                                 }
@@ -157,6 +161,7 @@ export default function ReportPage() {
                                 ngay_vao_noi_tru: ngayVaoNoiTru,
                                 ma_dv: renderValue(code),
                                 ten_dv: renderValue(name),
+                                don_gia_bh: donGiaBh,
                                 ma_khoa: maKhoa,
                                 ten_khoa: departments[maKhoa] || '',
                                 chi_tiet_loi: `[${err.xmlType}] ${err.message || err.ruleName}`,
@@ -224,6 +229,7 @@ export default function ReportPage() {
             { header: 'Mã DV/Thuốc', key: 'ma_dv', width: 15 },
             { header: 'Chi tiết lỗi', key: 'chi_tiet_loi', width: 60 },
             { header: 'Tên DV/Thuốc', key: 'ten_dv', width: 40 },
+            { header: 'Đơn giá BH', key: 'don_gia_bh', width: 15 },
             { header: 'Mã LK', key: 'ma_lk', width: 14 },
             { header: 'Mã thẻ', key: 'ma_the', width: 20 },
             { header: 'Mã đối tượng KCB', key: 'ma_doituong_kcb', width: 15 },
@@ -330,6 +336,7 @@ export default function ReportPage() {
                 </Tooltip>
             )
         },
+        { title: 'Đơn giá BH', dataIndex: 'don_gia_bh', key: 'don_gia_bh', width: 120, onCell: createOnCell('don_gia_bh') },
         { title: 'Mã LK', dataIndex: 'ma_lk', key: 'ma_lk', width: 120, onCell: createOnCell('ma_lk') },
         { title: 'Mã thẻ', dataIndex: 'ma_the', key: 'ma_the', width: 150, onCell: createOnCell('ma_the') },
         { title: 'Mã đối tượng', dataIndex: 'ma_doituong_kcb', key: 'ma_doituong_kcb', width: 120, onCell: createOnCell('ma_doituong_kcb') },

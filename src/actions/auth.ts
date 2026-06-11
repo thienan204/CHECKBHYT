@@ -9,6 +9,8 @@ export type UserPayload = {
     id: string;
     username: string;
     role: string;
+    ma_khoa?: string;
+    permissions?: any;
 };
 
 export async function getCurrentUser(): Promise<UserPayload | null> {
@@ -21,10 +23,32 @@ export async function getCurrentUser(): Promise<UserPayload | null> {
         const secret = new TextEncoder().encode(JWT_SECRET);
         const { payload } = await jose.jwtVerify(token, secret);
 
+        let permissions: any = [];
+        if (payload.role === 'ADMIN') {
+            permissions = ['*'];
+        } else {
+            const { PrismaClient } = await import('@prisma/client');
+            const prisma = new PrismaClient();
+            try {
+                const roleRecord = await prisma.role.findUnique({
+                    where: { code: payload.role as string }
+                });
+                if (roleRecord && roleRecord.permissions) {
+                    permissions = roleRecord.permissions;
+                }
+            } catch (err) {
+                console.error('Error fetching fresh permissions:', err);
+            } finally {
+                await prisma.$disconnect();
+            }
+        }
+
         return {
             id: payload.id as string,
             username: payload.username as string,
             role: payload.role as string,
+            ma_khoa: payload.ma_khoa as string | undefined,
+            permissions
         };
     } catch (error) {
         return null; // Invalid or expired token

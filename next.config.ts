@@ -4,7 +4,7 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  basePath: isProd ? '/checkbhyt' : '',
+  basePath: isProd ? '/htqlbenhvien' : '',
   /* config options here */
   // Forced reload timestamp: 1
 };

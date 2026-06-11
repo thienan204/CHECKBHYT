@@ -103,6 +103,11 @@ export default async function Sidebar() {
                         <AppstoreOutlined className="text-lg opacity-70" />
                         Q.Lý Khoa
                     </Link>
+
+                    <Link href="/error-management/config" className="text-slate-600 hover:bg-slate-50 hover:text-red-600 rounded-lg px-4 py-2.5 font-medium flex items-center gap-3 cursor-pointer transition-colors mt-1">
+                        <SettingOutlined className="text-lg opacity-70" />
+                        Danh mục Lỗi IT
+                    </Link>
                 </div>
 
             </div>

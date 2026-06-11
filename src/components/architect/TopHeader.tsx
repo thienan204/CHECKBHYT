@@ -8,15 +8,16 @@ import {
 import { Button, Badge, Avatar, Dropdown } from 'antd';
 import { logout } from '@/actions/auth';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TopHeaderProps {
     onToggleSidebar: () => void;
     isSidebarOpen: boolean;
-    user: any; // UserPayload | null
 }
 
-const TopHeader = ({ onToggleSidebar, isSidebarOpen, user }: TopHeaderProps) => {
+const TopHeader = ({ onToggleSidebar, isSidebarOpen }: TopHeaderProps) => {
     const router = useRouter();
+    const { user } = useAuth();
 
     return (
         <div
@@ -39,6 +40,14 @@ const TopHeader = ({ onToggleSidebar, isSidebarOpen, user }: TopHeaderProps) => 
                 {user ? (
                     <Dropdown menu={{
                         items: [
+                            ...(user.role === 'ADMIN' ? [{
+                                key: 'menu-builder',
+                                label: 'Menu Builder',
+                                icon: <AppstoreOutlined />,
+                                onClick: () => router.push('/admin/menus')
+                            }, {
+                                type: 'divider' as const
+                            }] : []),
                             {
                                 key: 'logout',
                                 label: 'Đăng xuất',
@@ -54,11 +63,11 @@ const TopHeader = ({ onToggleSidebar, isSidebarOpen, user }: TopHeaderProps) => 
                     }}>
                         <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1 rounded-lg transition-colors">
                             <div className="text-right hidden md:block">
-                                <div className="text-sm font-bold text-slate-700">{user.name || user.username}</div>
+                                <div className="text-sm font-bold text-slate-700">{(user as any).name || user.username}</div>
                                 <div className="text-xs text-slate-400 font-medium">{user.role}</div>
                             </div>
                             <Avatar size="large" className="bg-blue-500 border-2 border-white shadow-sm">
-                                {(user.name || user.username)?.[0]?.toUpperCase()}
+                                {((user as any).name || user.username)?.[0]?.toUpperCase()}
                             </Avatar>
                         </div>
                     </Dropdown>

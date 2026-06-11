@@ -13,6 +13,20 @@ export async function GET(request: Request) {
         const result: Record<string, string[]> = {};
 
         for (const ref of refs) {
+            if (ref === 'Mau05_PRICE_MAP') {
+                try {
+                    const data = await prisma.mau05Catalog.findMany({
+                        select: { MA_DICH_VU: true, DON_GIA: true }
+                    });
+                    result[ref] = data
+                        .filter((d: any) => d.MA_DICH_VU !== null && d.MA_DICH_VU !== undefined)
+                        .map((d: any) => `${d.MA_DICH_VU}:::${d.DON_GIA}`);
+                } catch (err: any) {
+                    console.error('Error fetching Mau05_PRICE_MAP:', err.message);
+                }
+                continue;
+            }
+
             const [table, column] = ref.split('.');
             if (!table || !column) continue;
 
@@ -20,12 +34,26 @@ export async function GET(request: Request) {
             if (typeof (prisma as any)[modelName] !== 'object') continue;
 
             try {
-                const data = await (prisma as any)[modelName].findMany({
-                    select: { [column]: true }
-                });
-
-                // map values, filter nulls, and ensure they are strings
-                result[ref] = data.map((d: any) => d[column]).filter((v: any) => v !== null && v !== undefined).map(String);
+                if (column.includes(':')) {
+                    const [keyCol, valCol] = column.split(':');
+                    const data = await (prisma as any)[modelName].findMany({
+                        select: { [keyCol]: true, [valCol]: true }
+                    });
+                    
+                    result[ref] = data
+                        .filter((d: any) => d[keyCol] !== null && d[keyCol] !== undefined)
+                        .map((d: any) => `${d[keyCol]}:::${d[valCol]}`);
+                } else {
+                    const data = await (prisma as any)[modelName].findMany({
+                        select: { [column]: true }
+                    });
+                    
+                    // map values, filter nulls, and ensure they are strings
+                    result[ref] = data
+                        .map((d: any) => d[column])
+                        .filter((v: any) => v !== null && v !== undefined)
+                        .map(String);
+                }
             } catch (err: any) {
                 console.error(`Error fetching dynamic master data for ${table}.${column}:`, err.message);
                 // Continue to next ref

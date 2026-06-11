@@ -23,11 +23,15 @@ export const metadata: Metadata = {
 import prisma from "@/lib/prisma";
 import MainLayout from "@/components/architect/MainLayout";
 import { getCurrentUser } from "@/actions/auth";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 async function getSpecializedRules() {
   try {
     const rules = await prisma.specializedRule.findMany({
-      where: { isActive: true },
+      where: { 
+        isActive: true,
+        ruleType: { not: 'SYSTEM_CONFIG' }
+      },
       orderBy: { order: 'asc' },
     });
     return JSON.parse(JSON.stringify(rules));
@@ -46,6 +50,35 @@ export default async function RootLayout({
   const isLoggedIn = cookieStore.has('auth_token');
   const rules = await getSpecializedRules();
   const user = await getCurrentUser();
+  
+  // Fetch GUEST role for unauthenticated users
+  let guestPermissions = null;
+  try {
+    const guestRole = await prisma.role.findUnique({
+      where: { code: 'GUEST' }
+    });
+    if (guestRole) {
+      guestPermissions = guestRole.permissions;
+    }
+  } catch (e) {
+    console.error("Failed to fetch GUEST role", e);
+  }
+
+  // Fetch Menus
+  let menus = [];
+  try {
+    menus = await prisma.menu.findMany({
+      where: { isActive: true },
+      orderBy: [
+        { parentId: 'asc' },
+        { order: 'asc' },
+      ],
+    });
+  } catch (e) {
+    console.error("Failed to fetch menus", e);
+  }
+
+  console.log("Current user from JWT:", user);
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -54,10 +87,12 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <AntdRegistry>
-          {/* Main Layout Wrapper */}
-          <MainLayout rules={rules} user={user}>
-            {children}
-          </MainLayout>
+          <AuthProvider user={user} guestPermissions={guestPermissions}>
+            {/* Main Layout Wrapper */}
+            <MainLayout rules={rules} menus={menus}>
+              {children}
+            </MainLayout>
+          </AuthProvider>
         </AntdRegistry>
       </body>
     </html>

@@ -42,7 +42,14 @@ model User {
   username  String   @unique
   password  String
   name      String?
-  role      String   @default("USER") // 'ADMIN', 'USER'
+  role      String   @default("USER") // 'ADMIN', 'USER', 'KHOA', 'CNTT'
+  ma_khoa   String?
+  telegram_id String? // Username hoặc ID Telegram để Bot tag tên
+  
+  // Quản lý ca trực (Dành riêng cho Role CNTT)
+  isAvailable Boolean  @default(false)
+  dutyOrder   Int      @default(999)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -84,6 +91,7 @@ model Staff {
   ma_bac_si       String   @unique
   trinh_do        String?
   chuc_danh       String?
+  so_dien_thoai   String?
   ma_khoa         String
   department      Department @relation(fields: [ma_khoa], references: [ma_khoa])
   createdAt       DateTime @default(now())
@@ -303,6 +311,84 @@ model Mau06Catalog {
   DEN_NGAY        String?  @db.VarChar(8)
   MA_CSKCB        String?  @db.VarChar(5)
 
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ITRequest {
+  id              String   @id @default(cuid())
+  ma_ba           String?  // MABA (Mã bệnh án)
+  category        String   @default("SOFTWARE") // SOFTWARE, HARDWARE
+  ten_loi         String   // Tên lỗi yêu cầu / Mô tả lỗi
+  ma_khoa         String   // Khoa gửi yêu cầu
+  
+  assigneeId      String?  // Giao người xử lý
+  status          String   @default("PENDING") // PENDING, IN_PROGRESS, RESOLVED, TRANSFERRING
+  dynamicFields   Json?    // Chứa cấu trúc các trường từ Form Builder
+  it_note         String?  @db.Text
+  
+  // Fields for Transfer Workflow
+  transferToId    String?
+  transferFromId  String?
+  
+  // Time tracking fields
+  startedAt       DateTime?
+  resolvedAt      DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model XmlErrorRecord {
+  id                String   @id @default(cuid())
+  ma_lk             String?
+  ma_bn             String?
+  ma_khoa           String?
+  ten_khoa          String?
+  ho_ten            String?
+  ma_the            String?
+  ngay_vao          DateTime?
+  ngay_ra           DateTime?
+  ngay_yl           DateTime?
+  ngay_th_yl        DateTime?
+  ngay_kq           DateTime?
+  ngay_vao_noi_tru  DateTime?
+  ma_dv             String?
+  ten_dv            String?
+  ma_doituong_kcb   String?
+  chi_tiet_loi      String?  @db.Text
+
+  status            String   @default("PENDING") // PENDING, EXPLAINED
+  departmentNote    String?  @db.Text // Giải trình của khoa
+  adminNote         String?  @db.Text // Ghi chú của Admin
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  code        String   @unique // ADMIN, CNTT, KHOA...
+  name        String   // Tên hiển thị
+  description String?
+  permissions Json?    // Danh sách các mã menu được phép truy cập
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Menu {
+  id              String   @id @default(cuid())
+  title           String   // Tên hiển thị (vd: Đọc dữ liệu Excel)
+  path            String?  // Đường dẫn hiển thị (vd: /doc-file-excel-1)
+  targetPath      String?  // Đường dẫn gốc (vd: /doc-file-excel)
+  icon            String?  // Tên Icon của Ant Design (vd: FileExcelOutlined)
+  parentId        String?  // Dùng để tạo cấp bậc (Nhóm menu hoặc menu con)
+  order           Int      @default(0) // Số thứ tự để lưu vị trí kéo thả
+  permissionCode  String?  // Mã quyền (vd: MENU_DOC_FILE_EXCEL) để link với bảng Role
+  isActive        Boolean  @default(true)
+  isSpecialGroup  String?  // Dùng để đánh dấu các nhóm đặc biệt (như nhóm "Chuyên đề" tự động load từ bảng SpecializedRule)
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

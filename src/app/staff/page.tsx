@@ -18,6 +18,7 @@ interface Staff {
     ma_bac_si: string;
     trinh_do?: string;
     chuc_danh?: string;
+    so_dien_thoai?: string;
     ma_khoa: string;
     department?: Department;
 }
@@ -29,6 +30,7 @@ export default function StaffPage() {
     const [searchText, setSearchText] = useState('');
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
     const [form] = Form.useForm();
 
     const fetchStaffs = async () => {
@@ -109,6 +111,22 @@ export default function StaffPage() {
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedRowKeys.length === 0) return;
+        try {
+            const res = await fetch(`/api/staff?ids=${selectedRowKeys.join(',')}`, { method: 'DELETE' });
+            if (res.ok) {
+                message.success('Xóa thành công các nhân viên đã chọn');
+                setSelectedRowKeys([]);
+                fetchStaffs();
+            } else {
+                message.error('Lỗi khi xóa');
+            }
+        } catch (error) {
+            message.error('Lỗi kết nối');
+        }
+    };
+
     const handleImportExcel = (file: File) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -125,6 +143,7 @@ export default function StaffPage() {
                     ho_ten: String(row['Họ Tên'] || row['HO_TEN'] || row['ho_ten'] || ''),
                     trinh_do: String(row['Trình Độ'] || row['TRINH_DO'] || row['trinh_do'] || ''),
                     chuc_danh: String(row['Chức Danh'] || row['CHUC_DANH'] || row['chuc_danh'] || ''),
+                    so_dien_thoai: String(row['Số điện thoại'] || row['SO_DIEN_THOAI'] || row['so_dien_thoai'] || ''),
                     ma_khoa: String(row['Mã Khoa'] || row['MA_KHOA'] || row['ma_khoa'] || '')
                 })).filter(item => item.ma_bac_si && item.ho_ten && item.ma_khoa);
 
@@ -183,6 +202,12 @@ export default function StaffPage() {
             width: 150,
         },
         {
+            title: 'SĐT',
+            dataIndex: 'so_dien_thoai',
+            key: 'so_dien_thoai',
+            width: 120,
+        },
+        {
             title: 'Khoa Phòng',
             key: 'ma_khoa',
             width: 250,
@@ -215,6 +240,7 @@ export default function StaffPage() {
         s.ho_ten.toLowerCase().includes(searchText.toLowerCase()) ||
         s.ma_bac_si.toLowerCase().includes(searchText.toLowerCase()) ||
         s.department?.ten_khoa.toLowerCase().includes(searchText.toLowerCase()) ||
+        (s.so_dien_thoai && s.so_dien_thoai.includes(searchText)) ||
         s.ma_khoa.toLowerCase().includes(searchText.toLowerCase())
     );
 
@@ -238,8 +264,8 @@ export default function StaffPage() {
                                 onClick={() => {
                                     const wb = XLSX.utils.book_new();
                                     const ws = XLSX.utils.json_to_sheet([
-                                        { "Họ Tên": 'Nguyễn Văn A', "Mã Bác Sĩ": 'BS01', "Trình Độ": 'Thạc sĩ', "Chức Danh": 'Trưởng khoa', "Mã Khoa": 'K01' },
-                                        { "Họ Tên": 'Trần Thị B', "Mã Bác Sĩ": 'BS02', "Trình Độ": 'Cử nhân', "Chức Danh": 'Điều dưỡng', "Mã Khoa": 'K02' }
+                                        { "Họ Tên": 'Nguyễn Văn A', "Mã Bác Sĩ": 'BS01', "Trình Độ": 'Thạc sĩ', "Chức Danh": 'Trưởng khoa', "Số điện thoại": "0987654321", "Mã Khoa": 'K01' },
+                                        { "Họ Tên": 'Trần Thị B', "Mã Bác Sĩ": 'BS02', "Trình Độ": 'Cử nhân', "Chức Danh": 'Điều dưỡng', "Số điện thoại": "", "Mã Khoa": 'K02' }
                                     ]);
                                     XLSX.utils.book_append_sheet(wb, ws, "Staffs");
                                     XLSX.writeFile(wb, "Mau_nhap_nhan_vien.xlsx");
@@ -257,10 +283,21 @@ export default function StaffPage() {
                             }}>
                                 Thêm mới
                             </Button>
+                            {selectedRowKeys.length > 0 && (
+                                <Popconfirm title={`Xóa ${selectedRowKeys.length} nhân viên đã chọn?`} onConfirm={handleBulkDelete}>
+                                    <Button danger icon={<DeleteOutlined />}>
+                                        Xóa đã chọn
+                                    </Button>
+                                </Popconfirm>
+                            )}
                         </Space>
                     }
                 >
                     <Table
+                        rowSelection={{
+                            selectedRowKeys,
+                            onChange: newSelectedRowKeys => setSelectedRowKeys(newSelectedRowKeys),
+                        }}
                         columns={columns}
                         dataSource={filteredData}
                         rowKey="id"
@@ -305,6 +342,12 @@ export default function StaffPage() {
                         <Form.Item
                             name="chuc_danh"
                             label="Chức Danh"
+                        >
+                            <Input />
+                        </Form.Item>
+                        <Form.Item
+                            name="so_dien_thoai"
+                            label="Số Điện Thoại"
                         >
                             <Input />
                         </Form.Item>

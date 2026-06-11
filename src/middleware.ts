@@ -9,33 +9,63 @@ export async function middleware(request: NextRequest) {
     // Protected routes: /kiem-tra-loi-bhxh/*, /admin/*
     // Public routes: /login, /api/auth/*, /_next/*, /favicon.ico, /images/*
 
-    const path = request.nextUrl.pathname;
+    let path = request.nextUrl.pathname;
+    let targetPathForRewrite: string | null = null;
 
-    // Define protected paths
-    const startWithProtected = ['/rules', '/settings', '/admin', '/departments'];
-    const isProtected = startWithProtected.some(p => path.startsWith(p));
+    // 1. Resolve Alias if any
+    try {
+        const aliasUrl = new URL('/api/menus/aliases', request.url);
+        // Fetch from the API, cached at Edge
+        const aliasRes = await fetch(aliasUrl, { next: { revalidate: 60 } });
+        if (aliasRes.ok) {
+            const aliases = await aliasRes.json();
+            if (aliases[path]) {
+                targetPathForRewrite = aliases[path];
+                path = targetPathForRewrite; // Use target path for Auth checks
+            }
+        }
+    } catch (e) {
+        console.error("Middleware fetch alias error:", e);
+    }
 
+    const bp = request.nextUrl.basePath || '';
+    
+    // Define all routes that require authentication
+    const isPublic = ['/login', '/favicon.ico'].includes(path) || path.startsWith('/_next') || path.startsWith('/images') || path.startsWith('/api/menus/aliases');
 
-    if (isProtected) {
+    if (!isPublic) {
         const token = request.cookies.get('auth_token')?.value;
 
         if (!token) {
-            const bp = request.nextUrl.basePath || '';
+            const roleManagedPublicPaths = ['/doc-file-excel', '/chuyen-de'];
+            const isRoleManagedPublic = roleManagedPublicPaths.some(p => path.startsWith(p));
+            if (isRoleManagedPublic) {
+                if (targetPathForRewrite) return NextResponse.rewrite(new URL(targetPathForRewrite, request.url));
+                return NextResponse.next();
+            }
             return NextResponse.redirect(new URL(`${bp}/login`, request.url));
         }
 
         try {
             const secret = new TextEncoder().encode(JWT_SECRET);
-            await jose.jwtVerify(token, secret);
-            // Token is valid
+            const { payload } = await jose.jwtVerify(token, secret);
+            
+            // 1. Admin-Only Routes
+            const adminOnlyPaths = ['/rules', '/roles', '/departments', '/staff', '/settings', '/admin', '/mau'];
+            const isAdminRoute = adminOnlyPaths.some(p => path.startsWith(p));
+            
+            if (isAdminRoute && payload.role !== 'ADMIN') {
+                return NextResponse.redirect(new URL(`${bp}/`, request.url));
+            }
+
+            if (targetPathForRewrite) return NextResponse.rewrite(new URL(targetPathForRewrite, request.url));
             return NextResponse.next();
         } catch (error) {
-            // Token invalid or expired
-            const bp = request.nextUrl.basePath || '';
             return NextResponse.redirect(new URL(`${bp}/login`, request.url));
         }
     }
 
+    if (targetPathForRewrite) return NextResponse.rewrite(new URL(targetPathForRewrite, request.url));
     return NextResponse.next();
 }
 

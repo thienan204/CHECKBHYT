@@ -609,6 +609,61 @@ export class ValidationEngine {
                 return false;
             };
 
+            let priceMapCache: Map<string, number> | null = null;
+            const GET_PRICE_MAP = () => {
+                if (priceMapCache) return priceMapCache;
+                priceMapCache = new Map();
+                const set = this.masterData['Mau05_PRICE_MAP'];
+                if (set) {
+                    for (const item of set) {
+                        const [m, p] = item.split(':::');
+                        priceMapCache.set(m, Number(p));
+                    }
+                }
+                return priceMapCache;
+            };
+
+            const CHECK_MAU05_PRICE_MISMATCH = (maDichVu: any, donGia: any): boolean => {
+                const mdv = String(maDichVu).trim();
+                if (!mdv) return false;
+                const map = GET_PRICE_MAP();
+                if (!map.has(mdv)) return false; 
+                const expectedPrice = map.get(mdv);
+                const actualPrice = Number(donGia);
+                return expectedPrice !== actualPrice; 
+            };
+
+            const _mismatchMaps: Record<string, Map<string, string>> = {};
+            const CHECK_MISMATCH = (mapRef: string, keyVal: any, actualVal: any): boolean => {
+                const kv = String(keyVal).trim();
+                if (!kv) return false;
+                
+                const set = this.masterData[mapRef];
+                if (!set) return false;
+
+                if (!_mismatchMaps[mapRef]) {
+                    const map = new Map<string, string>();
+                    for (const item of set) {
+                        const [m, p] = item.split(':::');
+                        map.set(m, p);
+                    }
+                    _mismatchMaps[mapRef] = map;
+                }
+
+                const map = _mismatchMaps[mapRef];
+                if (!map.has(kv)) return false; 
+                
+                const expectedVal = map.get(kv);
+                const eNum = Number(expectedVal);
+                const aNum = Number(actualVal);
+                
+                if (!isNaN(eNum) && !isNaN(aNum) && expectedVal !== '' && String(actualVal).trim() !== '') {
+                     return eNum !== aNum;
+                }
+                
+                return String(expectedVal).trim() !== String(actualVal).trim();
+            };
+
             // Only expose specific safe keys and the context objects
             // We expose all keys in context for maximum flexibility
             // Inject Helpers
@@ -621,7 +676,9 @@ export class ValidationEngine {
                 diffHours: diffHours,
                 EXISTS_IN: EXISTS_IN,
                 CHECK_DUPLICATE_DIFF: CHECK_DUPLICATE_DIFF,
-                CHECK_DUPLICATE_IN_LIST: CHECK_DUPLICATE_IN_LIST
+                CHECK_DUPLICATE_IN_LIST: CHECK_DUPLICATE_IN_LIST,
+                CHECK_MAU05_PRICE_MISMATCH: CHECK_MAU05_PRICE_MISMATCH,
+                CHECK_MISMATCH: CHECK_MISMATCH
             };
 
             const keys = [...Object.keys(context), ...Object.keys(helpers)];
@@ -729,6 +786,63 @@ export class ValidationEngine {
                 });
 
                 return hasConflict ? "true" : "false";
+            });
+
+            // 0.6. Handle CHECK_MAU05_PRICE_MISMATCH
+            cleanCode = cleanCode.replace(/CHECK_MAU05_PRICE_MISMATCH\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, (match, maDichVuRef, donGiaRef) => {
+                const mdvVal = getVal(maDichVuRef.trim());
+                const donGiaVal = getVal(donGiaRef.trim());
+                const mdvStr = mdvVal !== null && mdvVal !== undefined ? String(mdvVal).trim() : '';
+                
+                if (!mdvStr) return "false";
+                
+                const set = this.masterData['Mau05_PRICE_MAP'];
+                if (!set) return "false";
+
+                let expectedPrice: number | null = null;
+                for (const item of set) {
+                    const [m, p] = item.split(':::');
+                    if (m === mdvStr) {
+                        expectedPrice = Number(p);
+                        break;
+                    }
+                }
+
+                if (expectedPrice === null) return "false";
+                const actualPrice = Number(donGiaVal);
+                return expectedPrice !== actualPrice ? "true" : "false";
+            });
+
+            // 0.7. Handle CHECK_MISMATCH (Regex fallback for code strings)
+            cleanCode = cleanCode.replace(/CHECK_MISMATCH\(\s*['"]([^'"]+)['"]\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, (match, mapRef, keyRef, actualRef) => {
+                const keyVal = getVal(keyRef.trim());
+                const actualVal = getVal(actualRef.trim());
+                
+                const kv = keyVal !== null && keyVal !== undefined ? String(keyVal).trim() : '';
+                if (!kv) return "false";
+                
+                const set = this.masterData[mapRef];
+                if (!set) return "false";
+
+                let expectedVal: string | null = null;
+                for (const item of set) {
+                    const [m, p] = item.split(':::');
+                    if (m === kv) {
+                        expectedVal = p;
+                        break;
+                    }
+                }
+
+                if (expectedVal === null) return "false";
+                
+                const eNum = Number(expectedVal);
+                const aNum = Number(actualVal);
+                
+                if (!isNaN(eNum) && !isNaN(aNum) && expectedVal !== '' && String(actualVal).trim() !== '') {
+                     return eNum !== aNum ? "true" : "false";
+                }
+                
+                return String(expectedVal).trim() !== String(actualVal).trim() ? "true" : "false";
             });
 
             // 1. Handle LOGICAL OR (||)

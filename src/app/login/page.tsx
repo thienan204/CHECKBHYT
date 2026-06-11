@@ -24,7 +24,8 @@ export default function LoginPage() {
             });
 
             if (res.ok) {
-                router.push('/rules'); // Redirect to rules page
+                // Redirect all users to the Home page by default
+                router.push('/');
                 router.refresh(); // Refresh to update middleware state
             } else {
                 const data = await res.json();

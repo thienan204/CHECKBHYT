@@ -8,10 +8,10 @@ import TopHeader from './TopHeader';
 interface MainLayoutProps {
     children: React.ReactNode;
     rules: any[];
-    user: any; // UserPayload | null
+    menus?: any[];
 }
 
-export default function MainLayout({ children, rules, user }: MainLayoutProps) {
+export default function MainLayout({ children, rules, menus = [] }: MainLayoutProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const pathname = usePathname();
 
@@ -21,11 +21,10 @@ export default function MainLayout({ children, rules, user }: MainLayoutProps) {
 
     return (
         <>
-            <SidebarClient rules={rules} isOpen={isSidebarOpen} user={user} />
+            <SidebarClient rules={rules} menus={menus} isOpen={isSidebarOpen} />
             <TopHeader
                 onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
                 isSidebarOpen={isSidebarOpen}
-                user={user}
             />
 
             <div
